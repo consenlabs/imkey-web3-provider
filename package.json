@@ -2,14 +2,15 @@
   "name": "imkey-web3-provider",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/imkey-web3-provider",
   "scripts": {
     "type-check": "tsc --noEmit",
     "type-check:watch": "npm run type-check -- --watch",
     "build": "npm run build:types && npm run build:js",
     "build:types": "tsc --emitDeclarationOnly",
     "build:js": "babel src --out-dir lib --extensions \".ts,.tsx\" --source-maps inline",
-    "bundle": "webpack"
+    "bundle": "webpack",
+    "start": "webpack-dev-server"
   },
   "devDependencies": {
     "@babel/cli": "^7.8.3",
@@ -18,9 +19,12 @@
     "@babel/preset-env": "^7.8.3",
     "@babel/preset-typescript": "^7.8.3",
     "babel-loader": "^8.1.0",
+    "clean-webpack-plugin": "^3.0.0",
+    "html-webpack-plugin": "^4.3.0",
     "typescript": "^3.7.5",
     "webpack": "^4.43.0",
-    "webpack-cli": "^3.3.11"
+    "webpack-cli": "^3.3.11",
+    "webpack-dev-server": "^3.11.0"
   },
   "author": "",
   "license": "ISC",
