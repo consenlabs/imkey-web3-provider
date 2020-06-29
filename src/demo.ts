@@ -4,7 +4,8 @@ let web3 = new ImKeyProvider("");
 const btn = document.createElement('button');
 btn.innerText = "requestAccounts";
 btn.addEventListener('click', (e) => {
-    web3.eth.requestAccounts();
+    web3.eth.requestAccounts()
+    .then(console.log);
 });
 
 const btnBalance = document.createElement('button');
@@ -18,11 +19,13 @@ const btnSignTransaction = document.createElement('button');
 btnSignTransaction.innerText = "Sign Transaction";
 btnSignTransaction.addEventListener('click', (e) => {
     web3.eth.signTransaction({
-        from: "0xEB014f8c8B418Db6b45774c326A0E64C78914dC0",
-        gasPrice: "20000000000",
+        from: "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
+        gasPrice: "20000000008",
+        nonce: 8,
         gas: "21000",
         to: '0x3535353535353535353535353535353535353535',
-        value: "1000000000000000000",
+        value: "512",
+        chainId: 28,
         data: ""
     }).then(console.log);
 });
@@ -30,8 +33,11 @@ btnSignTransaction.addEventListener('click', (e) => {
 const btnSignMessage = document.createElement('button');
 btnSignMessage.innerText = "Sign Message";
 btnSignMessage.addEventListener('click', (e) => {
-    web3.eth.sign("Hello world", "0x11f4d0A3c12e86B4b5F39B213F7E19D048276DAe")
-        .then(console.log);
+    web3.eth.sign("Hello world", "0x6031564e7b2F5cc33737807b2E58DaFF870B590b")
+        .then(console.log)
+        .catch(error =>{
+            console.log("error meesage: ", error.message);
+        });
 });
 
 // document.appendChild(btn);

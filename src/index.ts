@@ -1,4 +1,5 @@
 import Web3 from 'web3';
+import { TransactionConfig,RLPEncodedTransaction } from "web3-eth"
 
 const IMKEY_MANAGER_ENDPOINT = "http://localhost:8081/api/imkey"
 let requestId = 0;
@@ -23,57 +24,81 @@ function imKeyRequestAccounts() {
             "id": requestId++
         }
         ).then((ret) => {
-            console.log("request address: ", JSON.stringify(ret));
+            if (ret.result == null) {
+                reject(ret.error)
+            } else {
+                resolve([ret.result.address])
+            }
         })
     })
 }
 
-function imKeySignTransaction() {
+function imKeySignTransaction(transactionConfig: TransactionConfig) {
+    // var block = new Web3().eth.getBlock("latest");
+    // console.log("gasLimit: " + block.gasLimit);
+    let v = Web3.utils.fromWei(transactionConfig.value!.toString()) + " ETH";
+    console.log("v: ", v);
+
+    // var gas = Web3.utils.fromWei(transactionConfig.gas!.toString());
+    // var gasPrice = Web3.utils.fromWei(transactionConfig.gasPrice!.toString());
+    let bigintFee = BigInt(transactionConfig.gas) * BigInt(transactionConfig.gasPrice);
+    var fee = Web3.utils.fromWei(bigintFee.toString()) + " ether";
+
+    console.log("fee: ", fee);
+    
+
     return new Promise<any>((resolve, reject) => {
         postData(IMKEY_MANAGER_ENDPOINT, {
             "jsonrpc": "2.0",
             "method": "eth.signTransaction",
             "params": {
                 "transaction": {
-                    "data": "",
-                    "gasLimit": 189000,
-                    "gasPrice": 20000000008,
-                    "nonce": 8,
-                    "to": "0x3535353535353535353535353535353535353535",
-                    "value": 512,
-                    "chainId": "28",
+                    "data": transactionConfig.data,
+                    "gasLimit": 189000,// to replace
+                    "gasPrice": transactionConfig.gasPrice,
+                    "nonce": transactionConfig.nonce,
+                    "to": transactionConfig.to,
+                    "value": transactionConfig.value,
+                    "chainId": transactionConfig.chainId,
                     "path": "m/44'/60'/0'/0/0"
                 },
                 "preview": {
-                    "payment": "0.01 ETH",
-                    "receiver": "0xE6F4142dfFA574D1d9f18770BF73814df07931F3",
-                    "sender": "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
-                    "fee": "0.0032 ether"
-                },
-                "txHash": "0x09fa41c4d6b92482506c8c56f65b217cc3398821caec7695683110997426db01"
+                    "payment": Web3.utils.fromWei(transactionConfig.value!.toString()) + " ETH",
+                    "receiver": transactionConfig.to,
+                    "sender": transactionConfig.from,
+                    "fee": "0.000420000000168 ether"
+                }
             },
             "id": 10
         }
         ).then((ret) => {
-            console.log("sign transaction: ", JSON.stringify(ret));
+            console.log("sign transaction: ", ret);
         })
     })
 }
 
-function imKeySignMessage() {
+function imKeySignMessage(dataToSign: string, address: string | number, callback?: (error: Error, signature: string) => void) {
     return new Promise<string>((resolve, reject) => {
+        console.log("datatosign", dataToSign);
+        console.log("address", address);
         postData(IMKEY_MANAGER_ENDPOINT, {
             "jsonrpc": "2.0",
             "method": "eth.signMessage",
             "params": {
-                "data": "Hello imKey",
-                "sender": "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
+                "data": dataToSign,
+                "sender": address,
                 "path": "m/44'/60'/0'/0/0"
             },
             "id": 11
         }
         ).then((ret) => {
-            console.log("request address: ", JSON.stringify(ret));
+            if (ret.result == null) {
+                reject(ret.error)
+            } else {
+                resolve(ret.result.signature)
+            }
+        }).catch((error) => {
+            reject(error)
         })
     })
 }
@@ -94,8 +119,13 @@ function postData(url: string, data: object) {
         redirect: 'follow', // manual, *follow, error
         referrer: 'no-referrer', // *client, no-referrer
     })
-        .then(response => response.json())
-        .then(console.log)// parses response to JSON
+        .then(response => {
+            if (response.status == 200) {
+                return response.json();
+            } else {
+                throw new Error("HttpError");
+            }
+        }).catch(console.log)
 }
 
 
