@@ -36,20 +36,20 @@ export default class ImKeyProvider extends Web3 {
         // if (!transactionConfig.gasPrice || !transactionConfig.nonce || !transactionConfig.to || !transactionConfig.value
         //     !transactionConfig
 
-        // var block = this.eth.getBlock("latest");
-        // console.log("gasLimit: " + block.gasLimit);
         let v = Web3.utils.fromWei(transactionConfig.value!.toString()) + " ETH";
         console.log("v: ", v);
 
-        // var gas = Web3.utils.fromWei(transactionConfig.gas!.toString());
-        // var gasPrice = Web3.utils.fromWei(transactionConfig.gasPrice!.toString());
-        let bigintFee = BigInt(transactionConfig.gas) * BigInt(transactionConfig.gasPrice);
-        var fee = Web3.utils.fromWei(bigintFee.toString()) + " ether";
-        let gasLimit = await this.eth.estimateGas(transactionConfig);
-        // this.eth.getBlock("latest").then((ret) => {
-        //     console.log
-        // })
+        var fee = (BigInt(transactionConfig.gas) * BigInt(transactionConfig.gasPrice)).toString();//wei
+        fee = Web3.utils.fromWei(fee,"Gwei");//to Gwei
+        let temp = Math.ceil(Number(fee));
+        fee = (temp * 1000000000).toString();//to ether
+        fee = Web3.utils.fromWei(fee) + " ether";
+        console.log("fee: " + fee);
+
+        let cloneConfig = Object.assign(Object.create(Object.getPrototypeOf(transactionConfig)), transactionConfig);
+        let gasLimit = await this.eth.estimateGas(cloneConfig);
         console.log('gasLimit: ', gasLimit);
+        console.log(transactionConfig);
 
         return new Promise<RLPEncodedTransaction>((resolve, reject) => {
             postData(IMKEY_MANAGER_ENDPOINT, {
@@ -58,7 +58,7 @@ export default class ImKeyProvider extends Web3 {
                 "params": {
                     "transaction": {
                         "data": transactionConfig.data,
-                        "gasLimit": gasLimit,// to replace
+                        "gasLimit": gasLimit,
                         "gasPrice": transactionConfig.gasPrice,
                         "nonce": transactionConfig.nonce,
                         "to": transactionConfig.to,
@@ -67,32 +67,36 @@ export default class ImKeyProvider extends Web3 {
                         "path": "m/44'/60'/0'/0/0"
                     },
                     "preview": {
-                        "payment": Web3.utils.fromWei(transactionConfig.value!.toString()) + " ETH",
+                        "payment": transactionConfig.value!.toString() + " ETH",
                         "receiver": transactionConfig.to,
                         "sender": transactionConfig.from,
-                        "fee": "0.00042 ether"// length error
+                        "fee": fee
                     }
                 },
                 "id": requestId++
             }
             ).then((ret) => {
-                console.log("sign transaction: ", ret);
-                let rlpTX: RLPEncodedTransaction = {
-                    raw: ret.result.txData,
-                    tx: {
-                        nonce: transactionConfig.nonce!.toString(),
-                        gasPrice: transactionConfig.gasPrice!.toString(),
-                        gas: transactionConfig.gas!.toString(),
-                        to: transactionConfig.to!.toString(),
-                        value: transactionConfig.value!.toString(),
-                        input: "0x",//??
-                        r: "r",
-                        s: "s",
-                        v: "v",
-                        hash: ret.result.hash,
-                    }
-                };
-                resolve(rlpTX);
+                if (ret.result == null) {
+                    reject(ret.error);
+                } else {
+                    console.log("sign transaction: ", ret);
+                    let rlpTX: RLPEncodedTransaction = {
+                        raw: ret.result.txData,
+                        tx: {
+                            nonce: transactionConfig.nonce!.toString(),
+                            gasPrice: transactionConfig.gasPrice!.toString(),
+                            gas: transactionConfig.gas!.toString(),
+                            to: transactionConfig.to!.toString(),
+                            value: transactionConfig.value!.toString(),
+                            input: transactionConfig.data!.toString(),//??
+                            r: "r",
+                            s: "s",
+                            v: "v",
+                            hash: ret.result.hash,
+                        }
+                    };
+                    resolve(rlpTX);
+                }
             }).catch((error) => {
                 reject(error);
             })
