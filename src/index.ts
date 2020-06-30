@@ -8,7 +8,7 @@ export default class ImKeyProvider extends Web3 {
     constructor(provider: string) {
         super(Web3.givenProvider || provider);
         this.eth.requestAccounts = this.imKeyRequestAccounts;
-        this.eth.signTransaction = this.imKeySignTransaction;
+        this.eth.signTransaction = this.imKeySignTransaction.bind(this);
         this.eth.sign = this.imKeySignMessage;
     }
 
@@ -32,7 +32,7 @@ export default class ImKeyProvider extends Web3 {
         })
     }
 
-    imKeySignTransaction(transactionConfig: TransactionConfig) {
+    async imKeySignTransaction(transactionConfig: TransactionConfig) {
         // if (!transactionConfig.gasPrice || !transactionConfig.nonce || !transactionConfig.to || !transactionConfig.value
         //     !transactionConfig
 
@@ -45,11 +45,11 @@ export default class ImKeyProvider extends Web3 {
         // var gasPrice = Web3.utils.fromWei(transactionConfig.gasPrice!.toString());
         let bigintFee = BigInt(transactionConfig.gas) * BigInt(transactionConfig.gasPrice);
         var fee = Web3.utils.fromWei(bigintFee.toString()) + " ether";
-        console.log(super.eth);
-        // let gasLimit = this.eth.estimateGas(transactionConfig);
+        let gasLimit = await this.eth.estimateGas(transactionConfig);
         // this.eth.getBlock("latest").then((ret) => {
         //     console.log
         // })
+        console.log('gasLimit: ', gasLimit);
 
         return new Promise<RLPEncodedTransaction>((resolve, reject) => {
             postData(IMKEY_MANAGER_ENDPOINT, {
@@ -58,7 +58,7 @@ export default class ImKeyProvider extends Web3 {
                 "params": {
                     "transaction": {
                         "data": transactionConfig.data,
-                        "gasLimit": 189000,// to replace
+                        "gasLimit": gasLimit,// to replace
                         "gasPrice": transactionConfig.gasPrice,
                         "nonce": transactionConfig.nonce,
                         "to": transactionConfig.to,
