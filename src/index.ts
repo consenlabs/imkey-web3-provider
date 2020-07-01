@@ -12,7 +12,7 @@ export default class ImKeyProvider extends Web3 {
         this.eth.sign = this.imKeySignMessage;
     }
 
-    imKeyRequestAccounts() {
+    imKeyRequestAccounts(callback?: (error: Error, result: string[]) => void) {
         return new Promise<string[]>((resolve, reject) => {
             postData(IMKEY_MANAGER_ENDPOINT, {
                 "jsonrpc": "2.0",
@@ -23,32 +23,33 @@ export default class ImKeyProvider extends Web3 {
                 "id": requestId++
             }
             ).then((ret) => {
+                callback?.(ret.error, ret.result.address);
                 if (ret.result == null) {
-                    reject(ret.error)
+                    reject(ret.error);
                 } else {
-                    resolve([ret.result.address])
+                    resolve([ret.result.address]);
                 }
+            }).catch((error) => {
+                callback?.(error, [""]);
+                reject(error);
             })
         })
     }
 
     async imKeySignTransaction(transactionConfig: TransactionConfig) {
-        // if (!transactionConfig.gasPrice || !transactionConfig.nonce || !transactionConfig.to || !transactionConfig.value
-        //     !transactionConfig
-
-        let v = Web3.utils.fromWei(transactionConfig.value!.toString()) + " ETH";
-        console.log("v: ", v);
+        if (!transactionConfig.gasPrice || !transactionConfig.nonce || !transactionConfig.to || !transactionConfig.value
+            || !transactionConfig.chainId || !transactionConfig.from) {
+            throw new Error("need pass gasPrice,nonce,to,value,chainId,from");
+        }
 
         var fee = (BigInt(transactionConfig.gas) * BigInt(transactionConfig.gasPrice)).toString();//wei
-        fee = Web3.utils.fromWei(fee,"Gwei");//to Gwei
+        fee = Web3.utils.fromWei(fee, "Gwei");//to Gwei
         let temp = Math.ceil(Number(fee));
         fee = (temp * 1000000000).toString();//to ether
         fee = Web3.utils.fromWei(fee) + " ether";
-        console.log("fee: " + fee);
 
         let cloneConfig = Object.assign(Object.create(Object.getPrototypeOf(transactionConfig)), transactionConfig);
         let gasLimit = await this.eth.estimateGas(cloneConfig);
-        console.log('gasLimit: ', gasLimit);
         console.log(transactionConfig);
 
         return new Promise<RLPEncodedTransaction>((resolve, reject) => {
@@ -104,6 +105,10 @@ export default class ImKeyProvider extends Web3 {
     }
 
     imKeySignMessage(dataToSign: string, address: string | number, callback?: (error: Error, signature: string) => void) {
+        if (Number.isInteger(address)) {
+            throw new Error("Pass the address to sign data with for know");
+        }
+
         return new Promise<string>((resolve, reject) => {
             console.log("datatosign", dataToSign);
             console.log("address", address);
@@ -118,13 +123,15 @@ export default class ImKeyProvider extends Web3 {
                 "id": requestId++
             }
             ).then((ret) => {
+                callback?.(ret.error, ret.result.signature);
                 if (ret.result == null) {
-                    reject(ret.error)
+                    reject(ret.error);
                 } else {
-                    resolve(ret.result.signature)
+                    resolve(ret.result.signature);
                 }
             }).catch((error) => {
-                reject(error)
+                callback?.(error, "");
+                reject(error);
             })
         })
     }

@@ -4,8 +4,15 @@ let web3 = new ImKeyProvider("");
 const btn = document.createElement('button');
 btn.innerText = "requestAccounts";
 btn.addEventListener('click', (e) => {
-    web3.eth.requestAccounts()
-    .then(console.log);
+    function showResult(error: Error, result: string[]) {
+        if (error != null) {
+            console.log("show error: ", error);
+        } else {
+            console.log("show result: ", result);
+        }
+    }
+    web3.eth.requestAccounts(showResult)
+        .then(console.log);
 });
 
 const btnBalance = document.createElement('button');
@@ -33,9 +40,17 @@ btnSignTransaction.addEventListener('click', (e) => {
 const btnSignMessage = document.createElement('button');
 btnSignMessage.innerText = "Sign Message";
 btnSignMessage.addEventListener('click', (e) => {
-    web3.eth.sign("Hello world", "0x6031564e7b2F5cc33737807b2E58DaFF870B590b")
+
+    function showResult(error: Error, signature: string) {
+        if (error != null) {
+            console.log("show error: ", error);
+        } else {
+            console.log("show result: ", signature);
+        }
+    }
+    web3.eth.sign("Hello world", "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",showResult)
         .then(console.log)
-        .catch(error =>{
+        .catch(error => {
             console.log("error meesage: ", error.message);
         });
 });
