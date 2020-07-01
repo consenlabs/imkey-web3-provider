@@ -1,7 +1,8 @@
 import Web3 from 'web3';
 import { TransactionConfig, RLPEncodedTransaction } from "web3-eth"
 
-const IMKEY_MANAGER_ENDPOINT = "http://localhost:8081/api/imkey"
+const IMKEY_MANAGER_ENDPOINT = "http://localhost:8081/api/imkey";
+const IMKEY_ETH_PATH = "m/44'/60'/0'/0/0";
 let requestId = 0;
 
 export default class ImKeyProvider extends Web3 {
@@ -18,7 +19,7 @@ export default class ImKeyProvider extends Web3 {
                 "jsonrpc": "2.0",
                 "method": "eth.getAddress",
                 "params": {
-                    "path": "m/44'/60'/0'/0/0"
+                    "path": IMKEY_ETH_PATH
                 },
                 "id": requestId++
             }
@@ -39,7 +40,7 @@ export default class ImKeyProvider extends Web3 {
     async imKeySignTransaction(transactionConfig: TransactionConfig) {
         if (!transactionConfig.gasPrice || !transactionConfig.nonce || !transactionConfig.to || !transactionConfig.value
             || !transactionConfig.chainId || !transactionConfig.from) {
-            throw new Error("need pass gasPrice,nonce,to,value,chainId,from");
+            throw new Error("Need pass gasPrice,nonce,to,value,chainId,from");
         }
 
         var fee = (BigInt(transactionConfig.gas) * BigInt(transactionConfig.gasPrice)).toString();//wei
@@ -65,7 +66,7 @@ export default class ImKeyProvider extends Web3 {
                         "to": transactionConfig.to,
                         "value": transactionConfig.value,
                         "chainId": transactionConfig.chainId,
-                        "path": "m/44'/60'/0'/0/0"
+                        "path": IMKEY_ETH_PATH
                     },
                     "preview": {
                         "payment": transactionConfig.value!.toString() + " ETH",
@@ -106,7 +107,7 @@ export default class ImKeyProvider extends Web3 {
 
     imKeySignMessage(dataToSign: string, address: string | number, callback?: (error: Error, signature: string) => void) {
         if (Number.isInteger(address)) {
-            throw new Error("Pass the address to sign data with for know");
+            throw new Error("Pass the address to sign data with for now");
         }
 
         return new Promise<string>((resolve, reject) => {
@@ -118,7 +119,7 @@ export default class ImKeyProvider extends Web3 {
                 "params": {
                     "data": dataToSign,
                     "sender": address,
-                    "path": "m/44'/60'/0'/0/0"
+                    "path": IMKEY_ETH_PATH
                 },
                 "id": requestId++
             }
