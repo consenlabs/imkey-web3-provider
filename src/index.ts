@@ -1,5 +1,7 @@
 import Web3 from 'web3';
+import * as rlp from 'rlp';
 import { TransactionConfig, RLPEncodedTransaction } from "web3-eth"
+
 
 const IMKEY_MANAGER_ENDPOINT = "http://localhost:8081/api/imkey";
 const IMKEY_ETH_PATH = "m/44'/60'/0'/0/0";
@@ -82,6 +84,13 @@ export default class ImKeyProvider extends Web3 {
                     reject(ret.error);
                 } else {
                     console.log("sign transaction: ", ret);
+                    var txData = ret.result.txData;
+                    if(!ret.result.txData.startsWith("0x")){
+                        txData = "0x" + txData;
+                    }
+                    const decoded = rlp.decode(txData, true);
+                    console.log("decoded: ", decoded);
+
                     let rlpTX: RLPEncodedTransaction = {
                         raw: ret.result.txData,
                         tx: {
@@ -90,13 +99,14 @@ export default class ImKeyProvider extends Web3 {
                             gas: transactionConfig.gas!.toString(),
                             to: transactionConfig.to!.toString(),
                             value: transactionConfig.value!.toString(),
-                            input: transactionConfig.data!.toString(),//??
-                            r: "r",
-                            s: "s",
-                            v: "v",
+                            input: transactionConfig.data!.toString(),
+                            r: this.utils.bytesToHex(decoded.data[7]),
+                            s: this.utils.bytesToHex(decoded.data[8]),
+                            v: Number(this.utils.bytesToHex(decoded.data[6])).toString(),
                             hash: ret.result.hash,
                         }
                     };
+
                     resolve(rlpTX);
                 }
             }).catch((error) => {

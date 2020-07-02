@@ -5368,7 +5368,7 @@ ripemd160@^2.0.0, ripemd160@^2.0.1:
     hash-base "^3.0.0"
     inherits "^2.0.1"
 
-rlp@^2.2.3:
+rlp@^2.2.3, rlp@^2.2.5:
   version "2.2.5"
   resolved "https://registry.npm.taobao.org/rlp/download/rlp-2.2.5.tgz#b0577b763e909f21a9dea31b4b235b2393f15ef1"
   integrity sha1-sFd7dj6QnyGp3qMbSyNbI5PxXvE=
