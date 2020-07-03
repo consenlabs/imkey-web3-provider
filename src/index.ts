@@ -53,7 +53,6 @@ export default class ImKeyProvider extends Web3 {
 
         let cloneConfig = Object.assign(Object.create(Object.getPrototypeOf(transactionConfig)), transactionConfig);
         let gasLimit = await this.eth.estimateGas(cloneConfig);
-        console.log(transactionConfig);
 
         return new Promise<RLPEncodedTransaction>((resolve, reject) => {
             postData(IMKEY_MANAGER_ENDPOINT, {
@@ -83,13 +82,11 @@ export default class ImKeyProvider extends Web3 {
                 if (ret.result == null) {
                     reject(ret.error);
                 } else {
-                    console.log("sign transaction: ", ret);
                     var txData = ret.result.txData;
                     if(!ret.result.txData.startsWith("0x")){
                         txData = "0x" + txData;
                     }
                     const decoded = rlp.decode(txData, true);
-                    console.log("decoded: ", decoded);
 
                     let rlpTX: RLPEncodedTransaction = {
                         raw: ret.result.txData,
@@ -121,8 +118,6 @@ export default class ImKeyProvider extends Web3 {
         }
 
         return new Promise<string>((resolve, reject) => {
-            console.log("datatosign", dataToSign);
-            console.log("address", address);
             postData(IMKEY_MANAGER_ENDPOINT, {
                 "jsonrpc": "2.0",
                 "method": "eth.signMessage",
@@ -169,7 +164,9 @@ function postData(url: string, data: object) {
             } else {
                 throw new Error("HttpError");
             }
-        }).catch(console.log)
+        }).catch((error) => {
+            throw new Error("HttpError");
+        })
 }
 
 
@@ -193,4 +190,3 @@ fetch("http://localhost:8081/api/imkey", {
     redirect: 'follow', // manual, *follow, error
     referrer: 'no-referrer', // *client, no-referrer
 })
-    .then(rsp => console.log(rsp))
