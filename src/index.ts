@@ -1,18 +1,22 @@
 import Web3 from 'web3';
 import * as rlp from 'rlp';
 import { TransactionConfig, RLPEncodedTransaction } from "web3-eth"
-
+// import EventEmitter from 'alpeventemitter';
+const EventEmitter = require('alpeventemitter');
 
 const IMKEY_MANAGER_ENDPOINT = "http://localhost:8081/api/imkey";
 const IMKEY_ETH_PATH = "m/44'/60'/0'/0/0";
 let requestId = 0;
+interface ImKeyProviderConfig {
+    provider: string
+}
 
 export default class ImKeyProvider extends Web3 {
-    constructor(provider: string) {
-        super(Web3.givenProvider || provider);
+    constructor() {
+        super(new Web3.providers.WebsocketProvider("wss://ropsten.infura.io/ws/v3/819049aeadbe494c80bdb815cf41242e"));
         this.eth.requestAccounts = this.imKeyRequestAccounts;
         this.eth.signTransaction = this.imKeySignTransaction.bind(this);
-        this.eth.sign = this.imKeySignMessage;
+        this.eth.sign = this.imKeySignMessage.bind(this);
     }
 
     imKeyRequestAccounts(callback?: (error: Error, result: string[]) => void) {
@@ -86,6 +90,7 @@ export default class ImKeyProvider extends Web3 {
                     if(!ret.result.txData.startsWith("0x")){
                         txData = "0x" + txData;
                     }
+
                     const decoded = rlp.decode(txData, true);
 
                     let rlpTX: RLPEncodedTransaction = {
@@ -97,8 +102,11 @@ export default class ImKeyProvider extends Web3 {
                             to: transactionConfig.to!.toString(),
                             value: transactionConfig.value!.toString(),
                             input: transactionConfig.data!.toString(),
+                            // @ts-ignore
                             r: this.utils.bytesToHex(decoded.data[7]),
+                            // @ts-ignore
                             s: this.utils.bytesToHex(decoded.data[8]),
+                            // @ts-ignore
                             v: Number(this.utils.bytesToHex(decoded.data[6])).toString(),
                             hash: ret.result.hash,
                         }

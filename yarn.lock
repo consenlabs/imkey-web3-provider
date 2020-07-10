@@ -1276,6 +1276,11 @@ ajv@^6.1.0, ajv@^6.10.2, ajv@^6.12.2, ajv@^6.5.5:
     json-schema-traverse "^0.4.1"
     uri-js "^4.2.2"
 
+alpeventemitter@^2.0.1:
+  version "2.0.1"
+  resolved "https://registry.npm.taobao.org/alpeventemitter/download/alpeventemitter-2.0.1.tgz#90184a600bf13fddf0bf4a212749494a0afae928"
+  integrity sha1-kBhKYAvxP93wv0ohJ0lJSgr66Sg=
+
 ansi-colors@^3.0.0:
   version "3.2.4"
   resolved "https://registry.npm.taobao.org/ansi-colors/download/ansi-colors-3.2.4.tgz#e3a3da4bfbae6c86a9c285625de124a234026fbf"
