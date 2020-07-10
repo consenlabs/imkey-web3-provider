@@ -2,7 +2,7 @@ import Web3 from 'web3';
 import * as rlp from 'rlp';
 import {TransactionConfig, RLPEncodedTransaction} from "web3-eth"
 import {HttpProvider, WebsocketProvider} from "web3-core";
-
+const EventEmitter = require('alpeventemitter');
 
 interface RequestArguments {
     method: string;
@@ -12,12 +12,16 @@ interface RequestArguments {
 const IMKEY_MANAGER_ENDPOINT = "http://localhost:8081/api/imkey";
 const IMKEY_ETH_PATH = "m/44'/60'/0'/0/0";
 let requestId = 0;
+interface ImKeyProviderConfig {
+    provider: string
+}
 
-export default class ImKeyProvider{
+export default class ImKeyProvider extends EventEmitter{
     infuraProvider: WebsocketProvider
 
     constructor(provider: string) {
         // super(Web3.givenProvider || provider);
+        super()
         this.infuraProvider = new WebsocketProvider(provider);
         // this.eth.requestAccounts = this.imKeyRequestAccounts;
         // this.eth.signTransaction = this.imKeySignTransaction.bind(this);
@@ -48,6 +52,7 @@ export default class ImKeyProvider{
                 }))
 
         }
+
     }
 
     imKeyRequestAccounts(callback?: (error: Error, result: string[]) => void) {
@@ -121,6 +126,7 @@ export default class ImKeyProvider{
                     if (!ret.result.txData.startsWith("0x")) {
                         txData = "0x" + txData;
                     }
+
                     const decoded = rlp.decode(txData, true);
 
                     let rlpTX: RLPEncodedTransaction = {

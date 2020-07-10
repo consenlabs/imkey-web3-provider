@@ -1,6 +1,6 @@
 import ImKeyProvider from "./index";
 
-let web3 = new ImKeyProvider("");
+let web3 = new ImKeyProvider();
 const btn = document.createElement('button');
 btn.innerText = "requestAccounts";
 btn.addEventListener('click', (e) => {
