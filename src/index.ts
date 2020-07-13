@@ -1,7 +1,9 @@
+// @ts-ignore
 import Web3 from 'web3';
+
 import * as rlp from 'rlp';
 import {TransactionConfig, RLPEncodedTransaction} from "web3-eth"
-import {HttpProvider, WebsocketProvider} from "web3-core";
+
 const EventEmitter = require('alpeventemitter');
 
 interface RequestArguments {
@@ -12,50 +14,82 @@ interface RequestArguments {
 const IMKEY_MANAGER_ENDPOINT = "http://localhost:8081/api/imkey";
 const IMKEY_ETH_PATH = "m/44'/60'/0'/0/0";
 let requestId = 0;
+
+
+function createJsonRpcResponse(id: number, ret: any) {
+    return {
+        "id": id,
+        "jsonrpc": "2.0",
+        "result": ret
+    }
+}
+
+function createJsonRpcError(id: number, error: Error) {
+    return {
+        "id": id,
+        "jsonrpc": "2.0",
+        "error": {
+            "code": -32002,
+            "message": error.message
+        }
+    }
+}
+
 interface ImKeyProviderConfig {
     provider: string
 }
 
-export default class ImKeyProvider extends EventEmitter{
-    infuraProvider: WebsocketProvider
+export default class ImKeyProvider extends EventEmitter {
+    // @ts-ignore
+    #infuraProvider: Web3.providers.HttpProvider
 
-    constructor(provider: string) {
-        // super(Web3.givenProvider || provider);
+    constructor() {
         super()
-        this.infuraProvider = new WebsocketProvider(provider);
-        // this.eth.requestAccounts = this.imKeyRequestAccounts;
-        // this.eth.signTransaction = this.imKeySignTransaction.bind(this);
-        // this.eth.sign = this.imKeySignMessage;
+        // @ts-ignore
+        this.#infuraProvider = new Web3.providers.HttpProvider("https://ropsten.infura.io/v3/819049aeadbe494c80bdb815cf41242e");
+        this.emit('connect');
+        this.emit('accountsChanged', ["0x78643FE682df12651d5aF3DD30fB02B828B9f111"]);
     }
 
-    request(args: RequestArguments): Promise<any> {
+    async request(args: RequestArguments): Promise<any> {
+        // Promise
+
         switch (args.method) {
             case 'eth_requestAccounts':
-                return this.imKeyRequestAccounts()
+                let address = await this.imKeyRequestAccounts(requestId++);
+                console.log("resolve: address", address);
+                return Promise.resolve(address);
             default:
-
-                return new Promise<unknown>(((resolve, reject) => {
-
-                    let payload = {
-                        jsonrpc: "2.0",
-                        method: args.method,
-                        params: args.params,
-                        id: requestId++
-                    };
-                    this.infuraProvider.send(payload, (err, ret) => {
-                        if (err!=null) {
-                            reject(err);
-                        } else {
-                            resolve(ret);
-                        }
-                    })
-                }))
-
+                let payload = {
+                    jsonrpc: "2.0",
+                    method: args.method,
+                    params: args.params,
+                    id: requestId++
+                };
+                console.log("call other function: ", JSON.stringify(payload));
+                // @ts-ignore
+                this.#infuraProvider.send(payload, (err, ret) => {
+                    if (err != null) {
+                        return Promise.reject(err);
+                    } else {
+                        return Promise.resolve(ret);
+                    }
+                })
         }
-
     }
 
-    imKeyRequestAccounts(callback?: (error: Error, result: string[]) => void) {
+    sendAsync(args: RequestArguments & { id: number }, callback: (err: Error | null, ret: any) => void) {
+        switch (args.method) {
+            case 'eth_requestAccounts':
+                return this.imKeyRequestAccounts(args.id, callback);
+            default:
+                console.log("call other function: ", JSON.stringify(args));
+                // @ts-ignore
+                this.#infuraProvider.send(args, callback)
+        }
+    }
+
+    imKeyRequestAccounts(id: number, callback ?: (error: Error, ret: any) => void) {
         return new Promise<string[]>((resolve, reject) => {
             postData(IMKEY_MANAGER_ENDPOINT, {
                     "jsonrpc": "2.0",
@@ -66,14 +100,14 @@ export default class ImKeyProvider extends EventEmitter{
                     "id": requestId++
                 }
             ).then((ret) => {
-                callback?.(ret.error, ret.result.address);
+                callback?.(ret.error, createJsonRpcResponse(id, [ret.result.address]));
                 if (ret.result == null) {
                     reject(ret.error);
                 } else {
                     resolve([ret.result.address]);
                 }
             }).catch((error) => {
-                callback?.(error, [""]);
+                callback?.(error, createJsonRpcResponse(id, [""]));
                 reject(error);
             })
         })
@@ -156,7 +190,7 @@ export default class ImKeyProvider extends EventEmitter{
         })
     }
 
-    imKeySignMessage(dataToSign: string, address: string | number, callback?: (error: Error, signature: string) => void) {
+    imKeySignMessage(dataToSign: string, address: string | number, callback ?: (error: Error, signature: string) => void) {
         if (Number.isInteger(address)) {
             throw new Error("Pass the address to sign data with for now");
         }
@@ -213,24 +247,25 @@ function postData(url: string, data: object) {
         })
 }
 
-
-fetch("http://localhost:8081/api/imkey", {
-    body: JSON.stringify({
-        "jsonrpc": "2.0",
-        "method": "eth.getAddress",
-        "params": {
-            "path": "m/44'/60'/0'/0/0"
-        },
-        "id": 1
-    }), // must match 'Content-Type' header
-    cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
-    credentials: 'same-origin', // include, same-origin, *omit
-    headers: {
-        'user-agent': 'Mozilla/4.0 MDN Example',
-        'content-type': 'application/json'
-    },
-    method: 'POST', // *GET, POST, PUT, DELETE, etc.
-    mode: 'cors', // no-cors, cors, *same-origin
-    redirect: 'follow', // manual, *follow, error
-    referrer: 'no-referrer', // *client, no-referrer
-})
+//
+//
+// fetch("http://localhost:8081/api/imkey", {
+//     body: JSON.stringify({
+//         "jsonrpc": "2.0",
+//         "method": "eth.getAddress",
+//         "params": {
+//             "path": "m/44'/60'/0'/0/0"
+//         },
+//         "id": 1
+//     }), // must match 'Content-Type' header
+//     cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
+//     credentials: 'same-origin', // include, same-origin, *omit
+//     headers: {
+//         'user-agent': 'Mozilla/4.0 MDN Example',
+//         'content-type': 'application/json'
+//     },
+//     method: 'POST', // *GET, POST, PUT, DELETE, etc.
+//     mode: 'cors', // no-cors, cors, *same-origin
+//     redirect: 'follow', // manual, *follow, error
+//     referrer: 'no-referrer', // *client, no-referrer
+// })

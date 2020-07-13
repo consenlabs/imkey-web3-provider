@@ -50,8 +50,9 @@ btnSignMessage.addEventListener('click', (e) => {
     }
     web3.eth.sign("Hello world", "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",showResult)
         .then(console.log)
+        // @ts-ignore
         .catch(error => {
-            console.log("error meesage: ", error.message);
+            console.log("error message: ", error.message);
         });
 });
 

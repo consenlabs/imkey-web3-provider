@@ -11,7 +11,7 @@ module.exports = [
         path: path.resolve(__dirname, 'dist'),
         filename: 'imkey-web3-provider.js',
         library: 'imKeyWeb3Provider',
-        libraryTarget: 'var'
+        // libraryTarget: 'var'
     },
     plugins: [
         new CleanWebpackPlugin({ cleanStaleWebpackAssets: false }),
