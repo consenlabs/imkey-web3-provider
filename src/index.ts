@@ -52,8 +52,8 @@ export default class ImKeyProvider extends EventEmitter {
     }
 
     async request(args: RequestArguments): Promise<any> {
+        console.log("request ",args.method);
         // Promise
-
         switch (args.method) {
             case 'eth_requestAccounts':
                 let address = await this.imKeyRequestAccounts(requestId++);
@@ -79,9 +79,15 @@ export default class ImKeyProvider extends EventEmitter {
     }
 
     sendAsync(args: RequestArguments & { id: number }, callback: (err: Error | null, ret: any) => void) {
+        console.log("sendAsync ",args.method);
+        console.log("params",args.params);
         switch (args.method) {
             case 'eth_requestAccounts':
                 return this.imKeyRequestAccounts(args.id, callback);
+            case 'eth_sign':
+                return this.imKeySignMessage(args.id,args.params![1],args.params![0],callback);
+            // case 'eth_sign':
+            //     return this.imKeySignMessage(args.params![1],args.params![0],callback);
             default:
                 console.log("call other function: ", JSON.stringify(args));
                 // @ts-ignore
@@ -101,11 +107,7 @@ export default class ImKeyProvider extends EventEmitter {
                 }
             ).then((ret) => {
                 callback?.(ret.error, createJsonRpcResponse(id, [ret.result.address]));
-                if (ret.result == null) {
-                    reject(ret.error);
-                } else {
-                    resolve([ret.result.address]);
-                }
+                resolve([ret.result.address]);
             }).catch((error) => {
                 callback?.(error, createJsonRpcResponse(id, [""]));
                 reject(error);
@@ -190,10 +192,14 @@ export default class ImKeyProvider extends EventEmitter {
         })
     }
 
-    imKeySignMessage(dataToSign: string, address: string | number, callback ?: (error: Error, signature: string) => void) {
+    imKeySignMessage(id: number, dataToSign: string, address: string | number, callback ?: (error: Error, ret: any) => void) {
         if (Number.isInteger(address)) {
             throw new Error("Pass the address to sign data with for now");
         }
+
+        const checksumAddress = Web3.utils.toChecksumAddress(address as string);
+        console.log("address ",checksumAddress);
+        console.log("address ","0x6031564e7b2F5cc33737807b2E58DaFF870B590b");
 
         return new Promise<string>((resolve, reject) => {
             postData(IMKEY_MANAGER_ENDPOINT, {
@@ -201,20 +207,16 @@ export default class ImKeyProvider extends EventEmitter {
                     "method": "eth.signMessage",
                     "params": {
                         "data": dataToSign,
-                        "sender": address,
+                        "sender": checksumAddress,
                         "path": IMKEY_ETH_PATH
                     },
                     "id": requestId++
                 }
             ).then((ret) => {
-                callback?.(ret.error, ret.result.signature);
-                if (ret.result == null) {
-                    reject(ret.error);
-                } else {
-                    resolve(ret.result.signature);
-                }
+                callback?.(ret.error, createJsonRpcResponse(id, ret.result?.signature));
+                resolve(ret.result?.signature);
             }).catch((error) => {
-                callback?.(error, "");
+                callback?.(error, createJsonRpcResponse(id, ""));
                 reject(error);
             })
         })
