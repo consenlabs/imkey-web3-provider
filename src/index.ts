@@ -14,7 +14,6 @@ const IMKEY_MANAGER_ENDPOINT = "http://localhost:8081/api/imkey";
 const IMKEY_ETH_PATH = "m/44'/60'/0'/0/0";
 let requestId = 0;
 
-
 function createJsonRpcResponse(id: number, ret: any) {
     return {
         "id": id,
@@ -66,13 +65,16 @@ export default class ImKeyProvider extends EventEmitter {
     }
 
     async request(args: RequestArguments): Promise<any> {
+        console.log(args.params);
         // Promise
         switch (args.method) {
             case 'eth_requestAccounts':
                 let address = await this.imKeyRequestAccounts(requestId++);
                 return Promise.resolve(address);
             case 'eth_sign':
-                return this.imKeySignMessage(requestId++, args.params![1], args.params![0]);
+                let ret = await this.imKeySignMessage(requestId++, args.params![1], args.params![0]);
+                console.log(ret);
+                return Promise.resolve("fucc");
             case 'eth_signTransaction':
                 return this.imKeySignTransaction(requestId++, args.params![0]);
             default:
@@ -213,6 +215,7 @@ export default class ImKeyProvider extends EventEmitter {
     }
 
     imKeySignMessage(id: number, dataToSign: string, address: string | number, callback?: (error: Error, ret: any) => void) {
+        console.log("datatosign:", dataToSign);
         if (Number.isInteger(address)) {
             throw new Error("Pass the address to sign data with for now");
         }
