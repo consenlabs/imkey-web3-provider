@@ -199,7 +199,7 @@ export default class ImKeyProvider extends EventEmitter {
                         s: Web3.utils.bytesToHex(decoded.data[8]),
                         // @ts-ignore
                         v: Web3.utils.bytesToHex(decoded.data[6]),
-                        hash: ret.result?.hash,
+                        hash: ret.result?.txHash,
                     }
                 };
                 callback?.(ret.eror, createJsonRpcResponse(id, rlpTX));
