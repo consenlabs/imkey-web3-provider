@@ -34,8 +34,23 @@ function createJsonRpcError(id: number, error: Error) {
     }
 }
 
+function createProviderRpcError(name: string, message:string) {
+    let e:ProviderRpcError = {
+        name: name,
+        message: message,
+        code:4900
+    }
+    return e;
+}
+
 interface ImKeyProviderConfig {
     provider: string
+}
+
+interface ProviderRpcError extends Error {
+    message: string;
+    code: number;
+    data?: unknown;
 }
 
 export default class ImKeyProvider extends EventEmitter {
@@ -58,6 +73,10 @@ export default class ImKeyProvider extends EventEmitter {
                 let address = await this.imKeyRequestAccounts(requestId++);
                 console.log("resolve: address", address);
                 return Promise.resolve(address);
+            case 'eth_sign':
+                return this.imKeySignMessage(requestId++,args.params![1], args.params![0]);
+            case 'eth_signTransaction':
+                return this.imKeySignTransaction(requestId++,args.params![0]);
             default:
                 let payload = {
                     jsonrpc: "2.0",
@@ -110,6 +129,7 @@ export default class ImKeyProvider extends EventEmitter {
             }).catch((error) => {
                 callback?.(error, createJsonRpcResponse(id, [""]));
                 reject(error);
+                this.emit('disconnect',createProviderRpcError(error.name,error.message));
             })
         })
     }
@@ -202,6 +222,7 @@ export default class ImKeyProvider extends EventEmitter {
             }).catch((error) => {
                 callback?.(error, createJsonRpcResponse(id, null));
                 reject(error);
+                this.emit('disconnect',createProviderRpcError(error.name,error.message));
             })
         })
     }
@@ -233,6 +254,7 @@ export default class ImKeyProvider extends EventEmitter {
             }).catch((error) => {
                 callback?.(error, createJsonRpcResponse(id, ""));
                 reject(error);
+                this.emit('disconnect',createProviderRpcError(error.name,error.message));
             })
         })
     }

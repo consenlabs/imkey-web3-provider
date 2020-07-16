@@ -5,6 +5,10 @@ import { RLPEncodedTransaction } from "web3-eth"
 const imkeyProvider = new ImKeyProvider();
 const web3 = new Web3(imkeyProvider as any);
 
+imkeyProvider.on('disconnect', (code: any, reason: any) => {
+    console.log(`Ethereum Provider connection closed: ${reason}. Code: ${code}`);
+});
+
 const btn = document.createElement('button');
 btn.innerText = "requestAccounts";
 btn.addEventListener('click', (e) => {
@@ -17,6 +21,15 @@ btn.addEventListener('click', (e) => {
     }
     web3.eth.requestAccounts(showResult)
         .then(console.log);
+
+    imkeyProvider
+    .request({ method: 'eth_requestAccounts' })
+    .then((ret) => {
+        console.log(ret);
+    })
+    .catch((error) => {
+        console.log
+    });
 });
 
 const btnBalance = document.createElement('button');
