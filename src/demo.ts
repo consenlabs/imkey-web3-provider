@@ -9,6 +9,10 @@ imkeyProvider.on('disconnect', (code: any, reason: any) => {
     console.log(`Ethereum Provider connection closed: ${reason}. Code: ${code}`);
 });
 
+imkeyProvider.on('connect', (code: any, reason: any) => {
+    console.log(`Ethereum Provider connection closed: ${reason}. Code: ${code}`);
+});
+
 const btn = document.createElement('button');
 btn.innerText = "requestAccounts";
 btn.addEventListener('click', (e) => {
@@ -23,13 +27,13 @@ btn.addEventListener('click', (e) => {
         .then(console.log);
 
     imkeyProvider
-    .request({ method: 'eth_requestAccounts' })
-    .then((ret) => {
-        console.log(ret);
-    })
-    .catch((error) => {
-        console.log
-    });
+        .request({ method: 'eth_requestAccounts' })
+        .then((ret) => {
+            console.log(ret);
+        })
+        .catch((error) => {
+            console.log
+        });
 });
 
 const btnBalance = document.createElement('button');
@@ -59,7 +63,7 @@ btnSignTransaction.addEventListener('click', (e) => {
         value: "512",
         chainId: 28,
         data: ""
-    },showResult).then(console.log);
+    }, showResult).then(console.log);
 });
 
 const btnSignMessage = document.createElement('button');
@@ -73,7 +77,7 @@ btnSignMessage.addEventListener('click', (e) => {
             console.log("show result: ", signature);
         }
     }
-    web3.eth.sign("Hello world", "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",showResult)
+    web3.eth.sign("Hello world", "0x6031564e7b2F5cc33737807b2E58DaFF870B590b", showResult)
         .then(console.log)
         // @ts-ignore
         .catch(error => {

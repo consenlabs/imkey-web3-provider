@@ -34,11 +34,11 @@ function createJsonRpcError(id: number, error: Error) {
     }
 }
 
-function createProviderRpcError(name: string, message:string) {
-    let e:ProviderRpcError = {
+function createProviderRpcError(name: string, message: string) {
+    let e: ProviderRpcError = {
         name: name,
         message: message,
-        code:4900
+        code: 4900
     }
     return e;
 }
@@ -66,17 +66,15 @@ export default class ImKeyProvider extends EventEmitter {
     }
 
     async request(args: RequestArguments): Promise<any> {
-        console.log("request ", args.method);
         // Promise
         switch (args.method) {
             case 'eth_requestAccounts':
                 let address = await this.imKeyRequestAccounts(requestId++);
-                console.log("resolve: address", address);
                 return Promise.resolve(address);
             case 'eth_sign':
-                return this.imKeySignMessage(requestId++,args.params![1], args.params![0]);
+                return this.imKeySignMessage(requestId++, args.params![1], args.params![0]);
             case 'eth_signTransaction':
-                return this.imKeySignTransaction(requestId++,args.params![0]);
+                return this.imKeySignTransaction(requestId++, args.params![0]);
             default:
                 let payload = {
                     jsonrpc: "2.0",
@@ -84,7 +82,6 @@ export default class ImKeyProvider extends EventEmitter {
                     params: args.params,
                     id: requestId++
                 };
-                console.log("call other function: ", JSON.stringify(payload));
                 // @ts-ignore
                 this.#infuraProvider.send(payload, (err, ret) => {
                     if (err != null) {
@@ -97,17 +94,14 @@ export default class ImKeyProvider extends EventEmitter {
     }
 
     sendAsync(args: RequestArguments & { id: number }, callback: (err: Error | null, ret: any) => void) {
-        console.log("sendAsync ", args.method);
-        console.log("params", args.params);
         switch (args.method) {
             case 'eth_requestAccounts':
                 return this.imKeyRequestAccounts(args.id, callback);
             case 'eth_sign':
                 return this.imKeySignMessage(args.id, args.params![1], args.params![0], callback);
             case 'eth_signTransaction':
-                return this.imKeySignTransaction(args.id,args.params![0], callback);
+                return this.imKeySignTransaction(args.id, args.params![0], callback);
             default:
-                console.log("call other function: ", JSON.stringify(args));
                 // @ts-ignore
                 this.#infuraProvider.send(args, callback)
         }
@@ -129,13 +123,12 @@ export default class ImKeyProvider extends EventEmitter {
             }).catch((error) => {
                 callback?.(error, createJsonRpcResponse(id, [""]));
                 reject(error);
-                this.emit('disconnect',createProviderRpcError(error.name,error.message));
+                this.emit('disconnect', createProviderRpcError(error.name, error.message));
             })
         })
     }
 
     async imKeySignTransaction(id: number, transactionConfig: TransactionConfig, callback?: (error: Error, ret: any) => void) {
-        console.log("transactionconfig: ",transactionConfig);
         if (!transactionConfig.gasPrice || !transactionConfig.nonce || !transactionConfig.to || !transactionConfig.value
             || !transactionConfig.chainId || !transactionConfig.from) {
             throw new Error("Need pass gasPrice,nonce,to,value,chainId,from");
@@ -146,26 +139,18 @@ export default class ImKeyProvider extends EventEmitter {
         let temp = Math.ceil(Number(fee));
         fee = (temp * 1000000000).toString();//to ether
         fee = Web3.utils.fromWei(fee) + " ether";
-        console.log(fee);
 
         let cloneConfig = Object.assign(Object.create(Object.getPrototypeOf(transactionConfig)), transactionConfig);
         const web3 = new Web3(this.#infuraProvider);
         let gasLimit = await web3.eth.estimateGas(cloneConfig);
-        console.log("gasLimit: ",gasLimit);
 
         let from = Web3.utils.toChecksumAddress(transactionConfig.from as string);
-        console.log("from",from);
         let gasPrice = Web3.utils.hexToNumber(transactionConfig.gasPrice as string);
-        console.log("gasPrice: ", gasPrice);
         let nonce = Web3.utils.hexToNumber(transactionConfig.nonce);
-        console.log("nonce: ", nonce);
         let gas = Web3.utils.hexToNumber(transactionConfig.gas as string);
-        console.log("gas: ", gas);
         let to = Web3.utils.toChecksumAddress(transactionConfig.to);
-        console.log("to: ", to);
         let value = Web3.utils.hexToNumber(transactionConfig.value as string);
-        console.log("value: ", value);
-        
+
 
         return new Promise<RLPEncodedTransaction>((resolve, reject) => {
             postData(IMKEY_MANAGER_ENDPOINT, {
@@ -222,7 +207,7 @@ export default class ImKeyProvider extends EventEmitter {
             }).catch((error) => {
                 callback?.(error, createJsonRpcResponse(id, null));
                 reject(error);
-                this.emit('disconnect',createProviderRpcError(error.name,error.message));
+                this.emit('disconnect', createProviderRpcError(error.name, error.message));
             })
         })
     }
@@ -233,9 +218,6 @@ export default class ImKeyProvider extends EventEmitter {
         }
 
         const checksumAddress = Web3.utils.toChecksumAddress(address as string);
-        console.log("address ", checksumAddress);
-        console.log("address ", "0x6031564e7b2F5cc33737807b2E58DaFF870B590b");
-        console.log("dataToSign ", Web3.utils.toUtf8(dataToSign));
 
         return new Promise<string>((resolve, reject) => {
             postData(IMKEY_MANAGER_ENDPOINT, {
@@ -254,7 +236,7 @@ export default class ImKeyProvider extends EventEmitter {
             }).catch((error) => {
                 callback?.(error, createJsonRpcResponse(id, ""));
                 reject(error);
-                this.emit('disconnect',createProviderRpcError(error.name,error.message));
+                this.emit('disconnect', createProviderRpcError(error.name, error.message));
             })
         })
     }
