@@ -107,9 +107,9 @@ btnRequest_eth_requestAccounts.addEventListener('click', async (e) => {
 
 const btnRequest_eth_sign = document.createElement('button');
 btnRequest_eth_sign.innerText = "request eth_sign";
-btnRequest_eth_sign.addEventListener('click', (e) => {
+btnRequest_eth_sign.addEventListener('click', async (e) => {
     imkeyProvider
-        .request({ method: 'eth_sign', params: ["Hello world", "0x6031564e7b2F5cc33737807b2E58DaFF870B590b"] })
+        .request({ method: 'eth_sign', params: ["0x49206861766520313030e282ac", "0x6031564e7b2F5cc33737807b2E58DaFF870B590b"] })
         .then((ret) => {
             console.log(ret);
         })
@@ -120,16 +120,16 @@ btnRequest_eth_sign.addEventListener('click', (e) => {
 
 const btnRequest_eth_signTransaction = document.createElement('button');
 btnRequest_eth_signTransaction.innerText = "request eth_signTransaction";
-btnRequest_eth_signTransaction.addEventListener('click', (e) => {
+btnRequest_eth_signTransaction.addEventListener('click', async (e) => {
     imkeyProvider
         .request({
             method: 'eth_signTransaction', params: [{
                 from: "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
-                gasPrice: "20000000008",
+                gasPrice: "0x4a817c808",
                 nonce: 8,
-                gas: "21000",
+                gas: "0x5208",
                 to: '0x3535353535353535353535353535353535353535',
-                value: "512",
+                value: "0x200",
                 chainId: 28,
                 data: ""
             }]

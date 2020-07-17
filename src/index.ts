@@ -72,11 +72,12 @@ export default class ImKeyProvider extends EventEmitter {
                 let address = await this.imKeyRequestAccounts(requestId++);
                 return Promise.resolve(address);
             case 'eth_sign':
-                let ret = await this.imKeySignMessage(requestId++, args.params![1], args.params![0]);
-                console.log(ret);
-                return Promise.resolve("fucc");
+                console.log("eth_sign");
+                let signature = await this.imKeySignMessage(requestId++, args.params![0], args.params![1]);
+                return Promise.resolve(signature);
             case 'eth_signTransaction':
-                return this.imKeySignTransaction(requestId++, args.params![0]);
+                let ret = await this.imKeySignTransaction(requestId++, args.params![0]);
+                return Promise.resolve(ret);
             default:
                 let payload = {
                     jsonrpc: "2.0",
@@ -104,7 +105,7 @@ export default class ImKeyProvider extends EventEmitter {
             case 'eth_signTransaction':
                 return this.imKeySignTransaction(args.id, args.params![0], callback);
             default:
-                // @ts-ignore
+               // @ts-ignore 
                 this.#infuraProvider.send(args, callback)
         }
     }
@@ -130,6 +131,25 @@ export default class ImKeyProvider extends EventEmitter {
         })
     }
 
+    getGasLimit(){
+        let payload = {
+            jsonrpc: "2.0",
+            method: "eth_estimateGas",
+            params: "args.params",
+            id: requestId++
+        };
+        // @ts-ignore
+        this.#infuraProvider.send(payload, (err, ret) => {
+            console.log(ret);
+            console.log(err);
+            if (err != null) {
+                return Promise.reject(err);
+            } else {
+                return Promise.resolve(ret);
+            }
+        })
+    }
+
     async imKeySignTransaction(id: number, transactionConfig: TransactionConfig, callback?: (error: Error, ret: any) => void) {
         if (!transactionConfig.gasPrice || !transactionConfig.nonce || !transactionConfig.to || !transactionConfig.value
             || !transactionConfig.chainId || !transactionConfig.from) {
@@ -145,6 +165,8 @@ export default class ImKeyProvider extends EventEmitter {
         let cloneConfig = Object.assign(Object.create(Object.getPrototypeOf(transactionConfig)), transactionConfig);
         const web3 = new Web3(this.#infuraProvider);
         let gasLimit = await web3.eth.estimateGas(cloneConfig);
+        let gl = await this.getGasLimit();
+        console.log(gl);
 
         let from = Web3.utils.toChecksumAddress(transactionConfig.from as string);
         let gasPrice = Web3.utils.hexToNumber(transactionConfig.gasPrice as string);
@@ -215,7 +237,6 @@ export default class ImKeyProvider extends EventEmitter {
     }
 
     imKeySignMessage(id: number, dataToSign: string, address: string | number, callback?: (error: Error, ret: any) => void) {
-        console.log("datatosign:", dataToSign);
         if (Number.isInteger(address)) {
             throw new Error("Pass the address to sign data with for now");
         }
@@ -235,7 +256,7 @@ export default class ImKeyProvider extends EventEmitter {
             }
             ).then((ret) => {
                 callback?.(ret.error, createJsonRpcResponse(id, ret.result?.signature));
-                resolve(ret.result?.signature);
+                return resolve(ret.result?.signature);
             }).catch((error) => {
                 callback?.(error, createJsonRpcResponse(id, ""));
                 reject(error);
