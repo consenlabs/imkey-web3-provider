@@ -60,10 +60,10 @@ export default class ImKeyProvider extends EventEmitter {
     // @ts-ignore
     #infuraProvider: Web3.providers.HttpProvider
 
-    constructor() {
+    constructor(config:Object) {
         super()
         // @ts-ignore
-        this.#infuraProvider = new Web3.providers.HttpProvider("https://ropsten.infura.io/v3/819049aeadbe494c80bdb815cf41242e");
+        this.#infuraProvider = new Web3.providers.HttpProvider(config.rpcUrl);
     }
 
     enable(){

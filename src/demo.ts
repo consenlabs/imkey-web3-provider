@@ -2,7 +2,7 @@ import ImKeyProvider from "./index";
 import Web3 from 'web3';
 import { RLPEncodedTransaction } from "web3-eth"
 
-const imkeyProvider = new ImKeyProvider();
+const imkeyProvider = new ImKeyProvider({rpcUrl:"https://ropsten.infura.io/v3/819049aeadbe494c80bdb815cf41242e"});
 const web3 = new Web3(imkeyProvider as any);
 
 // @ts-ignore
@@ -33,7 +33,7 @@ btn.addEventListener('click', (e) => {
 const btnBalance = document.createElement('button');
 btnBalance.innerText = "Get Balance";
 btnBalance.addEventListener('click', (e) => {
-    web3.eth.getBalance("0x6031564e7b2F5cc33737807b2E58DaFF870B590b")
+    web3.eth.getBalance("0x8663b811c9601db1c5a93e41b894196400c14ed6")
         .then(console.log);
 });
 
