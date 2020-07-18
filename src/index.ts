@@ -105,7 +105,7 @@ export default class ImKeyProvider extends EventEmitter {
             case 'eth_signTransaction':
                 return this.imKeySignTransaction(args.id, args.params![0], callback);
             default:
-               // @ts-ignore 
+                // @ts-ignore 
                 this.#infuraProvider.send(args, callback)
         }
     }
@@ -131,25 +131,6 @@ export default class ImKeyProvider extends EventEmitter {
         })
     }
 
-    getGasLimit(){
-        let payload = {
-            jsonrpc: "2.0",
-            method: "eth_estimateGas",
-            params: "args.params",
-            id: requestId++
-        };
-        // @ts-ignore
-        this.#infuraProvider.send(payload, (err, ret) => {
-            console.log(ret);
-            console.log(err);
-            if (err != null) {
-                return Promise.reject(err);
-            } else {
-                return Promise.resolve(ret);
-            }
-        })
-    }
-
     async imKeySignTransaction(id: number, transactionConfig: TransactionConfig, callback?: (error: Error, ret: any) => void) {
         if (!transactionConfig.gasPrice || !transactionConfig.nonce || !transactionConfig.to || !transactionConfig.value
             || !transactionConfig.chainId || !transactionConfig.from) {
@@ -161,12 +142,30 @@ export default class ImKeyProvider extends EventEmitter {
         let temp = Math.ceil(Number(fee));
         fee = (temp * 1000000000).toString();//to ether
         fee = Web3.utils.fromWei(fee) + " ether";
-
-        let cloneConfig = Object.assign(Object.create(Object.getPrototypeOf(transactionConfig)), transactionConfig);
-        const web3 = new Web3(this.#infuraProvider);
-        let gasLimit = await web3.eth.estimateGas(cloneConfig);
-        let gl = await this.getGasLimit();
-        console.log(gl);
+        
+        //estimate gas
+        var gasLimit = 0;
+        this.#infuraProvider.send({
+            "jsonrpc":"2.0",
+            "method" : "eth_estimateGas",
+            "params" : [{
+                "from": transactionConfig.from,
+                "to": transactionConfig.to,
+                "gas": transactionConfig.gas,
+                "gasPrice": transactionConfig.gasPrice,
+                "value": transactionConfig.value,
+                "data": transactionConfig.data
+            }],
+            "id": requestId++}
+            // @ts-ignore
+        , (err, ret) => {
+            if (err != null) {
+                return Promise.reject(err);
+            } else {
+                gasLimit = Web3.utils.hexToNumber(ret.result);
+                console.log("???gasLimit ",gasLimit);
+            }
+        })
 
         let from = Web3.utils.toChecksumAddress(transactionConfig.from as string);
         let gasPrice = Web3.utils.hexToNumber(transactionConfig.gasPrice as string);
@@ -174,7 +173,6 @@ export default class ImKeyProvider extends EventEmitter {
         let gas = Web3.utils.hexToNumber(transactionConfig.gas as string);
         let to = Web3.utils.toChecksumAddress(transactionConfig.to);
         let value = Web3.utils.hexToNumber(transactionConfig.value as string);
-
 
         return new Promise<RLPEncodedTransaction>((resolve, reject) => {
             postData(IMKEY_MANAGER_ENDPOINT, {

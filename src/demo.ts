@@ -33,7 +33,7 @@ btn.addEventListener('click', (e) => {
 const btnBalance = document.createElement('button');
 btnBalance.innerText = "Get Balance";
 btnBalance.addEventListener('click', (e) => {
-    web3.eth.getBalance("0x8663b811c9601db1c5a93e41b894196400c14ed6")
+    web3.eth.getBalance("0x6031564e7b2F5cc33737807b2E58DaFF870B590b")
         .then(console.log);
 });
 
