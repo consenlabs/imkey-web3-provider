@@ -46,6 +46,10 @@ interface ImKeyProviderConfig {
     provider: string
 }
 
+interface ProviderConnectInfo {
+    readonly chainId: string;
+  }
+
 interface ProviderRpcError extends Error {
     message: string;
     code: number;
@@ -60,8 +64,13 @@ export default class ImKeyProvider extends EventEmitter {
         super()
         // @ts-ignore
         this.#infuraProvider = new Web3.providers.HttpProvider("https://ropsten.infura.io/v3/819049aeadbe494c80bdb815cf41242e");
-        this.emit('connect');
-        this.emit('accountsChanged', ["0x78643FE682df12651d5aF3DD30fB02B828B9f111"]);
+    }
+
+    enable(){
+        this.imKeyRequestAccounts(requestId++)
+        .then(()=>{
+            this.emit('connect');
+        })
     }
 
     async request(args: RequestArguments): Promise<any> {
