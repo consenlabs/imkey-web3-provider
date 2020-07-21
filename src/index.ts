@@ -172,14 +172,12 @@ export default class ImKeyProvider extends EventEmitter {
                 return Promise.reject(err);
             } else {
                 gasLimit = Web3.utils.hexToNumber(ret.result);
-                console.log("???gasLimit ",gasLimit);
             }
         })
 
         let from = Web3.utils.toChecksumAddress(transactionConfig.from as string);
         let gasPrice = Web3.utils.hexToNumber(transactionConfig.gasPrice as string);
         let nonce = Web3.utils.hexToNumber(transactionConfig.nonce);
-        let gas = Web3.utils.hexToNumber(transactionConfig.gas as string);
         let to = Web3.utils.toChecksumAddress(transactionConfig.to);
         let value = Web3.utils.hexToNumber(transactionConfig.value as string);
 
