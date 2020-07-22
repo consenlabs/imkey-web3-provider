@@ -96,7 +96,7 @@ btnRequest_eth_requestAccounts.addEventListener('click', async (e) => {
     // console.log("accounts4: ",accounts4);
 
     imkeyProvider
-        .request({ method: 'eth_requestAccounts' })
+        .request({ method: 'eth_requestAccounts', params: [] })
         .then((ret) => {
             console.log(ret);
         })

@@ -1,4 +1,6 @@
 import Web3 from 'web3';
+import {HttpProvider} from 'web3-core';
+import {JsonRpcPayload} from 'web3-core-helpers';
 
 import * as rlp from 'rlp';
 import { TransactionConfig, RLPEncodedTransaction } from "web3-eth"
@@ -7,14 +9,14 @@ const EventEmitter = require('alpeventemitter');
 
 interface RequestArguments {
     method: string;
-    params?: any[];
+    params: any[];
 }
 
 const IMKEY_MANAGER_ENDPOINT = "http://localhost:8081/api/imkey";
 const IMKEY_ETH_PATH = "m/44'/60'/0'/0/0";
 let requestId = 0;
 
-function createJsonRpcResponse(id: number, ret: any) {
+function createJsonRpcResponse(id: string | number | undefined, ret: any) {
     return {
         "id": id,
         "jsonrpc": "2.0",
@@ -22,7 +24,7 @@ function createJsonRpcResponse(id: number, ret: any) {
     }
 }
 
-function createJsonRpcError(id: number, error: Error) {
+function createJsonRpcError(id: string | number | undefined, error: Error) {
     return {
         "id": id,
         "jsonrpc": "2.0",
@@ -43,7 +45,7 @@ function createProviderRpcError(name: string, message: string) {
 }
 
 interface ImKeyProviderConfig {
-    provider: string
+    rpcUrl: string
 }
 
 interface ProviderConnectInfo {
@@ -57,13 +59,11 @@ interface ProviderRpcError extends Error {
 }
 
 export default class ImKeyProvider extends EventEmitter {
-    // @ts-ignore
-    #infuraProvider: Web3.providers.HttpProvider
+    #infuraProvider: HttpProvider
 
-    constructor(config:Object) {
+    constructor(config:ImKeyProviderConfig) {
         super()
-        // @ts-ignore
-        this.#infuraProvider = new Web3.providers.HttpProvider(config.rpcUrl);
+        this.#infuraProvider = new HttpProvider(config.rpcUrl);
     }
 
     enable(){
@@ -94,7 +94,6 @@ export default class ImKeyProvider extends EventEmitter {
                     params: args.params,
                     id: requestId++
                 };
-                // @ts-ignore
                 this.#infuraProvider.send(payload, (err, ret) => {
                     if (err != null) {
                         return Promise.reject(err);
@@ -105,7 +104,7 @@ export default class ImKeyProvider extends EventEmitter {
         }
     }
 
-    sendAsync(args: RequestArguments & { id: number }, callback: (err: Error | null, ret: any) => void) {
+    sendAsync(args: JsonRpcPayload, callback: (err: Error | null, ret: any) => void) {
         switch (args.method) {
             case 'eth_requestAccounts':
                 return this.imKeyRequestAccounts(args.id, callback);
@@ -114,12 +113,11 @@ export default class ImKeyProvider extends EventEmitter {
             case 'eth_signTransaction':
                 return this.imKeySignTransaction(args.id, args.params![0], callback);
             default:
-                // @ts-ignore 
                 this.#infuraProvider.send(args, callback)
         }
     }
 
-    imKeyRequestAccounts(id: number, callback?: (error: Error, ret: any) => void) {
+    imKeyRequestAccounts(id: string | number | undefined, callback?: (error: Error, ret: any) => void) {
         return new Promise<string[]>((resolve, reject) => {
             postData(IMKEY_MANAGER_ENDPOINT, {
                 "jsonrpc": "2.0",
@@ -140,7 +138,7 @@ export default class ImKeyProvider extends EventEmitter {
         })
     }
 
-    async imKeySignTransaction(id: number, transactionConfig: TransactionConfig, callback?: (error: Error, ret: any) => void) {
+    async imKeySignTransaction(id: string | number | undefined, transactionConfig: TransactionConfig, callback?: (error: Error, ret: any) => void) {
         if (!transactionConfig.gasPrice || !transactionConfig.nonce || !transactionConfig.to || !transactionConfig.value
             || !transactionConfig.chainId || !transactionConfig.from) {
             throw new Error("Need pass gasPrice,nonce,to,value,chainId,from");
@@ -171,7 +169,9 @@ export default class ImKeyProvider extends EventEmitter {
             if (err != null) {
                 return Promise.reject(err);
             } else {
-                gasLimit = Web3.utils.hexToNumber(ret.result);
+                if (ret) {
+                    gasLimit = Web3.utils.hexToNumber(ret.result);
+                }
             }
         })
 
@@ -241,7 +241,7 @@ export default class ImKeyProvider extends EventEmitter {
         })
     }
 
-    imKeySignMessage(id: number, dataToSign: string, address: string | number, callback?: (error: Error, ret: any) => void) {
+    imKeySignMessage(id: string | number | undefined, dataToSign: string, address: string | number, callback?: (error: Error, ret: any) => void) {
         if (Number.isInteger(address)) {
             throw new Error("Pass the address to sign data with for now");
         }
