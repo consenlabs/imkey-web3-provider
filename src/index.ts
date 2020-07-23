@@ -60,17 +60,20 @@ export default class ImKeyProvider extends EventEmitter {
     async request(args: RequestArguments): Promise<any> {
         // Promise
         switch (args.method) {
-            case 'eth_requestAccounts':
-                let address = await this.imKeyRequestAccounts(requestId++);
+            case 'eth_requestAccounts': {
+                const address = await this.imKeyRequestAccounts(requestId++);
                 return Promise.resolve(address);
-            case 'eth_sign':
-                let signature = await this.imKeySignMessage(requestId++, args.params![0], args.params![1]);
+            }
+            case 'eth_sign': {
+                const signature = await this.imKeySignMessage(requestId++, args.params![0], args.params![1]);
                 return Promise.resolve(signature);
-            case 'eth_signTransaction':
-                let ret = await this.imKeySignTransaction(requestId++, args.params![0]);
+            }
+            case 'eth_signTransaction': {
+                const ret = await this.imKeySignTransaction(requestId++, args.params![0]);
                 return Promise.resolve(ret);
-            default:
-                let payload = {
+            }
+            default: {
+                const payload = {
                     jsonrpc: "2.0",
                     method: args.method,
                     params: args.params,
@@ -83,6 +86,7 @@ export default class ImKeyProvider extends EventEmitter {
                         return Promise.resolve(ret);
                     }
                 })
+            }
         }
     }
 
@@ -127,7 +131,7 @@ export default class ImKeyProvider extends EventEmitter {
 
         let fee = (BigInt(transactionConfig.gas) * BigInt(transactionConfig.gasPrice)).toString();//wei
         fee = Web3.utils.fromWei(fee, "Gwei");//to Gwei
-        let temp = Math.ceil(Number(fee));
+        const temp = Math.ceil(Number(fee));
         fee = (temp * 1000000000).toString();//to ether
         fee = Web3.utils.fromWei(fee) + " ether";
 
@@ -156,11 +160,11 @@ export default class ImKeyProvider extends EventEmitter {
                 }
             })
 
-        let from = Web3.utils.toChecksumAddress(transactionConfig.from as string);
-        let gasPrice = Web3.utils.hexToNumber(transactionConfig.gasPrice as string);
-        let nonce = Web3.utils.hexToNumber(transactionConfig.nonce);
-        let to = Web3.utils.toChecksumAddress(transactionConfig.to);
-        let value = Web3.utils.hexToNumber(transactionConfig.value as string);
+        const from = Web3.utils.toChecksumAddress(transactionConfig.from as string);
+        const gasPrice = Web3.utils.hexToNumber(transactionConfig.gasPrice as string);
+        const nonce = Web3.utils.hexToNumber(transactionConfig.nonce);
+        const to = Web3.utils.toChecksumAddress(transactionConfig.to);
+        const value = Web3.utils.hexToNumber(transactionConfig.value as string);
 
         return new Promise<RLPEncodedTransaction>((resolve, reject) => {
             callImKeyApi({
@@ -194,7 +198,7 @@ export default class ImKeyProvider extends EventEmitter {
 
                 const decoded = rlp.decode(txData, true);
 
-                let rlpTX: RLPEncodedTransaction = {
+                const rlpTX: RLPEncodedTransaction = {
                     raw: ret.result?.txData,
                     tx: {
                         nonce: transactionConfig.nonce!.toString(),
@@ -252,7 +256,7 @@ export default class ImKeyProvider extends EventEmitter {
     }
 }
 
-function callImKeyApi(arg: object) {
+function callImKeyApi(arg: Record<string, unknown>) {
     return postData(IMKEY_MANAGER_ENDPOINT, arg)
         .then(json => {
             if (json.error) {
@@ -267,7 +271,7 @@ function callImKeyApi(arg: object) {
         })
 }
 
-function postData(url: string, data: object) {
+function postData(url: string, data: Record<string, unknown>) {
     return fetch(url, {
         body: JSON.stringify(data), // must match 'Content-Type' header
         cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
