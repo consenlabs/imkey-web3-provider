@@ -22,17 +22,6 @@ function createJsonRpcResponse(id: string | number | undefined, ret: any) {
     }
 }
 
-function createJsonRpcError(id: string | number | undefined, error: Error) {
-    return {
-        "id": id,
-        "jsonrpc": "2.0",
-        "error": {
-            "code": -32002,
-            "message": error.message
-        }
-    }
-}
-
 function createProviderRpcError(name: string, message: string) {
     let e: ProviderRpcError = {
         name: name,
@@ -45,10 +34,6 @@ function createProviderRpcError(name: string, message: string) {
 interface ImKeyProviderConfig {
     rpcUrl: string
 }
-
-interface ProviderConnectInfo {
-    readonly chainId: string;
-  }
 
 interface ProviderRpcError extends Error {
     message: string;
@@ -148,7 +133,7 @@ export default class ImKeyProvider extends EventEmitter {
         let temp = Math.ceil(Number(fee));
         fee = (temp * 1000000000).toString();//to ether
         fee = Web3.utils.fromWei(fee) + " ether";
-        
+
         //estimate gas
         var gasLimit = 0;
         this.#infuraProvider.send({
@@ -271,7 +256,6 @@ export default class ImKeyProvider extends EventEmitter {
 }
 
 function postData(url: string, data: object) {
-    // Default options are marked with *
     return fetch(url, {
         body: JSON.stringify(data), // must match 'Content-Type' header
         cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
@@ -295,26 +279,3 @@ function postData(url: string, data: object) {
             throw new Error("HttpError");
         })
 }
-
-//
-//
-// fetch("http://localhost:8081/api/imkey", {
-//     body: JSON.stringify({
-//         "jsonrpc": "2.0",
-//         "method": "eth.getAddress",
-//         "params": {
-//             "path": "m/44'/60'/0'/0/0"
-//         },
-//         "id": 1
-//     }), // must match 'Content-Type' header
-//     cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
-//     credentials: 'same-origin', // include, same-origin, *omit
-//     headers: {
-//         'user-agent': 'Mozilla/4.0 MDN Example',
-//         'content-type': 'application/json'
-//     },
-//     method: 'POST', // *GET, POST, PUT, DELETE, etc.
-//     mode: 'cors', // no-cors, cors, *same-origin
-//     redirect: 'follow', // manual, *follow, error
-//     referrer: 'no-referrer', // *client, no-referrer
-// })
