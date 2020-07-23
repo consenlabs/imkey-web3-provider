@@ -1,7 +1,7 @@
 {
-  "name": "imkey-web3-provider",
+  "name": "@imkey/web3-provider",
   "version": "1.0.0",
-  "description": "",
+  "description": "A web3 provider connects to imKey",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "typings": "dist/index.d.ts",
@@ -20,6 +20,17 @@
     "bundle": "webpack",
     "start": "webpack-dev-server"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/consenlabs/imkey-web3-provider.git"
+  },
+  "keywords": [
+    "imKey",
+    "web3-provider",
+    "ethereum",
+    "hardwallet",
+    "dApp"
+  ],
   "devDependencies": {
     "@babel/cli": "^7.8.3",
     "@babel/core": "^7.8.3",
@@ -43,8 +54,12 @@
     "webpack-cli": "^3.3.11",
     "webpack-dev-server": "^3.11.0"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "imkey",
+  "license": " Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/consenlabs/imkey-web3-provider/issues"
+  },
+  "homepage": "https://github.com/consenlabs/imkey-web3-provider#readme",
   "dependencies": {
     "@types/event-emitter-es6": "^1.1.0",
     "ethjs": "^0.4.0",
