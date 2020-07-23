@@ -1,11 +1,9 @@
 import Web3 from 'web3';
-import {HttpProvider} from 'web3-core';
 import {JsonRpcPayload} from 'web3-core-helpers';
 
 import * as rlp from 'rlp';
 import { TransactionConfig, RLPEncodedTransaction } from "web3-eth"
-
-const EventEmitter = require('alpeventemitter');
+import EventEmitter from 'event-emitter-es6';
 
 interface RequestArguments {
     method: string;
@@ -59,11 +57,13 @@ interface ProviderRpcError extends Error {
 }
 
 export default class ImKeyProvider extends EventEmitter {
-    #infuraProvider: HttpProvider
+    // @ts-ignore
+    #infuraProvider: Web3.providers.HttpProvider
 
     constructor(config:ImKeyProviderConfig) {
         super()
-        this.#infuraProvider = new HttpProvider(config.rpcUrl);
+        // @ts-ignore
+        this.#infuraProvider = new Web3.providers.HttpProvider(config.rpcUrl);
     }
 
     enable(){
@@ -74,7 +74,6 @@ export default class ImKeyProvider extends EventEmitter {
     }
 
     async request(args: RequestArguments): Promise<any> {
-        console.log(args.params);
         // Promise
         switch (args.method) {
             case 'eth_requestAccounts':

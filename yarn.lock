@@ -1012,6 +1012,11 @@
   dependencies:
     "@types/node" "*"
 
+"@types/event-emitter-es6@^1.1.0":
+  version "1.1.0"
+  resolved "https://registry.npm.taobao.org/@types/event-emitter-es6/download/@types/event-emitter-es6-1.1.0.tgz#303537ab5c8e1e2741e14d40afad575b9f23b54b"
+  integrity sha1-MDU3q1yOHidB4U1Ar61XW58jtUs=
+
 "@types/glob@^7.1.1":
   version "7.1.2"
   resolved "https://registry.npm.taobao.org/@types/glob/download/@types/glob-7.1.2.tgz#06ca26521353a545d94a0adc74f38a59d232c987"
@@ -1285,11 +1290,6 @@ ajv@^6.5.5:
     fast-json-stable-stringify "^2.0.0"
     json-schema-traverse "^0.4.1"
     uri-js "^4.2.2"
-
-alpeventemitter@^2.0.1:
-  version "2.0.1"
-  resolved "https://registry.npm.taobao.org/alpeventemitter/download/alpeventemitter-2.0.1.tgz#90184a600bf13fddf0bf4a212749494a0afae928"
-  integrity sha1-kBhKYAvxP93wv0ohJ0lJSgr66Sg=
 
 ansi-colors@^3.0.0:
   version "3.2.4"
@@ -2880,6 +2880,11 @@ ethjs@^0.4.0:
     ethjs-util "0.1.3"
     js-sha3 "0.5.5"
     number-to-bn "1.7.0"
+
+event-emitter-es6@^1.1.5:
+  version "1.1.5"
+  resolved "https://registry.npm.taobao.org/event-emitter-es6/download/event-emitter-es6-1.1.5.tgz#ef95311b2e17aa39be763b031ce4af7ee9cb7849"
+  integrity sha1-75UxGy4Xqjm+djsDHOSvfunLeEk=
 
 eventemitter3@3.1.2:
   version "3.1.2"
