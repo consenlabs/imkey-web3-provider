@@ -2,20 +2,23 @@ import ImKeyProvider from "./index";
 import Web3 from "web3";
 import { RLPEncodedTransaction } from "web3-eth";
 
+interface ProviderConnectInfo {
+  readonly chainId: string;
+}
+
 const imkeyProvider = new ImKeyProvider({
   rpcUrl: "https://ropsten.infura.io/v3/819049aeadbe494c80bdb815cf41242e",
 });
 const web3 = new Web3(imkeyProvider as any);
 
-// @ts-ignore
-const ethereum = window.ethereum;
-
 imkeyProvider.on("disconnect", (code: any, reason: any) => {
   console.log(`Ethereum Provider connection closed: ${reason}. Code: ${code}`);
 });
 
-imkeyProvider.on("connect", (code: any, reason: any) => {
-  console.log(`Ethereum Provider connection closed: ${reason}. Code: ${code}`);
+imkeyProvider.on("connect", (connectInfo: ProviderConnectInfo) => {
+  console.log(
+    `Ethereum Provider connected success, chainId: ${connectInfo.chainId}`
+  );
 });
 
 const btn = document.createElement("button");
@@ -28,6 +31,7 @@ btn.addEventListener("click", (e) => {
       console.log("show result: ", result);
     }
   }
+
   web3.eth.requestAccounts(showResult).then(console.log);
 });
 
@@ -77,6 +81,7 @@ btnSignMessage.addEventListener("click", (e) => {
       console.log("show result: ", signature);
     }
   }
+
   web3.eth
     .sign(
       "Hello world",
