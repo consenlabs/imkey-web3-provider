@@ -30,14 +30,6 @@ function createJsonRpcRequest(method: string, params: any[] = []) {
   };
 }
 
-function createJsonRpcResponse(id: string | number | undefined, ret: any) {
-  return {
-    id: id,
-    jsonrpc: "2.0",
-    result: ret,
-  };
-}
-
 function createProviderRpcError(code: number, message: string) {
   return {
     message,
@@ -87,7 +79,7 @@ export default class ImKeyProvider extends EventEmitter {
     this.#infuraProvider = new Web3.providers.HttpProvider(rpcUrl);
   }
 
-  callInnerProviderApi(req: JsonRpcPayload): Promise<any> {
+  async callInnerProviderApi(req: JsonRpcPayload): Promise<any> {
     return new Promise((resolve, reject) => {
       this.#infuraProvider.send(
         req,
@@ -135,7 +127,7 @@ export default class ImKeyProvider extends EventEmitter {
       case "eth_signTransaction": {
         return await this.imKeySignTransaction(requestId++, args.params![0]);
       }
-      case "eth_sendSignedTransaction": {
+      case "eth_sendTransaction": {
         const ret = await this.imKeySignTransaction(
           requestId++,
           args.params![0]
@@ -175,31 +167,25 @@ export default class ImKeyProvider extends EventEmitter {
       .catch((err) => callback(err, null));
   }
 
-  imKeyRequestAccounts(
+  async imKeyRequestAccounts(
     id: string | number | undefined,
     callback?: (error: Error, ret: any) => void
   ) {
-    return new Promise<string[]>((resolve, reject) => {
-      callImKeyApi({
+    try {
+      const ret = await callImKeyApi({
         jsonrpc: "2.0",
         method: "eth.getAddress",
         params: {
           path: IMKEY_ETH_PATH,
         },
         id: requestId++,
-      })
-        .then((ret) => {
-          callback?.(
-            ret.error,
-            createJsonRpcResponse(id, [ret.result?.address])
-          );
-          resolve([ret.result?.address]);
-        })
-        .catch((error) => {
-          callback?.(error, createJsonRpcResponse(id, [""]));
-          reject(createProviderRpcError(4001, error));
-        });
-    });
+      });
+      callback?.(null, [ret.result?.address]);
+      return [ret.result?.address];
+    } catch (error) {
+      callback?.(error, null);
+      throw createProviderRpcError(4001, error);
+    }
   }
 
   async imKeySignTransaction(
@@ -215,7 +201,7 @@ export default class ImKeyProvider extends EventEmitter {
       !transactionConfig.from
     ) {
       throw createProviderRpcError(
-        4001,
+        -32602,
         "Need pass gasPrice,nonce,to,value,chainId,from"
       );
     }
@@ -224,7 +210,10 @@ export default class ImKeyProvider extends EventEmitter {
       transactionConfig.chainId &&
       transactionConfig.chainId !== this.#chainId
     ) {
-      throw createProviderRpcError(4001, "");
+      throw createProviderRpcError(
+        -32602,
+        "expected chainId and connected chainId are mismatched"
+      );
     }
 
     let fee = (
@@ -261,8 +250,8 @@ export default class ImKeyProvider extends EventEmitter {
     const to = Web3.utils.toChecksumAddress(transactionConfig.to);
     const value = parseArgsNum(transactionConfig.value);
 
-    return new Promise<RLPEncodedTransaction>((resolve, reject) => {
-      callImKeyApi({
+    try {
+      const ret = await callImKeyApi({
         jsonrpc: "2.0",
         method: "eth.signTransaction",
         params: {
@@ -284,63 +273,65 @@ export default class ImKeyProvider extends EventEmitter {
           },
         },
         id: requestId++,
-      })
-        .then((ret) => {
-          let txData = ret.result?.txData;
-          if (!ret.result?.txData?.startsWith("0x")) {
-            txData = "0x" + txData;
-          }
+      });
+      let txData = ret.result?.txData;
+      if (!ret.result?.txData?.startsWith("0x")) {
+        txData = "0x" + txData;
+      }
 
-          const decoded = rlp.decode(txData, true);
+      const decoded = rlp.decode(txData, true);
 
-          const rlpTX: RLPEncodedTransaction = {
-            raw: ret.result?.txData,
-            tx: {
-              nonce: transactionConfig.nonce!.toString(),
-              gasPrice: transactionConfig.gasPrice!.toString(),
-              gas: transactionConfig.gas!.toString(),
-              to: transactionConfig.to!.toString(),
-              value: transactionConfig.value!.toString(),
-              input: transactionConfig.data!.toString(),
-              // @ts-ignore
-              r: Web3.utils.bytesToHex(decoded.data[7]),
-              // @ts-ignore
-              s: Web3.utils.bytesToHex(decoded.data[8]),
-              // @ts-ignore
-              v: Web3.utils.bytesToHex(decoded.data[6]),
-              hash: ret.result?.txHash,
-            },
-          };
-          callback?.(ret.eror, createJsonRpcResponse(id, rlpTX));
-          resolve(rlpTX);
-        })
-        .catch((error) => {
-          callback?.(error, createJsonRpcResponse(id, null));
-          reject(createProviderRpcError(4001, error));
-          // this.emit('disconnect', createProviderRpcError(error.name, error.message));
-        });
-    });
+      const rlpTX: RLPEncodedTransaction = {
+        raw: ret.result?.txData,
+        tx: {
+          nonce: transactionConfig.nonce!.toString(),
+          gasPrice: transactionConfig.gasPrice!.toString(),
+          gas: transactionConfig.gas!.toString(),
+          to: transactionConfig.to!.toString(),
+          value: transactionConfig.value!.toString(),
+          input: transactionConfig.data!.toString(),
+          // @ts-ignore
+          r: Web3.utils.bytesToHex(decoded.data[7]),
+          // @ts-ignore
+          s: Web3.utils.bytesToHex(decoded.data[8]),
+          // @ts-ignore
+          v: Web3.utils.bytesToHex(decoded.data[6]),
+          hash: ret.result?.txHash,
+        },
+      };
+      callback?.(null, rlpTX);
+      return rlpTX;
+    } catch (error) {
+      callback?.(error, null);
+      throw createProviderRpcError(4001, error);
+    }
   }
 
-  imKeyPersonalSign(
+  async imKeyPersonalSign(
     id: string | number | undefined,
     dataToSign: string,
     address: string | number,
     callback?: (error: Error, ret: any) => void
   ) {
     if (Number.isInteger(address)) {
-      return Promise.reject(
-        createProviderRpcError(
-          4001,
-          "Pass the address to sign data with for now"
-        )
+      const error = createProviderRpcError(
+        -32602,
+        "Pass the address to sign data with for now"
       );
+      callback?.(
+        {
+          name: "address invalid",
+          message: "Pass the address to sign data with for now",
+        },
+        null
+      );
+      throw error;
     }
 
     const checksumAddress = Web3.utils.toChecksumAddress(address as string);
 
-    return new Promise<string>((resolve, reject) => {
-      callImKeyApi({
+    try {
+      const ret = await callImKeyApi({
         jsonrpc: "2.0",
         method: "eth.signMessage",
         params: {
@@ -349,20 +340,13 @@ export default class ImKeyProvider extends EventEmitter {
           path: IMKEY_ETH_PATH,
         },
         id: requestId++,
-      })
-        .then((ret) => {
-          callback?.(
-            ret.error,
-            createJsonRpcResponse(id, ret.result?.signature)
-          );
-          return resolve(ret.result?.signature);
-        })
-        .catch((error) => {
-          callback?.(error, createJsonRpcResponse(id, ""));
-          reject(createProviderRpcError(4001, error));
-          // this.emit('disconnect', createProviderRpcError(error.name, error.message));
-        });
-    });
+      });
+      callback?.(null, ret.result?.signature);
+      return ret.result?.signature;
+    } catch (error) {
+      callback?.(error, null);
+      throw createProviderRpcError(4001, error);
+    }
   }
 }
 
