@@ -1,17 +1,36 @@
 {
-  "name": "imkey-web3-provider",
+  "name": "@imkey/web3-provider",
   "version": "1.0.0",
-  "description": "",
-  "main": "dist/imkey-web3-provider",
+  "description": "A web3 provider connects to imKey",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "typings": "dist/index.d.ts",
+  "directories": {
+    "dist": "dist"
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "type-check": "tsc --noEmit",
     "type-check:watch": "npm run type-check -- --watch",
     "build": "npm run build:types && npm run build:js",
     "build:types": "tsc --emitDeclarationOnly",
-    "build:js": "babel src --out-dir lib --extensions \".ts,.tsx\" --source-maps inline",
+    "build:js": "babel src --out-dir dist --extensions \".ts,.tsx\" --source-maps inline",
     "bundle": "webpack",
     "start": "webpack-dev-server"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/consenlabs/imkey-web3-provider.git"
+  },
+  "keywords": [
+    "imKey",
+    "web3-provider",
+    "ethereum",
+    "hardwallet",
+    "dApp"
+  ],
   "devDependencies": {
     "@babel/cli": "^7.8.3",
     "@babel/core": "^7.8.3",
@@ -19,18 +38,43 @@
     "@babel/plugin-transform-runtime": "^7.10.3",
     "@babel/preset-env": "^7.8.3",
     "@babel/preset-typescript": "^7.8.3",
+    "@typescript-eslint/eslint-plugin": "^3.7.0",
+    "@typescript-eslint/parser": "^3.7.0",
     "babel-loader": "^8.1.0",
     "clean-webpack-plugin": "^3.0.0",
+    "eslint": "^7.5.0",
+    "eslint-config-prettier": "^6.11.0",
+    "eslint-loader": "^4.0.2",
     "html-webpack-plugin": "^4.3.0",
+    "husky": ">=4",
+    "lint-staged": ">=10",
+    "prettier": "2.0.5",
     "typescript": "^3.7.5",
     "webpack": "^4.43.0",
     "webpack-cli": "^3.3.11",
     "webpack-dev-server": "^3.11.0"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "imkey",
+  "license": " Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/consenlabs/imkey-web3-provider/issues"
+  },
+  "homepage": "https://github.com/consenlabs/imkey-web3-provider#readme",
   "dependencies": {
+    "@types/event-emitter-es6": "^1.1.0",
+    "ethjs": "^0.4.0",
+    "ethjs-query": "^0.3.8",
+    "event-emitter-es6": "^1.1.5",
     "rlp": "^2.2.5",
     "web3": "^1.2.9"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.js": "eslint --cache --fix",
+    "*.{js,css,md}": "prettier --write"
   }
 }
