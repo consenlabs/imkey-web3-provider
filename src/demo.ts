@@ -7,7 +7,7 @@ interface ProviderConnectInfo {
 }
 
 const imkeyProvider = new ImKeyProvider({
-  rpcUrl: "Put your infura endpoint here",
+  rpcUrl: "https://kovan.infura.io/v3/ab0ae463c282483a83e8116eb535e435",
 });
 const web3 = new Web3(imkeyProvider as any);
 
