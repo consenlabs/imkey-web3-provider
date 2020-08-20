@@ -30,6 +30,14 @@ function createJsonRpcRequest(method: string, params: any[] = []) {
   };
 }
 
+function createJsonRpcResponse(id: string | number, result: any) {
+  return {
+    id,
+    jsonrpc: "2.0",
+    result,
+  };
+}
+
 function createProviderRpcError(code: number, message: string) {
   return {
     message,
@@ -163,7 +171,7 @@ export default class ImKeyProvider extends EventEmitter {
     callback: (err: Error | null, ret: any) => void
   ) {
     this.request(args)
-      .then((ret) => callback(null, ret))
+      .then((ret) => callback(null, createJsonRpcResponse(args.id, ret)))
       .catch((err) => callback(err, null));
   }
 
