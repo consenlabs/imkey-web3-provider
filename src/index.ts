@@ -103,10 +103,11 @@ export default class ImKeyProvider extends EventEmitter {
   }
 
   async enable() {
-    let accounts = await this.imKeyRequestAccounts(requestId++);
-    let chainId = await this.callInnerProviderApi(
-      createJsonRpcRequest("eth_getChainId")
+    const accounts = await this.imKeyRequestAccounts(requestId++);
+    const chainIdHex = await this.callInnerProviderApi(
+      createJsonRpcRequest("eth_chainId")
     );
+    const chainId = Web3.utils.hexToNumber(chainIdHex);
     if (chainId !== this.#chainId) {
       throw new Error("chain id and rpc endpoint don't match");
     } else {
@@ -120,8 +121,11 @@ export default class ImKeyProvider extends EventEmitter {
       case "eth_getChainId": {
         return this.#chainId;
       }
+      /* eslint-disable no-fallthrough */
       case "personal_listAccounts":
+      /* eslint-disable no-fallthrough */
       case "eth_accounts":
+      /* eslint-disable no-fallthrough */
       case "eth_requestAccounts": {
         return await this.imKeyRequestAccounts(requestId++);
       }
@@ -143,11 +147,16 @@ export default class ImKeyProvider extends EventEmitter {
         const req = createJsonRpcRequest("eth_sendRawTransaction", [ret.raw]);
         return await this.callInnerProviderApi(req);
       }
+      /* eslint-disable no-fallthrough */
       case "eth_sign":
       // https://docs.metamask.io/guide/signing-data.html#a-brief-history
+      //
+      /* eslint-disable no-fallthrough */
       case "eth_signTypedData":
       // case 'eth_signTypedData_v1':
+      /* eslint-disable no-fallthrough */
       case "eth_signTypedData_v3":
+      /* eslint-disable no-fallthrough */
       case "eth_signTypedData_v4": {
         return createProviderRpcError(
           4200,
