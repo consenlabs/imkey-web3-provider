@@ -7,8 +7,10 @@ interface ProviderConnectInfo {
 }
 
 const imkeyProvider = new ImKeyProvider({
-  rpcUrl: "Put your infura endpoint here",
+  rpcUrl: "put your infura address here",
+  chainId: 3,
 });
+imkeyProvider.enable();
 const web3 = new Web3(imkeyProvider as any);
 
 imkeyProvider.on("disconnect", (code: any, reason: any) => {
