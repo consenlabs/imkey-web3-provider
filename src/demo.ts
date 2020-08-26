@@ -2,6 +2,7 @@ import ImKeyProvider from "./index";
 import Web3 from "web3";
 import { RLPEncodedTransaction } from "web3-eth";
 
+
 interface ProviderConnectInfo {
   readonly chainId: string;
 }
@@ -60,9 +61,9 @@ btnSignTransaction.addEventListener("click", (e) => {
     .signTransaction(
       {
         from: "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
-        gasPrice: "20000000008",
+        // gasPrice: "20000000008",
         nonce: 8,
-        gas: "21000",
+        // gas: "21000",
         to: "0x3535353535353535353535353535353535353535",
         value: "512",
         chainId: 28,
@@ -84,10 +85,11 @@ btnSignMessage.addEventListener("click", (e) => {
     }
   }
 
-  web3.eth
+  web3.eth.personal
     .sign(
-      "Hello world",
+      "Hello imKey",
       "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
+      "",
       showResult
     )
     .then(console.log)

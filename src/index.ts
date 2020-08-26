@@ -6,6 +6,7 @@ import { RLPEncodedTransaction, TransactionConfig } from "web3-eth";
 import EventEmitter from "event-emitter-es6";
 import BN from "bn.js";
 
+
 interface IProviderOptions {
   rpcUrl?: string;
   infuraId?: string;
@@ -345,6 +346,14 @@ export default class ImKeyProvider extends EventEmitter {
       throw error;
     }
 
+    console.log(dataToSign)
+    let data = ""
+    try {
+      data = Web3.utils.toUtf8(dataToSign)
+    } catch (error) {
+      data = dataToSign
+    }
+
     const checksumAddress = Web3.utils.toChecksumAddress(address as string);
 
     try {
@@ -352,7 +361,7 @@ export default class ImKeyProvider extends EventEmitter {
         jsonrpc: "2.0",
         method: "eth.signMessage",
         params: {
-          data: Web3.utils.toUtf8(dataToSign),
+          data: data,
           sender: checksumAddress,
           path: IMKEY_ETH_PATH,
         },
