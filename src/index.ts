@@ -346,12 +346,11 @@ export default class ImKeyProvider extends EventEmitter {
       throw error;
     }
 
-    console.log(dataToSign)
-    let data = ""
+    let data = "";
     try {
-      data = Web3.utils.toUtf8(dataToSign)
+      data = Web3.utils.toUtf8(dataToSign);
     } catch (error) {
-      data = dataToSign
+      data = dataToSign;
     }
 
     const checksumAddress = Web3.utils.toChecksumAddress(address as string);
@@ -367,8 +366,14 @@ export default class ImKeyProvider extends EventEmitter {
         },
         id: requestId++,
       });
-      callback?.(null, ret.result?.signature);
-      return ret.result?.signature;
+
+      let sigRet = ret.result?.signature.toLowerCase();
+      if(!sigRet.startsWith("0x")){
+        sigRet = "0x" + sigRet;
+      }
+
+      callback?.(null, sigRet);
+      return sigRet;
     } catch (error) {
       callback?.(error, null);
       throw createProviderRpcError(4001, error);
