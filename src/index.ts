@@ -245,19 +245,15 @@ export default class ImKeyProvider extends EventEmitter {
     //chain id
     let chainId: number;
     if(transactionConfig.chainId){
+      if (transactionConfig.chainId !== this.#chainId) {
+        throw createProviderRpcError(
+          -32602,
+          "expected chainId and connected chainId are mismatched"
+        );
+      }
       chainId = transactionConfig.chainId
     }else{
       chainId = this.#chainId
-    }
-
-    if (
-      transactionConfig.chainId &&
-      transactionConfig.chainId !== this.#chainId
-    ) {
-      throw createProviderRpcError(
-        -32602,
-        "expected chainId and connected chainId are mismatched"
-      );
     }
 
     //nonce
