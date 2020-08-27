@@ -65,7 +65,7 @@ function parseArgsNum(num: string | number | BN) {
   if (num instanceof BN) {
     return num.toNumber().toString();
   } else if (typeof num === "string") {
-    return Web3.utils.hexToNumber(num).toString();
+    return Web3.utils.hexToNumberString(num);
   } else {
     return num.toString();
   }
@@ -212,16 +212,42 @@ export default class ImKeyProvider extends EventEmitter {
     callback?: (error: Error, ret: any) => void
   ) {
     if (
-      !transactionConfig.gasPrice ||
-      !transactionConfig.nonce ||
       !transactionConfig.to ||
-      !transactionConfig.value ||
-      !transactionConfig.from
+      !transactionConfig.value
     ) {
       throw createProviderRpcError(
         -32602,
-        "Need pass gasPrice,nonce,to,value,chainId,from"
+        "expected to,value"
       );
+    }
+    
+    //from
+    let from: string;
+    if (!transactionConfig.from ||
+      typeof transactionConfig.from === "number") {
+      const accounts = await this.imKeyRequestAccounts(requestId++);
+      from = accounts[0] as string;
+    }else{
+      from = Web3.utils.toChecksumAddress(transactionConfig.from as string);
+    }
+
+    //gas price
+    let gasPrice: string;
+    if(gasPrice){
+      gasPrice = parseArgsNum(transactionConfig.gasPrice);
+    }else{
+      gasPrice = await this.callInnerProviderApi(
+        createJsonRpcRequest("eth_gasPrice", [])
+      );
+      gasPrice = Web3.utils.hexToNumberString(gasPrice);
+    }
+
+    //chain id
+    let chainId: number;
+    if(transactionConfig.chainId){
+      chainId = transactionConfig.chainId
+    }else{
+      chainId = this.#chainId
     }
 
     if (
@@ -234,13 +260,16 @@ export default class ImKeyProvider extends EventEmitter {
       );
     }
 
-    let fee = (
-      BigInt(transactionConfig.gas) * BigInt(transactionConfig.gasPrice)
-    ).toString(); //wei
-    fee = Web3.utils.fromWei(fee, "Gwei"); //to Gwei
-    const temp = Math.ceil(Number(fee));
-    fee = (temp * 1000000000).toString(); //to ether
-    fee = Web3.utils.fromWei(fee) + " ether";
+    //nonce
+    let nonce: string;
+    if(transactionConfig.nonce){
+      nonce = parseArgsNum(transactionConfig.nonce);
+    }else{
+      nonce = await this.callInnerProviderApi(
+        createJsonRpcRequest("eth_getTransactionCount", [transactionConfig.from,"pending"])
+      );
+      nonce = Web3.utils.hexToNumber(nonce).toString();
+    }
 
     //estimate gas
     let gasLimit: string;
@@ -262,9 +291,15 @@ export default class ImKeyProvider extends EventEmitter {
       gasLimit = parseArgsNum(gasRet);
     }
 
-    const from = Web3.utils.toChecksumAddress(transactionConfig.from as string);
-    const gasPrice = parseArgsNum(transactionConfig.gasPrice);
-    const nonce = parseArgsNum(transactionConfig.nonce);
+    //fee
+    let fee = (
+      BigInt(gasLimit) * BigInt(gasPrice)
+    ).toString(); //wei
+    fee = Web3.utils.fromWei(fee, "Gwei"); //to Gwei
+    const temp = Math.ceil(Number(fee));
+    fee = (temp * 1000000000).toString(); //to ether
+    fee = Web3.utils.fromWei(fee) + " ether";
+
     const to = Web3.utils.toChecksumAddress(transactionConfig.to);
     const value = parseArgsNum(transactionConfig.value);
 
@@ -280,7 +315,7 @@ export default class ImKeyProvider extends EventEmitter {
             nonce,
             to,
             value,
-            chainId: transactionConfig.chainId,
+            chainId,
             path: IMKEY_ETH_PATH,
           },
           preview: {
@@ -300,14 +335,14 @@ export default class ImKeyProvider extends EventEmitter {
       const decoded = rlp.decode(txData, true);
 
       const rlpTX: RLPEncodedTransaction = {
-        raw: ret.result?.txData,
+        raw: txData,
         tx: {
-          nonce: transactionConfig.nonce!.toString(),
-          gasPrice: transactionConfig.gasPrice!.toString(),
-          gas: transactionConfig.gas!.toString(),
-          to: transactionConfig.to!.toString(),
-          value: transactionConfig.value!.toString(),
-          input: transactionConfig.data!.toString(),
+          nonce: nonce,
+          gasPrice: gasPrice,
+          gas: gasLimit,
+          to: to,
+          value: value,
+          input: transactionConfig.data,
           // @ts-ignore
           r: Web3.utils.bytesToHex(decoded.data[7]),
           // @ts-ignore

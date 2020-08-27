@@ -8,7 +8,7 @@ interface ProviderConnectInfo {
 }
 
 const imkeyProvider = new ImKeyProvider({
-  rpcUrl: "put your infura address here",
+  rpcUrl: "https://ropsten.infura.io/v3/e35ac016a10548f1b4a835a1cd72d17a",
   chainId: 3,
 });
 imkeyProvider.enable();
@@ -62,12 +62,12 @@ btnSignTransaction.addEventListener("click", (e) => {
       {
         from: "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
         // gasPrice: "20000000008",
-        nonce: 8,
+        // nonce: 8,
         // gas: "21000",
         to: "0x3535353535353535353535353535353535353535",
         value: "512",
-        chainId: 28,
-        data: "",
+        // chainId: 3,
+        // data: "",
       },
       showResult
     )
@@ -130,7 +130,7 @@ btnRequest_eth_sign.innerText = "request eth_sign";
 btnRequest_eth_sign.addEventListener("click", async (e) => {
   imkeyProvider
     .request({
-      method: "eth_sign",
+      method: "personal_sign",
       params: [
         "0x49206861766520313030e282ac",
         "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
@@ -158,7 +158,7 @@ btnRequest_eth_signTransaction.addEventListener("click", async (e) => {
           gas: "0x5208",
           to: "0x3535353535353535353535353535353535353535",
           value: "0x200",
-          chainId: 28,
+          chainId: 3,
           data: "",
         },
       ],
