@@ -8,7 +8,7 @@ interface ProviderConnectInfo {
 }
 
 const imkeyProvider = new ImKeyProvider({
-  rpcUrl: "https://ropsten.infura.io/v3/e35ac016a10548f1b4a835a1cd72d17a",
+  rpcUrl: "put your infura address here",
   chainId: 3,
 });
 imkeyProvider.enable();
