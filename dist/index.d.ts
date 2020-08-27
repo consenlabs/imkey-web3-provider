@@ -11,7 +11,8 @@ interface RequestArguments {
     params: any[];
 }
 export default class ImKeyProvider extends EventEmitter {
-    #private;
+    private infuraProvider;
+    private chainId;
     constructor(config: IProviderOptions);
     callInnerProviderApi(req: JsonRpcPayload): Promise<any>;
     enable(): Promise<any[]>;
