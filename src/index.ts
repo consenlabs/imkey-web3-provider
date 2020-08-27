@@ -6,6 +6,7 @@ import { RLPEncodedTransaction, TransactionConfig } from "web3-eth";
 import EventEmitter from "event-emitter-es6";
 import BN from "bn.js";
 
+
 interface IProviderOptions {
   rpcUrl?: string;
   infuraId?: string;
@@ -27,6 +28,14 @@ function createJsonRpcRequest(method: string, params: any[] = []) {
     jsonrpc: "2.0",
     method,
     params,
+  };
+}
+
+function createJsonRpcResponse(id: string | number, result: any) {
+  return {
+    id,
+    jsonrpc: "2.0",
+    result,
   };
 }
 
@@ -56,7 +65,7 @@ function parseArgsNum(num: string | number | BN) {
   if (num instanceof BN) {
     return num.toNumber().toString();
   } else if (typeof num === "string") {
-    return Web3.utils.hexToNumber(num).toString();
+    return Web3.utils.hexToNumberString(num);
   } else {
     return num.toString();
   }
@@ -95,10 +104,11 @@ export default class ImKeyProvider extends EventEmitter {
   }
 
   async enable() {
-    let accounts = await this.imKeyRequestAccounts(requestId++);
-    let chainId = await this.callInnerProviderApi(
-      createJsonRpcRequest("eth_getChainId")
+    const accounts = await this.imKeyRequestAccounts(requestId++);
+    const chainIdHex = await this.callInnerProviderApi(
+      createJsonRpcRequest("eth_chainId")
     );
+    const chainId = Web3.utils.hexToNumber(chainIdHex);
     if (chainId !== this.#chainId) {
       throw new Error("chain id and rpc endpoint don't match");
     } else {
@@ -112,8 +122,11 @@ export default class ImKeyProvider extends EventEmitter {
       case "eth_getChainId": {
         return this.#chainId;
       }
+      /* eslint-disable no-fallthrough */
       case "personal_listAccounts":
+      /* eslint-disable no-fallthrough */
       case "eth_accounts":
+      /* eslint-disable no-fallthrough */
       case "eth_requestAccounts": {
         return await this.imKeyRequestAccounts(requestId++);
       }
@@ -135,11 +148,16 @@ export default class ImKeyProvider extends EventEmitter {
         const req = createJsonRpcRequest("eth_sendRawTransaction", [ret.raw]);
         return await this.callInnerProviderApi(req);
       }
+      /* eslint-disable no-fallthrough */
       case "eth_sign":
       // https://docs.metamask.io/guide/signing-data.html#a-brief-history
+      //
+      /* eslint-disable no-fallthrough */
       case "eth_signTypedData":
       // case 'eth_signTypedData_v1':
+      /* eslint-disable no-fallthrough */
       case "eth_signTypedData_v3":
+      /* eslint-disable no-fallthrough */
       case "eth_signTypedData_v4": {
         return createProviderRpcError(
           4200,
@@ -163,7 +181,7 @@ export default class ImKeyProvider extends EventEmitter {
     callback: (err: Error | null, ret: any) => void
   ) {
     this.request(args)
-      .then((ret) => callback(null, ret))
+      .then((ret) => callback(null, createJsonRpcResponse(args.id, ret)))
       .catch((err) => callback(err, null));
   }
 
@@ -194,35 +212,60 @@ export default class ImKeyProvider extends EventEmitter {
     callback?: (error: Error, ret: any) => void
   ) {
     if (
-      !transactionConfig.gasPrice ||
-      !transactionConfig.nonce ||
       !transactionConfig.to ||
-      !transactionConfig.value ||
-      !transactionConfig.from
+      !transactionConfig.value
     ) {
       throw createProviderRpcError(
         -32602,
-        "Need pass gasPrice,nonce,to,value,chainId,from"
+        "expected to,value"
       );
     }
-
-    if (
-      transactionConfig.chainId &&
-      transactionConfig.chainId !== this.#chainId
-    ) {
-      throw createProviderRpcError(
-        -32602,
-        "expected chainId and connected chainId are mismatched"
-      );
+    
+    //from
+    let from: string;
+    if (!transactionConfig.from ||
+      typeof transactionConfig.from === "number") {
+      const accounts = await this.imKeyRequestAccounts(requestId++);
+      from = accounts[0] as string;
+    }else{
+      from = Web3.utils.toChecksumAddress(transactionConfig.from as string);
     }
 
-    let fee = (
-      BigInt(transactionConfig.gas) * BigInt(transactionConfig.gasPrice)
-    ).toString(); //wei
-    fee = Web3.utils.fromWei(fee, "Gwei"); //to Gwei
-    const temp = Math.ceil(Number(fee));
-    fee = (temp * 1000000000).toString(); //to ether
-    fee = Web3.utils.fromWei(fee) + " ether";
+    //gas price
+    let gasPrice: string;
+    if(gasPrice){
+      gasPrice = parseArgsNum(transactionConfig.gasPrice);
+    }else{
+      gasPrice = await this.callInnerProviderApi(
+        createJsonRpcRequest("eth_gasPrice", [])
+      );
+      gasPrice = Web3.utils.hexToNumberString(gasPrice);
+    }
+
+    //chain id
+    let chainId: number;
+    if(transactionConfig.chainId){
+      if (transactionConfig.chainId !== this.#chainId) {
+        throw createProviderRpcError(
+          -32602,
+          "expected chainId and connected chainId are mismatched"
+        );
+      }
+      chainId = transactionConfig.chainId
+    }else{
+      chainId = this.#chainId
+    }
+
+    //nonce
+    let nonce: string;
+    if(transactionConfig.nonce){
+      nonce = parseArgsNum(transactionConfig.nonce);
+    }else{
+      nonce = await this.callInnerProviderApi(
+        createJsonRpcRequest("eth_getTransactionCount", [transactionConfig.from,"pending"])
+      );
+      nonce = Web3.utils.hexToNumber(nonce).toString();
+    }
 
     //estimate gas
     let gasLimit: string;
@@ -244,9 +287,15 @@ export default class ImKeyProvider extends EventEmitter {
       gasLimit = parseArgsNum(gasRet);
     }
 
-    const from = Web3.utils.toChecksumAddress(transactionConfig.from as string);
-    const gasPrice = parseArgsNum(transactionConfig.gasPrice);
-    const nonce = parseArgsNum(transactionConfig.nonce);
+    //fee
+    let fee = (
+      BigInt(gasLimit) * BigInt(gasPrice)
+    ).toString(); //wei
+    fee = Web3.utils.fromWei(fee, "Gwei"); //to Gwei
+    const temp = Math.ceil(Number(fee));
+    fee = (temp * 1000000000).toString(); //to ether
+    fee = Web3.utils.fromWei(fee) + " ether";
+
     const to = Web3.utils.toChecksumAddress(transactionConfig.to);
     const value = parseArgsNum(transactionConfig.value);
 
@@ -262,7 +311,7 @@ export default class ImKeyProvider extends EventEmitter {
             nonce,
             to,
             value,
-            chainId: transactionConfig.chainId,
+            chainId,
             path: IMKEY_ETH_PATH,
           },
           preview: {
@@ -282,14 +331,14 @@ export default class ImKeyProvider extends EventEmitter {
       const decoded = rlp.decode(txData, true);
 
       const rlpTX: RLPEncodedTransaction = {
-        raw: ret.result?.txData,
+        raw: txData,
         tx: {
-          nonce: transactionConfig.nonce!.toString(),
-          gasPrice: transactionConfig.gasPrice!.toString(),
-          gas: transactionConfig.gas!.toString(),
-          to: transactionConfig.to!.toString(),
-          value: transactionConfig.value!.toString(),
-          input: transactionConfig.data!.toString(),
+          nonce: nonce,
+          gasPrice: gasPrice,
+          gas: gasLimit,
+          to: to,
+          value: value,
+          input: transactionConfig.data,
           // @ts-ignore
           r: Web3.utils.bytesToHex(decoded.data[7]),
           // @ts-ignore
@@ -328,6 +377,13 @@ export default class ImKeyProvider extends EventEmitter {
       throw error;
     }
 
+    let data = "";
+    try {
+      data = Web3.utils.toUtf8(dataToSign);
+    } catch (error) {
+      data = dataToSign;
+    }
+
     const checksumAddress = Web3.utils.toChecksumAddress(address as string);
 
     try {
@@ -335,14 +391,20 @@ export default class ImKeyProvider extends EventEmitter {
         jsonrpc: "2.0",
         method: "eth.signMessage",
         params: {
-          data: Web3.utils.toUtf8(dataToSign),
+          data: data,
           sender: checksumAddress,
           path: IMKEY_ETH_PATH,
         },
         id: requestId++,
       });
-      callback?.(null, ret.result?.signature);
-      return ret.result?.signature;
+
+      let sigRet = ret.result?.signature.toLowerCase();
+      if(!sigRet.startsWith("0x")){
+        sigRet = "0x" + sigRet;
+      }
+
+      callback?.(null, sigRet);
+      return sigRet;
     } catch (error) {
       callback?.(error, null);
       throw createProviderRpcError(4001, error);

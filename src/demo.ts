@@ -2,13 +2,16 @@ import ImKeyProvider from "./index";
 import Web3 from "web3";
 import { RLPEncodedTransaction } from "web3-eth";
 
+
 interface ProviderConnectInfo {
   readonly chainId: string;
 }
 
 const imkeyProvider = new ImKeyProvider({
   rpcUrl: "https://kovan.infura.io/v3/ab0ae463c282483a83e8116eb535e435",
+  chainId: 3,
 });
+imkeyProvider.enable();
 const web3 = new Web3(imkeyProvider as any);
 
 imkeyProvider.on("disconnect", (code: any, reason: any) => {
@@ -58,13 +61,13 @@ btnSignTransaction.addEventListener("click", (e) => {
     .signTransaction(
       {
         from: "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
-        gasPrice: "20000000008",
-        nonce: 8,
-        gas: "21000",
+        // gasPrice: "20000000008",
+        // nonce: 8,
+        // gas: "21000",
         to: "0x3535353535353535353535353535353535353535",
         value: "512",
-        chainId: 28,
-        data: "",
+        // chainId: 3,
+        // data: "",
       },
       showResult
     )
@@ -82,10 +85,11 @@ btnSignMessage.addEventListener("click", (e) => {
     }
   }
 
-  web3.eth
+  web3.eth.personal
     .sign(
-      "Hello world",
+      "Hello imKey",
       "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
+      "",
       showResult
     )
     .then(console.log)
@@ -126,7 +130,7 @@ btnRequest_eth_sign.innerText = "request eth_sign";
 btnRequest_eth_sign.addEventListener("click", async (e) => {
   imkeyProvider
     .request({
-      method: "eth_sign",
+      method: "personal_sign",
       params: [
         "0x49206861766520313030e282ac",
         "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
@@ -154,7 +158,7 @@ btnRequest_eth_signTransaction.addEventListener("click", async (e) => {
           gas: "0x5208",
           to: "0x3535353535353535353535353535353535353535",
           value: "0x200",
-          chainId: 28,
+          chainId: 3,
           data: "",
         },
       ],
