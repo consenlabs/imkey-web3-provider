@@ -73,24 +73,24 @@ function parseArgsNum(num: string | number | BN) {
 
 export default class ImKeyProvider extends EventEmitter {
   // @ts-ignore
-  #infuraProvider: Web3.providers.HttpProvider;
-  #chainId: number;
+  private infuraProvider: Web3.providers.HttpProvider;
+  private chainId: number;
 
   constructor(config: IProviderOptions) {
     super();
     let rpcUrl = config.rpcUrl;
-    this.#chainId = config.chainId ?? 1;
+    this.chainId = config.chainId ?? 1;
     if (config.infuraId) {
-      const network = chainId2InfuraNetwork(this.#chainId);
+      const network = chainId2InfuraNetwork(this.chainId);
       rpcUrl = `https://${network}.infura.io/v3/${config.infuraId}`;
     }
     // @ts-ignore
-    this.#infuraProvider = new Web3.providers.HttpProvider(rpcUrl);
+    this.infuraProvider = new Web3.providers.HttpProvider(rpcUrl);
   }
 
   async callInnerProviderApi(req: JsonRpcPayload): Promise<any> {
     return new Promise((resolve, reject) => {
-      this.#infuraProvider.send(
+      this.infuraProvider.send(
         req,
         (error: Error | null, result?: JsonRpcResponse) => {
           if (error) {
@@ -109,7 +109,7 @@ export default class ImKeyProvider extends EventEmitter {
       createJsonRpcRequest("eth_chainId")
     );
     const chainId = Web3.utils.hexToNumber(chainIdHex);
-    if (chainId !== this.#chainId) {
+    if (chainId !== this.chainId) {
       throw new Error("chain id and rpc endpoint don't match");
     } else {
       this.emit("connect", { chainId });
@@ -120,7 +120,7 @@ export default class ImKeyProvider extends EventEmitter {
   async request(args: RequestArguments): Promise<any> {
     switch (args.method) {
       case "eth_getChainId": {
-        return this.#chainId;
+        return this.chainId;
       }
       /* eslint-disable no-fallthrough */
       case "personal_listAccounts":
@@ -245,7 +245,7 @@ export default class ImKeyProvider extends EventEmitter {
     //chain id
     let chainId: number;
     if(transactionConfig.chainId){
-      if (transactionConfig.chainId !== this.#chainId) {
+      if (transactionConfig.chainId !== this.chainId) {
         throw createProviderRpcError(
           -32602,
           "expected chainId and connected chainId are mismatched"
@@ -253,7 +253,7 @@ export default class ImKeyProvider extends EventEmitter {
       }
       chainId = transactionConfig.chainId
     }else{
-      chainId = this.#chainId
+      chainId = this.chainId
     }
 
     //nonce
