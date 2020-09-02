@@ -9,7 +9,7 @@ interface ProviderConnectInfo {
 
 const imkeyProvider = new ImKeyProvider({
   rpcUrl: "put your infura address here",
-  chainId: 3,
+  chainId: 42,
 });
 imkeyProvider.enable();
 const web3 = new Web3(imkeyProvider as any);
@@ -65,7 +65,7 @@ btnSignTransaction.addEventListener("click", (e) => {
         // nonce: 8,
         // gas: "21000",
         to: "0x3535353535353535353535353535353535353535",
-        value: "512",
+        value: "100000000000000000",
         // chainId: 3,
         // data: "",
       },
