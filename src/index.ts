@@ -298,6 +298,7 @@ export default class ImKeyProvider extends EventEmitter {
 
     const to = Web3.utils.toChecksumAddress(transactionConfig.to);
     const value = parseArgsNum(transactionConfig.value);
+    const valueInWei = Web3.utils.fromWei(value);
 
     try {
       const ret = await callImKeyApi({
@@ -315,7 +316,7 @@ export default class ImKeyProvider extends EventEmitter {
             path: IMKEY_ETH_PATH,
           },
           preview: {
-            payment: value + " ETH",
+            payment: valueInWei + " ETH",
             receiver: to,
             sender: from,
             fee: fee,
@@ -337,7 +338,7 @@ export default class ImKeyProvider extends EventEmitter {
           gasPrice: gasPrice,
           gas: gasLimit,
           to: to,
-          value: value,
+          value: valueInWei,
           input: transactionConfig.data,
           // @ts-ignore
           r: Web3.utils.bytesToHex(decoded.data[7]),
