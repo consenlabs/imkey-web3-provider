@@ -5,12 +5,14 @@ import * as rlp from "rlp";
 import { RLPEncodedTransaction, TransactionConfig } from "web3-eth";
 import EventEmitter from "event-emitter-es6";
 import BN from "bn.js";
+import * as HttpHeaderProvider from "httpheaderprovider"
 
 
 interface IProviderOptions {
   rpcUrl?: string;
   infuraId?: string;
   chainId?: number;
+  headers?: any;
 }
 
 interface RequestArguments {
@@ -75,6 +77,7 @@ export default class ImKeyProvider extends EventEmitter {
   // @ts-ignore
   private infuraProvider: Web3.providers.HttpProvider;
   private chainId: number;
+  private configProvider?: HttpHeaderProvider;
 
   constructor(config: IProviderOptions) {
     super();
@@ -86,11 +89,29 @@ export default class ImKeyProvider extends EventEmitter {
     }
     // @ts-ignore
     this.infuraProvider = new Web3.providers.HttpProvider(rpcUrl);
+    if(config.headers){
+      this.configProvider = new HttpHeaderProvider(rpcUrl, config.headers);
+    }
   }
 
   async callInnerProviderApi(req: JsonRpcPayload): Promise<any> {
     return new Promise((resolve, reject) => {
       this.infuraProvider.send(
+        req,
+        (error: Error | null, result?: JsonRpcResponse) => {
+          if (error) {
+            reject(createProviderRpcError(4001, error.message));
+          } else {
+            resolve(result.result);
+          }
+        }
+      );
+    });
+  }
+
+  async callProviderApiWithHeader(req: JsonRpcPayload): Promise<any> {
+    return new Promise((resolve, reject) => {
+      this.configProvider.send(
         req,
         (error: Error | null, result?: JsonRpcResponse) => {
           if (error) {
@@ -146,7 +167,11 @@ export default class ImKeyProvider extends EventEmitter {
           args.params![0]
         );
         const req = createJsonRpcRequest("eth_sendRawTransaction", [ret.raw]);
-        return await this.callInnerProviderApi(req);
+        if(this.configProvider){
+          return await this.callProviderApiWithHeader(req);
+        }else{
+          return await this.callInnerProviderApi(req);
+        }
       }
       /* eslint-disable no-fallthrough */
       case "eth_sign":
