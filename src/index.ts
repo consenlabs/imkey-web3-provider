@@ -166,10 +166,16 @@ export default class ImKeyProvider extends EventEmitter {
           args.params![0]
         );
         const req = createJsonRpcRequest("eth_sendRawTransaction", [ret.raw]);
+        let rsp;
         if (this.configProvider) {
-          return await this.callProviderApiWithHeader(req);
+          rsp = await this.callProviderApiWithHeader(req);
         } else {
-          return await this.callInnerProviderApi(req);
+          rsp = await this.callInnerProviderApi(req);
+        }
+        if (rsp.txHash) {
+          return rsp.txHash;
+        } else {
+          return rsp;
         }
       }
       /* eslint-disable no-fallthrough */
@@ -253,7 +259,7 @@ export default class ImKeyProvider extends EventEmitter {
     if (transactionConfig.gasPrice) {
       gasPriceDec = parseArgsNum(transactionConfig.gasPrice);
     } else {
-      let gasPriceRet = await this.callInnerProviderApi(
+      const gasPriceRet = await this.callInnerProviderApi(
         createJsonRpcRequest("eth_gasPrice", [])
       );
       gasPriceDec = Web3.utils.hexToNumberString(gasPriceRet);
