@@ -5,8 +5,7 @@ import * as rlp from "rlp";
 import { RLPEncodedTransaction, TransactionConfig } from "web3-eth";
 import EventEmitter from "event-emitter-es6";
 import BN from "bn.js";
-import * as HttpHeaderProvider from "httpheaderprovider"
-
+import HttpHeaderProvider from "httpheaderprovider";
 
 interface IProviderOptions {
   rpcUrl?: string;
@@ -89,7 +88,7 @@ export default class ImKeyProvider extends EventEmitter {
     }
     // @ts-ignore
     this.infuraProvider = new Web3.providers.HttpProvider(rpcUrl);
-    if(config.headers){
+    if (config.headers) {
       this.configProvider = new HttpHeaderProvider(rpcUrl, config.headers);
     }
   }
@@ -167,9 +166,9 @@ export default class ImKeyProvider extends EventEmitter {
           args.params![0]
         );
         const req = createJsonRpcRequest("eth_sendRawTransaction", [ret.raw]);
-        if(this.configProvider){
+        if (this.configProvider) {
           return await this.callProviderApiWithHeader(req);
-        }else{
+        } else {
           return await this.callInnerProviderApi(req);
         }
       }
@@ -236,31 +235,24 @@ export default class ImKeyProvider extends EventEmitter {
     transactionConfig: TransactionConfig,
     callback?: (error: Error, ret: any) => void
   ) {
-    if (
-      !transactionConfig.to ||
-      !transactionConfig.value
-    ) {
-      throw createProviderRpcError(
-        -32602,
-        "expected to,value"
-      );
+    if (!transactionConfig.to || !transactionConfig.value) {
+      throw createProviderRpcError(-32602, "expected to,value");
     }
-    
+
     //from
     let from: string;
-    if (!transactionConfig.from ||
-      typeof transactionConfig.from === "number") {
+    if (!transactionConfig.from || typeof transactionConfig.from === "number") {
       const accounts = await this.imKeyRequestAccounts(requestId++);
       from = accounts[0] as string;
-    }else{
+    } else {
       from = Web3.utils.toChecksumAddress(transactionConfig.from as string);
     }
 
     //gas price
     let gasPrice: string;
-    if(gasPrice){
+    if (gasPrice) {
       gasPrice = parseArgsNum(transactionConfig.gasPrice);
-    }else{
+    } else {
       gasPrice = await this.callInnerProviderApi(
         createJsonRpcRequest("eth_gasPrice", [])
       );
@@ -269,25 +261,28 @@ export default class ImKeyProvider extends EventEmitter {
 
     //chain id
     let chainId: number;
-    if(transactionConfig.chainId){
+    if (transactionConfig.chainId) {
       if (transactionConfig.chainId !== this.chainId) {
         throw createProviderRpcError(
           -32602,
           "expected chainId and connected chainId are mismatched"
         );
       }
-      chainId = transactionConfig.chainId
-    }else{
-      chainId = this.chainId
+      chainId = transactionConfig.chainId;
+    } else {
+      chainId = this.chainId;
     }
 
     //nonce
     let nonce: string;
-    if(transactionConfig.nonce){
+    if (transactionConfig.nonce) {
       nonce = parseArgsNum(transactionConfig.nonce);
-    }else{
+    } else {
       nonce = await this.callInnerProviderApi(
-        createJsonRpcRequest("eth_getTransactionCount", [transactionConfig.from,"pending"])
+        createJsonRpcRequest("eth_getTransactionCount", [
+          transactionConfig.from,
+          "pending",
+        ])
       );
       nonce = Web3.utils.hexToNumber(nonce).toString();
     }
@@ -313,9 +308,7 @@ export default class ImKeyProvider extends EventEmitter {
     }
 
     //fee
-    let fee = (
-      BigInt(gasLimit) * BigInt(gasPrice)
-    ).toString(); //wei
+    let fee = (BigInt(gasLimit) * BigInt(gasPrice)).toString(); //wei
     fee = Web3.utils.fromWei(fee, "Gwei"); //to Gwei
     const temp = Math.ceil(Number(fee));
     fee = (temp * 1000000000).toString(); //to ether
@@ -425,7 +418,7 @@ export default class ImKeyProvider extends EventEmitter {
       });
 
       let sigRet = ret.result?.signature.toLowerCase();
-      if(!sigRet.startsWith("0x")){
+      if (!sigRet.startsWith("0x")) {
         sigRet = "0x" + sigRet;
       }
 

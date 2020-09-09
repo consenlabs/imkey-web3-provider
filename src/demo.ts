@@ -2,7 +2,6 @@ import ImKeyProvider from "./index";
 import Web3 from "web3";
 import { RLPEncodedTransaction } from "web3-eth";
 
-
 interface ProviderConnectInfo {
   readonly chainId: string;
 }
@@ -11,8 +10,8 @@ const imkeyProvider = new ImKeyProvider({
   rpcUrl: "put your infura address here",
   chainId: 1,
   headers: {
-    "": ""
-  }
+    agent: "ios:25",
+  },
 });
 imkeyProvider.enable();
 const web3 = new Web3(imkeyProvider as any);
@@ -89,18 +88,16 @@ btnSendTransaction.addEventListener("click", (e) => {
   }
 
   web3.eth
-    .sendTransaction(
-      {
-        from: "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
-        // gasPrice: "20000000008",
-        // nonce: 8,
-        // gas: "21000",
-        to: "0x3535353535353535353535353535353535353535",
-        value: "100000000000000000",
-        // chainId: 3,
-        // data: "",
-      }
-    )
+    .sendTransaction({
+      from: "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
+      // gasPrice: "20000000008",
+      // nonce: 8,
+      // gas: "21000",
+      to: "0x3535353535353535353535353535353535353535",
+      value: "100000000000000000",
+      // chainId: 3,
+      // data: "",
+    })
     .then(console.log);
 });
 
