@@ -9,7 +9,10 @@ interface ProviderConnectInfo {
 
 const imkeyProvider = new ImKeyProvider({
   rpcUrl: "put your infura address here",
-  chainId: 42,
+  chainId: 1,
+  headers: {
+    "": ""
+  }
 });
 imkeyProvider.enable();
 const web3 = new Web3(imkeyProvider as any);
@@ -70,6 +73,33 @@ btnSignTransaction.addEventListener("click", (e) => {
         // data: "",
       },
       showResult
+    )
+    .then(console.log);
+});
+
+const btnSendTransaction = document.createElement("button");
+btnSendTransaction.innerText = "Send Transaction";
+btnSendTransaction.addEventListener("click", (e) => {
+  function showResult(error: Error, result: RLPEncodedTransaction) {
+    if (error != null) {
+      console.log("show error: ", error);
+    } else {
+      console.log("show result: ", result);
+    }
+  }
+
+  web3.eth
+    .sendTransaction(
+      {
+        from: "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
+        // gasPrice: "20000000008",
+        // nonce: 8,
+        // gas: "21000",
+        to: "0x3535353535353535353535353535353535353535",
+        value: "100000000000000000",
+        // chainId: 3,
+        // data: "",
+      }
     )
     .then(console.log);
 });
@@ -176,6 +206,7 @@ document.body.append(btn);
 document.body.append(btnBalance);
 document.body.append(btnSignTransaction);
 document.body.append(btnSignMessage);
+document.body.append(btnSendTransaction);
 
 document.body.append(document.createElement("br"));
 document.body.append(btnRequest_eth_requestAccounts);
