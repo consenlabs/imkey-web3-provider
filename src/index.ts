@@ -65,7 +65,7 @@ function chainId2InfuraNetwork(chainId: number) {
 function parseArgsNum(num: string | number | BN) {
   if (num instanceof BN) {
     return num.toNumber().toString();
-  } else if (typeof num === "string") {
+  } else if (typeof num === "string" && Web3.utils.isHex(num)) {
     return Web3.utils.hexToNumberString(num);
   } else {
     return num.toString();
@@ -249,14 +249,14 @@ export default class ImKeyProvider extends EventEmitter {
     }
 
     //gas price
-    let gasPrice: string;
+    let gasPriceDec: string;
     if (transactionConfig.gasPrice) {
-      gasPrice = parseArgsNum(transactionConfig.gasPrice);
+      gasPriceDec = parseArgsNum(transactionConfig.gasPrice);
     } else {
-      gasPrice = await this.callInnerProviderApi(
+      let gasPriceRet = await this.callInnerProviderApi(
         createJsonRpcRequest("eth_gasPrice", [])
       );
-      gasPrice = Web3.utils.hexToNumberString(gasPrice);
+      gasPriceDec = Web3.utils.hexToNumberString(gasPriceRet);
     }
 
     //chain id
@@ -298,7 +298,7 @@ export default class ImKeyProvider extends EventEmitter {
             from: transactionConfig.from,
             to: transactionConfig.to,
             gas: transactionConfig.gas,
-            gasPrice: gasPrice,
+            gasPrice: Web3.utils.numberToHex(gasPriceDec),
             value: transactionConfig.value,
             data: transactionConfig.data,
           },
@@ -308,7 +308,7 @@ export default class ImKeyProvider extends EventEmitter {
     }
 
     //fee
-    let fee = (BigInt(gasLimit) * BigInt(gasPrice)).toString(); //wei
+    let fee = (BigInt(gasLimit) * BigInt(gasPriceDec)).toString(); //wei
     fee = Web3.utils.fromWei(fee, "Gwei"); //to Gwei
     const temp = Math.ceil(Number(fee));
     fee = (temp * 1000000000).toString(); //to ether
@@ -326,7 +326,7 @@ export default class ImKeyProvider extends EventEmitter {
           transaction: {
             data: transactionConfig.data,
             gasLimit,
-            gasPrice,
+            gasPrice: gasPriceDec,
             nonce,
             to,
             value,
@@ -353,7 +353,7 @@ export default class ImKeyProvider extends EventEmitter {
         raw: txData,
         tx: {
           nonce: nonce,
-          gasPrice: gasPrice,
+          gasPrice: gasPriceDec,
           gas: gasLimit,
           to: to,
           value: valueInWei,
