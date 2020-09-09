@@ -11,7 +11,7 @@ interface IProviderOptions {
   rpcUrl?: string;
   infuraId?: string;
   chainId?: number;
-  headers?: any;
+  headers?: Record<string, string>;
 }
 
 interface RequestArguments {
@@ -74,9 +74,8 @@ function parseArgsNum(num: string | number | BN) {
 
 export default class ImKeyProvider extends EventEmitter {
   // @ts-ignore
-  private infuraProvider: Web3.providers.HttpProvider;
+  private httpProvider: Web3.providers.HttpProvider;
   private chainId: number;
-  private configProvider?: HttpHeaderProvider;
 
   constructor(config: IProviderOptions) {
     super();
@@ -87,30 +86,22 @@ export default class ImKeyProvider extends EventEmitter {
       rpcUrl = `https://${network}.infura.io/v3/${config.infuraId}`;
     }
     // @ts-ignore
-    this.infuraProvider = new Web3.providers.HttpProvider(rpcUrl);
+    let headers = null;
     if (config.headers) {
-      this.configProvider = new HttpHeaderProvider(rpcUrl, config.headers);
+      headers = [];
+      for (const idx in config.headers) {
+        headers.push({ name: idx, value: config.headers[idx] });
+      }
     }
+
+    this.httpProvider = new Web3.providers.HttpProvider(rpcUrl, {
+      headers,
+    });
   }
 
   async callInnerProviderApi(req: JsonRpcPayload): Promise<any> {
     return new Promise((resolve, reject) => {
-      this.infuraProvider.send(
-        req,
-        (error: Error | null, result?: JsonRpcResponse) => {
-          if (error) {
-            reject(createProviderRpcError(4001, error.message));
-          } else {
-            resolve(result.result);
-          }
-        }
-      );
-    });
-  }
-
-  async callProviderApiWithHeader(req: JsonRpcPayload): Promise<any> {
-    return new Promise((resolve, reject) => {
-      this.configProvider.send(
+      this.httpProvider.send(
         req,
         (error: Error | null, result?: JsonRpcResponse) => {
           if (error) {
@@ -166,17 +157,7 @@ export default class ImKeyProvider extends EventEmitter {
           args.params![0]
         );
         const req = createJsonRpcRequest("eth_sendRawTransaction", [ret.raw]);
-        let rsp;
-        if (this.configProvider) {
-          rsp = await this.callProviderApiWithHeader(req);
-        } else {
-          rsp = await this.callInnerProviderApi(req);
-        }
-        if (rsp.txHash) {
-          return rsp.txHash;
-        } else {
-          return rsp;
-        }
+        return await this.callInnerProviderApi(req);
       }
       /* eslint-disable no-fallthrough */
       case "eth_sign":

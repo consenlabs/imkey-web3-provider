@@ -1,21 +1,92 @@
 import ImKeyProvider from "./index";
 import Web3 from "web3";
 import { RLPEncodedTransaction } from "web3-eth";
+import abi from "ethereumjs-abi";
+import BN from "bignumber.js";
+
+const APPROVE_METHOD = "approve(address,uint256)";
+
+export const toBN = (x): BN => {
+  if (isNaN(Number(x))) return new BN(0);
+  if (x instanceof BN) return x;
+
+  if (typeof x === "string") {
+    if (x.indexOf("0x") === 0 || x.indexOf("-0x") === 0) {
+      return new BN(x.replace("0x", ""), 16);
+    }
+  }
+  return new BN(x);
+};
+
+export function isHexPrefixed(str) {
+  return str.slice(0, 2) === "0x";
+}
+
+export function addHexPrefix(str: string) {
+  if (typeof str !== "string") {
+    return str;
+  }
+  return isHexPrefixed(str) ? str : `0x${str}`;
+}
 
 interface ProviderConnectInfo {
   readonly chainId: string;
 }
 
+const _getData = (spender) => {
+  const value = toBN(2).pow(256).minus(1).toString();
+  const encoded = abi.simpleEncode(APPROVE_METHOD, spender, value);
+  const data = addHexPrefix(encoded.toString("hex"));
+  return data;
+};
+
 const imkeyProvider = new ImKeyProvider({
-  rpcUrl: "put your infura address here",
+  rpcUrl: "https://eth-mainnet.token.im",
   chainId: 1,
   headers: {
-    agent: "ios:25",
+    agent: "ios:2.4.2:2",
   },
 });
 imkeyProvider.enable();
 const web3 = new Web3(imkeyProvider as any);
 
+export const setUnlimitedAllowanceAsync = async ({ from, spender, token }) => {
+  return new Promise(async (resolve, reject) => {
+    // @ts-ignore no-async-promise-executor
+    // const web3 = (window as any).web3;
+    const contractAddress = token.address || token.contractAddress;
+    const params = {
+      // gasPrice: "0x113",
+      // gas: "0x5208",
+      from,
+      to: "0x2497C6c5fCB011535ba7C5aAC6e49241c40c5CAF",
+      contractAddress,
+      value: "0x96",
+      decimal: 18,
+      data: "0x00",
+    };
+
+    web3.eth.sendTransaction(params, (err, txHash) => {
+      debugger; // @ts-ignore no-debugger
+      if (!err) {
+        resolve(txHash);
+      } else {
+        reject(err);
+      }
+    });
+  });
+};
+
+async function allowanceTest() {
+  const txHash = await setUnlimitedAllowanceAsync({
+    from: "0xa7420a227eb03a5841543cc98601f7f0bf458e1a",
+    spender: "0x41f8d14c9475444F30A80431C68cf24DC9A8369a",
+    token: { address: "0x3212b29E33587A00FB1C83346f5dBFA69A458923" },
+  });
+  console.log("txhash: ", txHash);
+}
+
+// allowanceTest();
 imkeyProvider.on("disconnect", (code: any, reason: any) => {
   console.log(`Ethereum Provider connection closed: ${reason}. Code: ${code}`);
 });

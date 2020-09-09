@@ -5,19 +5,17 @@ interface IProviderOptions {
     rpcUrl?: string;
     infuraId?: string;
     chainId?: number;
-    headers?: any;
+    headers?: Record<string, string>;
 }
 interface RequestArguments {
     method: string;
     params: any[];
 }
 export default class ImKeyProvider extends EventEmitter {
-    private infuraProvider;
+    private httpProvider;
     private chainId;
-    private configProvider?;
     constructor(config: IProviderOptions);
     callInnerProviderApi(req: JsonRpcPayload): Promise<any>;
-    callProviderApiWithHeader(req: JsonRpcPayload): Promise<any>;
     enable(): Promise<any[]>;
     request(args: RequestArguments): Promise<any>;
     sendAsync(args: JsonRpcPayload, callback: (err: Error | null, ret: any) => void): void;
