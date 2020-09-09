@@ -258,7 +258,7 @@ export default class ImKeyProvider extends EventEmitter {
 
     //gas price
     let gasPrice: string;
-    if(gasPrice){
+    if(transactionConfig.gasPrice){
       gasPrice = parseArgsNum(transactionConfig.gasPrice);
     }else{
       gasPrice = await this.callInnerProviderApi(
