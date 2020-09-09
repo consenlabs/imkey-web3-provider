@@ -303,7 +303,7 @@ export default class ImKeyProvider extends EventEmitter {
             from: transactionConfig.from,
             to: transactionConfig.to,
             gas: transactionConfig.gas,
-            gasPrice: transactionConfig.gasPrice,
+            gasPrice: gasPrice,
             value: transactionConfig.value,
             data: transactionConfig.data,
           },
