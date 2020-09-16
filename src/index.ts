@@ -5,7 +5,6 @@ import * as rlp from "rlp";
 import { RLPEncodedTransaction, TransactionConfig } from "web3-eth";
 import EventEmitter from "event-emitter-es6";
 import BN from "bn.js";
-import HttpHeaderProvider from "httpheaderprovider";
 
 interface IProviderOptions {
   rpcUrl?: string;
