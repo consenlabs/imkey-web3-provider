@@ -26,6 +26,7 @@ window.web3 = new Web3(imkeyProvider)
 web3.currentProvider.enable()
 ```
 3. 使用
+
 imkey provider 遵循eip-1193，https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1193.md，
 因为遵守标准，可以直接参考https://web3js.readthedocs.io/en/v1.3.0/来使用接口，下面是消息签名和发送交易示例
 
