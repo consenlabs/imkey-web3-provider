@@ -2,6 +2,12 @@
 使用imkey provider可以在dapp里实现连接imkey实现签名转账等功能。
 
 # Usage
+1. 安装imkey-manager
+
+下载imkey manager,安装成功后按提示操作连接上imkey。
+
+参考教程：https://imkey.im/get-started?locale=zh-cn 。
+
 1. install package
   ```
   "dependencies": {
@@ -28,7 +34,7 @@ web3.currentProvider.enable()
 3. 使用
 
 imkey provider 遵循eip-1193，https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1193.md，
-因为遵守标准，可以直接参考https://web3js.readthedocs.io/en/v1.3.0/来使用接口，下面是消息签名和发送交易示例
+因为遵守标准，可以直接参考https://web3js.readthedocs.io/en/v1.3.0/ 来使用接口，下面是消息签名和发送交易示例
 
 ```
 //消息签名
