@@ -6,17 +6,21 @@ interface IProviderOptions {
     infuraId?: string;
     chainId?: number;
     headers?: Record<string, string>;
+    apirouter?: any;
+    dialog?: any;
 }
 interface RequestArguments {
     method: string;
     params: any[];
 }
+export declare function test33(): Promise<string>;
 export default class ImKeyProvider extends EventEmitter {
     private httpProvider;
     private chainId;
     constructor(config: IProviderOptions);
     callInnerProviderApi(req: JsonRpcPayload): Promise<any>;
     enable(): Promise<any[]>;
+    test22(): Promise<string>;
     request(args: RequestArguments): Promise<any>;
     sendAsync(args: JsonRpcPayload, callback: (err: Error | null, ret: any) => void): void;
     imKeyRequestAccounts(id: string | number | undefined, callback?: (error: Error, ret: any) => void): Promise<any[]>;

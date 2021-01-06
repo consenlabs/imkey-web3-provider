@@ -5,12 +5,13 @@ import * as rlp from "rlp";
 import { RLPEncodedTransaction, TransactionConfig } from "web3-eth";
 import EventEmitter from "event-emitter-es6";
 import BN from "bn.js";
-
 interface IProviderOptions {
   rpcUrl?: string;
   infuraId?: string;
   chainId?: number;
   headers?: Record<string, string>;
+  apirouter?:any;
+  dialog?:any;
 }
 
 interface RequestArguments {
@@ -21,6 +22,8 @@ interface RequestArguments {
 const IMKEY_MANAGER_ENDPOINT = "http://localhost:8081/api/imkey";
 const IMKEY_ETH_PATH = "m/44'/60'/0'/0/0";
 let requestId = 0;
+let apirouter;
+var dialog;
 
 function createJsonRpcRequest(method: string, params: any[] = []) {
   return {
@@ -71,6 +74,21 @@ function parseArgsNum(num: string | number | BN) {
   }
 }
 
+export async function test33(){
+  console.log('test33')
+  return 'test33'
+}
+
+function isNative(){
+  if(apirouter&&dialog){
+    console.log('isNative true')
+    return true
+  }else{
+    console.log('isNative false')
+    return false
+  }
+}
+
 export default class ImKeyProvider extends EventEmitter {
   // @ts-ignore
   private httpProvider: Web3.providers.HttpProvider;
@@ -96,6 +114,9 @@ export default class ImKeyProvider extends EventEmitter {
     this.httpProvider = new Web3.providers.HttpProvider(rpcUrl, {
       headers,
     });
+
+    apirouter = config.apirouter
+    dialog = config.dialog
   }
 
   async callInnerProviderApi(req: JsonRpcPayload): Promise<any> {
@@ -125,6 +146,11 @@ export default class ImKeyProvider extends EventEmitter {
       this.emit("connect", { chainId });
       return accounts;
     }
+  }
+
+  async test22(){
+    console.log('test22')
+    return '22'
   }
 
   async request(args: RequestArguments): Promise<any> {
@@ -207,7 +233,7 @@ export default class ImKeyProvider extends EventEmitter {
           path: IMKEY_ETH_PATH,
         },
         id: requestId++,
-      });
+      }, isNative());
       callback?.(null, [ret.result?.address]);
       return [ret.result?.address];
     } catch (error) {
@@ -327,7 +353,7 @@ export default class ImKeyProvider extends EventEmitter {
           },
         },
         id: requestId++,
-      });
+      }, isNative());
       let txData = ret.result?.txData;
       if (!ret.result?.txData?.startsWith("0x")) {
         txData = "0x" + txData;
@@ -401,7 +427,7 @@ export default class ImKeyProvider extends EventEmitter {
           path: IMKEY_ETH_PATH,
         },
         id: requestId++,
-      });
+      },isNative());
 
       let sigRet = ret.result?.signature.toLowerCase();
       if (!sigRet.startsWith("0x")) {
@@ -417,7 +443,29 @@ export default class ImKeyProvider extends EventEmitter {
   }
 }
 
-function callImKeyApi(arg: Record<string, unknown>) {
+function callImKeyApi(arg: Record<string, unknown>, isNative = false) {
+    if(isNative){
+      console.log('native')
+        // dialog.showMessageBox({
+        //   type: 'info',
+        //   title: '访问说明',
+        //   message: '你正在访问第三方DAPP\n' + arg,
+        //   buttons: ['OK', 'Cancel']
+        // }).then(result => {
+        //   console.log('dialog then')
+        //   return callNativeApi(arg)
+        // }).catch(err => {
+        //   console.log('dialog error')
+        //   console.log(err)
+        // })
+      return callNativeApi(arg)
+    }else{
+      console.log('rpc')
+      return callRpcApi(arg)
+    }
+}
+
+function callRpcApi(arg: Record<string, unknown>){
   return postData(IMKEY_MANAGER_ENDPOINT, arg).then((json) => {
     if (json.error) {
       if (json.error.message.includes("ImkeyUserNotConfirmed")) {
@@ -429,6 +477,19 @@ function callImKeyApi(arg: Record<string, unknown>) {
       return json;
     }
   });
+}
+
+async function callNativeApi(arg: Record<string, unknown>){
+  const json = apirouter.api(arg)
+  if (json.error) {
+    if (json.error.message.includes("ImkeyUserNotConfirmed")) {
+      throw new Error("user not confirmed");
+    } else {
+      throw new Error(json.error.message);
+    }
+  } else {
+    return json;
+  }
 }
 
 function postData(url: string, data: Record<string, unknown>) {
