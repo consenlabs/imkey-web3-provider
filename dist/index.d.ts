@@ -21,6 +21,7 @@ export default class ImKeyProvider extends EventEmitter {
     callInnerProviderApi(req: JsonRpcPayload): Promise<any>;
     enable(): Promise<any[]>;
     test22(): Promise<string>;
+    request2(args: RequestArguments): Promise<any>;
     request(args: RequestArguments): Promise<any>;
     sendAsync(args: JsonRpcPayload, callback: (err: Error | null, ret: any) => void): void;
     imKeyRequestAccounts(id: string | number | undefined, callback?: (error: Error, ret: any) => void): Promise<any[]>;

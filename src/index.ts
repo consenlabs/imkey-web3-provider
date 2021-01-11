@@ -117,9 +117,12 @@ export default class ImKeyProvider extends EventEmitter {
 
     apirouter = config.apirouter
     dialog = config.dialog
+
+    console.log(this)
   }
 
   async callInnerProviderApi(req: JsonRpcPayload): Promise<any> {
+    console.log('callInnerProviderApi:\n' + req)
     return new Promise((resolve, reject) => {
       this.httpProvider.send(
         req,
@@ -135,10 +138,12 @@ export default class ImKeyProvider extends EventEmitter {
   }
 
   async enable() {
+    console.log('enable')
     const accounts = await this.imKeyRequestAccounts(requestId++);
     const chainIdHex = await this.callInnerProviderApi(
       createJsonRpcRequest("eth_chainId")
     );
+    // const chainIdHex = 42
     const chainId = Web3.utils.hexToNumber(chainIdHex);
     if (chainId !== this.chainId) {
       throw new Error("chain id and rpc endpoint don't match");
@@ -153,7 +158,15 @@ export default class ImKeyProvider extends EventEmitter {
     return '22'
   }
 
+  request2(args: RequestArguments): Promise<any>{
+    console.log(args)
+    return new Promise(function(resolve, reject){
+      return resolve('0x6031564e7b2F5cc33737807b2E58DaFF870B590b')
+    });
+  }
+
   async request(args: RequestArguments): Promise<any> {
+    console.log('request:\n' + JSON.stringify(args))
     switch (args.method) {
       case "eth_getChainId": {
         return this.chainId;
@@ -164,6 +177,7 @@ export default class ImKeyProvider extends EventEmitter {
       case "eth_accounts":
       /* eslint-disable no-fallthrough */
       case "eth_requestAccounts": {
+        console.log('come on')
         return await this.imKeyRequestAccounts(requestId++);
       }
       case "personal_sign": {
@@ -201,6 +215,7 @@ export default class ImKeyProvider extends EventEmitter {
         );
       }
       default: {
+        console.log('request default')
         const payload = {
           jsonrpc: "2.0",
           method: args.method,
@@ -216,7 +231,43 @@ export default class ImKeyProvider extends EventEmitter {
     args: JsonRpcPayload,
     callback: (err: Error | null, ret: any) => void
   ) {
+    console.log('sendAsync:\n' + JSON.stringify(args));
+    console.log('sendAsync this:' + JSON.stringify(this))
+    if(args.method !== 'eth_call' && args.method !== 'eth_accounts'){
+      console.log('return ' + args.method)
+      return
+    }
+    
+
+    // if(args.method === 'eth_call'){
+    //   const payload = {
+    //     "id": 1337,
+    //     "jsonrpc": "2.0",
+    //     "method": "eth_accounts",
+    //     "params": [{
+    //         "data": "0xd46e8dd67c5d32be8d46e8dd67c5d32be8058bb8eb970870f072445675058bb8eb970870f072445675",
+    //         "from": "0xb60e8dd61c5d32be8058bb8eb970870f07233155",
+    //         "gas": "0x76c0",
+    //         "gasPrice": "0x9184e72a000",
+    //         "to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
+    //         "value": "0x9184e72a"
+    //     }]
+    // }
+    //   this.callInnerProviderApi(payload)
+    //   .then(console.log).catch(console.log)
+    //   return '0x'
+    // }
+    
+    // let pram = {
+    //   method:'eth_call',
+    //   params:[]
+    // }
+    // console.log(await this.request(pram))
+    // let ret = await this.request(args);
+    // callback(ret.errror,createJsonRpcResponse(args.id, ret));
+
     this.request(args)
+    // .then(console.log).catch(console.log)
       .then((ret) => callback(null, createJsonRpcResponse(args.id, ret)))
       .catch((err) => callback(err, null));
   }
@@ -445,20 +496,22 @@ export default class ImKeyProvider extends EventEmitter {
 
 function callImKeyApi(arg: Record<string, unknown>, isNative = false) {
     if(isNative){
-      console.log('native')
-        // dialog.showMessageBox({
+      console.log('native222')
+      console.log(JSON.stringify(arg))
+        // const ret = dialog.showMessageBoxSync({
         //   type: 'info',
         //   title: '访问说明',
-        //   message: '你正在访问第三方DAPP\n' + arg,
+        //   message: '你正在访问第三方DAPP\n' + JSON.stringify(arg),
         //   buttons: ['OK', 'Cancel']
-        // }).then(result => {
-        //   console.log('dialog then')
-        //   return callNativeApi(arg)
-        // }).catch(err => {
-        //   console.log('dialog error')
-        //   console.log(err)
         // })
-      return callNativeApi(arg)
+        // console.log(ret)
+        // console.log('dialog')
+        // if(ret === 0){
+        //   console.log(0)
+        // }else{
+        //   console.log('callNativeApi(arg)')
+        // }
+        return callNativeApi(arg)
     }else{
       console.log('rpc')
       return callRpcApi(arg)
