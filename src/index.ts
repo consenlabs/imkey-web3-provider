@@ -122,7 +122,6 @@ export default class ImKeyProvider extends EventEmitter {
   }
 
   async callInnerProviderApi(req: JsonRpcPayload): Promise<any> {
-    console.log('callInnerProviderApi:\n' + req)
     return new Promise((resolve, reject) => {
       this.httpProvider.send(
         req,
@@ -143,7 +142,6 @@ export default class ImKeyProvider extends EventEmitter {
     const chainIdHex = await this.callInnerProviderApi(
       createJsonRpcRequest("eth_chainId")
     );
-    // const chainIdHex = 42
     const chainId = Web3.utils.hexToNumber(chainIdHex);
     if (chainId !== this.chainId) {
       throw new Error("chain id and rpc endpoint don't match");
@@ -165,7 +163,8 @@ export default class ImKeyProvider extends EventEmitter {
     });
   }
 
-  async request(args: RequestArguments): Promise<any> {
+  request = async (args: RequestArguments): Promise<any> => {
+  // async request(args: RequestArguments): Promise<any> {
     console.log('request:\n' + JSON.stringify(args))
     switch (args.method) {
       case "eth_getChainId": {
@@ -177,8 +176,10 @@ export default class ImKeyProvider extends EventEmitter {
       case "eth_accounts":
       /* eslint-disable no-fallthrough */
       case "eth_requestAccounts": {
-        console.log('come on')
         return await this.imKeyRequestAccounts(requestId++);
+      }
+      case "eth_coinbase": {
+        return await this.imKeyRequestAccounts(requestId++)[0];
       }
       case "personal_sign": {
         return await this.imKeyPersonalSign(
@@ -232,44 +233,26 @@ export default class ImKeyProvider extends EventEmitter {
     callback: (err: Error | null, ret: any) => void
   ) {
     console.log('sendAsync:\n' + JSON.stringify(args));
-    console.log('sendAsync this:' + JSON.stringify(this))
-    if(args.method !== 'eth_call' && args.method !== 'eth_accounts'){
-      console.log('return ' + args.method)
-      return
-    }
-    
-
-    // if(args.method === 'eth_call'){
-    //   const payload = {
-    //     "id": 1337,
-    //     "jsonrpc": "2.0",
-    //     "method": "eth_accounts",
-    //     "params": [{
-    //         "data": "0xd46e8dd67c5d32be8d46e8dd67c5d32be8058bb8eb970870f072445675058bb8eb970870f072445675",
-    //         "from": "0xb60e8dd61c5d32be8058bb8eb970870f07233155",
-    //         "gas": "0x76c0",
-    //         "gasPrice": "0x9184e72a000",
-    //         "to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
-    //         "value": "0x9184e72a"
-    //     }]
+    // if(args.method !== 'eth_call' && args.method !== 'eth_accounts'){
+    //   console.log('return ' + args.method)
+    //   return
     // }
-    //   this.callInnerProviderApi(payload)
-    //   .then(console.log).catch(console.log)
-    //   return '0x'
+    // if(args.method === 'eth_coinbase'){
+    //   callback(null, createJsonRpcResponse(args.id, '0x407d73d8a49eeb85d32cf465507dd71d507100c1'))
+    // }else{
+    //   this.request(args)
+    //   .then((ret) => {
+    //     console.log('request ret:' + ret)
+    //     callback(null, createJsonRpcResponse(args.id, ret))
+    //   })
+    //   .catch((err) => {
+    //     console.log('request err' + err)
+    //     callback(err, null)
+    //   });
     // }
-    
-    // let pram = {
-    //   method:'eth_call',
-    //   params:[]
-    // }
-    // console.log(await this.request(pram))
-    // let ret = await this.request(args);
-    // callback(ret.errror,createJsonRpcResponse(args.id, ret));
-
     this.request(args)
-    // .then(console.log).catch(console.log)
-      .then((ret) => callback(null, createJsonRpcResponse(args.id, ret)))
-      .catch((err) => callback(err, null));
+    .then((ret) => callback(null, createJsonRpcResponse(args.id, ret)))
+    .catch((err) => callback(err, null));
   }
 
   async imKeyRequestAccounts(
