@@ -164,7 +164,6 @@ export default class ImKeyProvider extends EventEmitter {
   }
 
   request = async (args: RequestArguments): Promise<any> => {
-  // async request(args: RequestArguments): Promise<any> {
     console.log('request:\n' + JSON.stringify(args))
     switch (args.method) {
       case "eth_getChainId": {
@@ -179,7 +178,8 @@ export default class ImKeyProvider extends EventEmitter {
         return await this.imKeyRequestAccounts(requestId++);
       }
       case "eth_coinbase": {
-        return await this.imKeyRequestAccounts(requestId++)[0];
+        let ret = await this.imKeyRequestAccounts(requestId++);
+        return String(ret[0])
       }
       case "personal_sign": {
         return await this.imKeyPersonalSign(
@@ -240,15 +240,22 @@ export default class ImKeyProvider extends EventEmitter {
     // if(args.method === 'eth_coinbase'){
     //   callback(null, createJsonRpcResponse(args.id, '0x407d73d8a49eeb85d32cf465507dd71d507100c1'))
     // }else{
-    //   this.request(args)
-    //   .then((ret) => {
-    //     console.log('request ret:' + ret)
-    //     callback(null, createJsonRpcResponse(args.id, ret))
-    //   })
-    //   .catch((err) => {
-    //     console.log('request err' + err)
-    //     callback(err, null)
-    //   });
+      // this.request(args)
+      // .then((ret) => {
+      //   console.log('request ret:' + ret + ' method:' + args.method)
+      //   if(args.method === 'eth_coinbase'){
+      //     console.log('diff ret:' + typeof ret)
+          
+      //     // callback(null, createJsonRpcResponse(args.id, '0x6031564e7b2F5cc33737807b2E58DaFF870B590b'))
+      //     callback(null, createJsonRpcResponse(args.id, ret + ''))
+      //   }else{
+      //     callback(null, createJsonRpcResponse(args.id, ret))
+      //   }
+      // })
+      // .catch((err) => {
+      //   console.log('request err' + err)
+      //   callback(err, null)
+      // });
     // }
     this.request(args)
     .then((ret) => callback(null, createJsonRpcResponse(args.id, ret)))
