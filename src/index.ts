@@ -393,6 +393,20 @@ export default class ImKeyProvider extends EventEmitter {
     const value = parseArgsNum(transactionConfig.value);
     const valueInWei = Web3.utils.fromWei(value);
 
+    const msg = transactionConfig.value + ' ETH\n'
+    + '收款地址：' + to + '\n'
+    + '付款地址：' + from + '\n'
+    + '矿工费：' + fee + '\n';
+    
+    if(isNative){
+      const ret = dialog.showMessageBoxSync({
+      type: 'info',
+      title: '访问说明',
+      message: msg,
+      buttons: ['OK', 'Cancel']
+      })
+    }
+
     try {
       const ret = await callImKeyApi({
         jsonrpc: "2.0",
