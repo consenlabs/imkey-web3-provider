@@ -24,6 +24,7 @@ export default class ImKeyProvider extends EventEmitter {
     request2(args: RequestArguments): Promise<any>;
     request: (args: RequestArguments) => Promise<any>;
     sendAsync(args: JsonRpcPayload, callback: (err: Error | null, ret: any) => void): void;
+    requestTransactionReceipt(paload: JsonRpcPayload): Promise<any>;
     imKeyRequestAccounts(id: string | number | undefined, callback?: (error: Error, ret: any) => void): Promise<any[]>;
     imKeySignTransaction(id: string | number | undefined, transactionConfig: TransactionConfig, callback?: (error: Error, ret: any) => void): Promise<RLPEncodedTransaction>;
     imKeyPersonalSign(id: string | number | undefined, dataToSign: string, address: string | number, callback?: (error: Error, ret: any) => void): Promise<any>;

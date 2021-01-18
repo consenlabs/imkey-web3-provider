@@ -215,6 +215,15 @@ export default class ImKeyProvider extends EventEmitter {
           `${args.method} is not support now`
         );
       }
+      case "eth_getTransactionReceipt": {
+        const payload = {
+          jsonrpc: "2.0",
+          method: args.method,
+          params: args.params,
+          id: requestId++,
+        };
+        return await this.requestTransactionReceipt(payload)
+      }
       default: {
         console.log('request default')
         const payload = {
@@ -240,26 +249,39 @@ export default class ImKeyProvider extends EventEmitter {
     // if(args.method === 'eth_coinbase'){
     //   callback(null, createJsonRpcResponse(args.id, '0x407d73d8a49eeb85d32cf465507dd71d507100c1'))
     // }else{
-      // this.request(args)
-      // .then((ret) => {
-      //   console.log('request ret:' + ret + ' method:' + args.method)
-      //   if(args.method === 'eth_coinbase'){
-      //     console.log('diff ret:' + typeof ret)
+      this.request(args)
+      .then((ret) => {
+        console.log('request ret:' + ret + ' method:' + args.method)
+        console.log(JSON.stringify(ret))
+        // if(args.method === 'eth_getTransactionReceipt'){
+        //   console.log('diff ret:' + typeof ret)
           
-      //     // callback(null, createJsonRpcResponse(args.id, '0x6031564e7b2F5cc33737807b2E58DaFF870B590b'))
-      //     callback(null, createJsonRpcResponse(args.id, ret + ''))
-      //   }else{
-      //     callback(null, createJsonRpcResponse(args.id, ret))
-      //   }
-      // })
-      // .catch((err) => {
-      //   console.log('request err' + err)
-      //   callback(err, null)
-      // });
+        //   callback(null, createJsonRpcResponse(args.id, {"blockHash":"0x09e5d45158e71a6c07ac10142c3abfb24078de838bf8d3b5b6641fac67f42684","blockNumber":"0x15f56e4","contractAddress":null,"cumulativeGasUsed":"0xb64b5","from":"0x6031564e7b2f5cc33737807b2e58daff870b590b","gasUsed":"0x5208","logs":[],"logsBloom":"0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000","status":"0x2","to":"0xd6a6bc087d12ae864491240bf457856c71d48eb8","transactionHash":"0xbc86e19ae2856061b4fa38bba6aa0e60d02e7d54be738de088241df820c6ee24","transactionIndex":"0x2"}))
+        //   // callback(null, createJsonRpcResponse(args.id, ret + ''))
+        // }else{
+          callback(null, createJsonRpcResponse(args.id, ret))
+        // }
+      })
+      .catch((err) => {
+        console.log('request err' + err)
+        callback(err, null)
+      });
     // }
-    this.request(args)
-    .then((ret) => callback(null, createJsonRpcResponse(args.id, ret)))
-    .catch((err) => callback(err, null));
+    
+    // this.request(args)
+    // .then((ret) => callback(null, createJsonRpcResponse(args.id, ret)))
+    // .catch((err) => callback(err, null));
+  }
+
+  async requestTransactionReceipt(paload: JsonRpcPayload){
+    for (let i=0; i<10; i++){
+      await sleep(1000)
+      console.log('requestTransactionReceipt ' + i)
+      let ret =  await this.callInnerProviderApi(paload);
+      if(ret){
+        return ret
+      }
+    }
   }
 
   async imKeyRequestAccounts(
@@ -395,15 +417,15 @@ export default class ImKeyProvider extends EventEmitter {
         },
         id: requestId++,
       }, isNative());
-      let txData = ret.result?.txData;
-      if (!ret.result?.txData?.startsWith("0x")) {
-        txData = "0x" + txData;
+      let signature = ret.result?.signature;
+      if (!signature.startsWith("0x")) {
+        signature = "0x" + signature;
       }
 
-      const decoded = rlp.decode(txData, true);
+      const decoded = rlp.decode(signature, true);
 
       const rlpTX: RLPEncodedTransaction = {
-        raw: txData,
+        raw: signature,
         tx: {
           nonce: nonce,
           gasPrice: gasPriceDec,
@@ -482,6 +504,10 @@ export default class ImKeyProvider extends EventEmitter {
       throw createProviderRpcError(4001, error);
     }
   }
+}
+
+async function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms))
 }
 
 function callImKeyApi(arg: Record<string, unknown>, isNative = false) {
