@@ -5,7 +5,6 @@ import * as rlp from "rlp";
 import { RLPEncodedTransaction, TransactionConfig } from "web3-eth";
 import EventEmitter from "event-emitter-es6";
 import BN from "bn.js";
-import HttpHeaderProvider from "httpheaderprovider";
 
 interface IProviderOptions {
   rpcUrl?: string;
@@ -142,10 +141,11 @@ export default class ImKeyProvider extends EventEmitter {
         return await this.imKeyRequestAccounts(requestId++);
       }
       case "personal_sign": {
-        return await this.imKeyPersonalSign(
+        return await this.imKeySign(
           requestId++,
           args.params![0],
-          args.params![1]
+          args.params![1],
+          true
         );
       }
       case "eth_signTransaction": {
@@ -159,10 +159,14 @@ export default class ImKeyProvider extends EventEmitter {
         const req = createJsonRpcRequest("eth_sendRawTransaction", [ret.raw]);
         return await this.callInnerProviderApi(req);
       }
-      /* eslint-disable no-fallthrough */
-      case "eth_sign":
-      // https://docs.metamask.io/guide/signing-data.html#a-brief-history
-      //
+      case "eth_sign": {
+        return await this.imKeySign(
+          requestId++,
+          args.params![1],
+          args.params![0],
+          false
+        );
+      }
       /* eslint-disable no-fallthrough */
       case "eth_signTypedData":
       // case 'eth_signTypedData_v1':
@@ -329,15 +333,15 @@ export default class ImKeyProvider extends EventEmitter {
         },
         id: requestId++,
       });
-      let txData = ret.result?.txData;
-      if (!ret.result?.txData?.startsWith("0x")) {
-        txData = "0x" + txData;
+      let signature = ret.result?.signature;
+      if (!signature.startsWith("0x")) {
+        signature = "0x" + signature;
       }
 
-      const decoded = rlp.decode(txData, true);
+      const decoded = rlp.decode(signature, true);
 
       const rlpTX: RLPEncodedTransaction = {
-        raw: txData,
+        raw: signature,
         tx: {
           nonce: nonce,
           gasPrice: gasPriceDec,
@@ -362,11 +366,12 @@ export default class ImKeyProvider extends EventEmitter {
     }
   }
 
-  async imKeyPersonalSign(
+  async imKeySign(
     id: string | number | undefined,
     dataToSign: string,
     address: string | number,
-    callback?: (error: Error, ret: any) => void
+    isPersonalSign: boolean,
+    callback?: (error: Error, ret: any) => void,
   ) {
     if (Number.isInteger(address)) {
       const error = createProviderRpcError(
@@ -398,6 +403,7 @@ export default class ImKeyProvider extends EventEmitter {
         method: "eth.signMessage",
         params: {
           data: data,
+          isPersonalSign,
           sender: checksumAddress,
           path: IMKEY_ETH_PATH,
         },

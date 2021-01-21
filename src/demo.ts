@@ -172,9 +172,9 @@ btnSendTransaction.addEventListener("click", (e) => {
     .then(console.log);
 });
 
-const btnSignMessage = document.createElement("button");
-btnSignMessage.innerText = "Sign Message";
-btnSignMessage.addEventListener("click", (e) => {
+const btnSignPersonalMessage = document.createElement("button");
+btnSignPersonalMessage.innerText = "Sign Personal Message";
+btnSignPersonalMessage.addEventListener("click", (e) => {
   function showResult(error: Error, signature: string) {
     if (error != null) {
       console.log("show error: ", error);
@@ -188,6 +188,30 @@ btnSignMessage.addEventListener("click", (e) => {
       "Hello imKey",
       "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
       "",
+      showResult
+    )
+    .then(console.log)
+    // @ts-ignore
+    .catch((error) => {
+      console.log("error message: ", error.message);
+    });
+});
+
+const btnSignMessage = document.createElement("button");
+btnSignMessage.innerText = "Sign Message";
+btnSignMessage.addEventListener("click", (e) => {
+  function showResult(error: Error, signature: string) {
+    if (error != null) {
+      console.log("show error: ", error);
+    } else {
+      console.log("show result: ", signature);
+    }
+  }
+
+  web3.eth
+    .sign(
+      "Hello imKey",
+      "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
       showResult
     )
     .then(console.log)
@@ -228,7 +252,7 @@ btnRequest_eth_sign.innerText = "request eth_sign";
 btnRequest_eth_sign.addEventListener("click", async (e) => {
   imkeyProvider
     .request({
-      method: "personal_sign",
+      method: "eth_sign",
       params: [
         "0x49206861766520313030e282ac",
         "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
@@ -273,6 +297,7 @@ btnRequest_eth_signTransaction.addEventListener("click", async (e) => {
 document.body.append(btn);
 document.body.append(btnBalance);
 document.body.append(btnSignTransaction);
+document.body.append(btnSignPersonalMessage);
 document.body.append(btnSignMessage);
 document.body.append(btnSendTransaction);
 
