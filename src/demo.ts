@@ -50,42 +50,6 @@ const imkeyProvider = new ImKeyProvider({
 imkeyProvider.enable();
 const web3 = new Web3(imkeyProvider as any);
 
-export const setUnlimitedAllowanceAsync = async ({ from, spender, token }) => {
-  return new Promise(async (resolve, reject) => {
-    // @ts-ignore no-async-promise-executor
-    // const web3 = (window as any).web3;
-    const contractAddress = token.address || token.contractAddress;
-    const params = {
-      // gasPrice: "0x113",
-      // gas: "0x5208",
-      from,
-      to: "0x2497C6c5fCB011535ba7C5aAC6e49241c40c5CAF",
-      contractAddress,
-      value: "0x96",
-      decimal: 18,
-      data: "0x00",
-    };
-
-    web3.eth.sendTransaction(params, (err, txHash) => {
-      debugger; // @ts-ignore no-debugger
-      if (!err) {
-        resolve(txHash);
-      } else {
-        reject(err);
-      }
-    });
-  });
-};
-
-async function allowanceTest() {
-  const txHash = await setUnlimitedAllowanceAsync({
-    from: "0xa7420a227eb03a5841543cc98601f7f0bf458e1a",
-    spender: "0x41f8d14c9475444F30A80431C68cf24DC9A8369a",
-    token: { address: "0x3212b29E33587A00FB1C83346f5dBFA69A458923" },
-  });
-  console.log("txhash: ", txHash);
-}
-
 // allowanceTest();
 imkeyProvider.on("disconnect", (code: any, reason: any) => {
   console.log(`Ethereum Provider connection closed: ${reason}. Code: ${code}`);
