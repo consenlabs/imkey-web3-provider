@@ -1,6 +1,6 @@
 {
-  "name": "@imkey/web3-provider",
-  "version": "1.0.0",
+  "name": "@consenlabs/imkey-web3-provider",
+  "version": "1.0.4",
   "description": "A web3 provider connects to imKey",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -78,5 +78,8 @@
   "lint-staged": {
     "*.js": "eslint --cache --fix",
     "*.{js,css,md}": "prettier --write"
+  },
+  "publishConfig": {
+    "registry":"https://npm.pkg.github.com"
   }
 }
