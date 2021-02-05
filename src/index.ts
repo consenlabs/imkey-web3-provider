@@ -182,10 +182,11 @@ export default class ImKeyProvider extends EventEmitter {
         return String(ret[0])
       }
       case "personal_sign": {
-        return await this.imKeyPersonalSign(
+        return await this.imKeySign(
           requestId++,
           args.params![0],
-          args.params![1]
+          args.params![1],
+          true
         );
       }
       case "eth_signTransaction": {
@@ -199,10 +200,14 @@ export default class ImKeyProvider extends EventEmitter {
         const req = createJsonRpcRequest("eth_sendRawTransaction", [ret.raw]);
         return await this.callInnerProviderApi(req);
       }
-      /* eslint-disable no-fallthrough */
-      case "eth_sign":
-      // https://docs.metamask.io/guide/signing-data.html#a-brief-history
-      //
+      case "eth_sign": {
+        return await this.imKeySign(
+          requestId++,
+          args.params![1],
+          args.params![0],
+          false
+        );
+      }
       /* eslint-disable no-fallthrough */
       case "eth_signTypedData":
       // case 'eth_signTypedData_v1':
@@ -464,11 +469,12 @@ export default class ImKeyProvider extends EventEmitter {
     }
   }
 
-  async imKeyPersonalSign(
+  async imKeySign(
     id: string | number | undefined,
     dataToSign: string,
     address: string | number,
-    callback?: (error: Error, ret: any) => void
+    isPersonalSign: boolean,
+    callback?: (error: Error, ret: any) => void,
   ) {
     if (Number.isInteger(address)) {
       const error = createProviderRpcError(
@@ -500,6 +506,7 @@ export default class ImKeyProvider extends EventEmitter {
         method: "eth.signMessage",
         params: {
           data: data,
+          isPersonalSign,
           sender: checksumAddress,
           path: IMKEY_ETH_PATH,
         },
