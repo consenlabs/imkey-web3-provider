@@ -5,6 +5,9 @@ import * as rlp from "rlp";
 import { RLPEncodedTransaction, TransactionConfig } from "web3-eth";
 import EventEmitter from "event-emitter-es6";
 import BN from "bn.js";
+import * as sigutil from "eth-sig-util";
+import * as ethUtil from 'ethereumjs-util'
+import imTokenEip712Utils from './eip712';
 
 interface IProviderOptions {
   rpcUrl?: string;
@@ -128,6 +131,7 @@ export default class ImKeyProvider extends EventEmitter {
   }
 
   async request(args: RequestArguments): Promise<any> {
+    console.log("request: ",args)
     switch (args.method) {
       case "eth_getChainId": {
         return this.chainId;
@@ -173,11 +177,101 @@ export default class ImKeyProvider extends EventEmitter {
       /* eslint-disable no-fallthrough */
       case "eth_signTypedData_v3":
       /* eslint-disable no-fallthrough */
+      return createProviderRpcError(
+        4200,
+        `${args.method} is not support now`
+      );
       case "eth_signTypedData_v4": {
-        return createProviderRpcError(
-          4200,
-          `${args.method} is not support now`
+        console.log('eth_signTypedData_v4 args:',args)
+        const typedData = {
+          types: {
+            EIP712Domain: [
+              { name: 'name', type: 'string' },
+              { name: 'version', type: 'string' },
+              { name: 'chainId', type: 'uint256' },
+              { name: 'verifyingContract', type: 'address' },
+            ],
+            Person: [
+              { name: 'name', type: 'string' },
+              { name: 'wallets', type: 'address[]' },
+            ],
+            Mail: [
+              { name: 'from', type: 'Person' },
+              { name: 'to', type: 'Person[]' },
+              { name: 'contents', type: 'string' },
+            ],
+            Group: [
+              { name: 'name', type: 'string' },
+              { name: 'members', type: 'Person[]' },
+            ],
+          },
+          domain: {
+            name: 'Ether Mail',
+            version: '1',
+            chainId: 1,
+            verifyingContract: '0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC',
+          },
+          primaryType: 'Mail' as const,
+          message: {
+            from: {
+              name: 'Cow',
+              wallets: [
+                '0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826',
+                '0xDeaDbeefdEAdbeefdEadbEEFdeadbeEFdEaDbeeF',
+              ],
+            },
+            to: [
+              {
+                name: 'Bob',
+                wallets: [
+                  '0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB',
+                  '0xB0BdaBea57B0BDABeA57b0bdABEA57b0BDabEa57',
+                  '0xB0B0b0b0b0b0B000000000000000000000000000',
+                ],
+              },
+            ],
+            contents: 'Hello, Bob!',
+          },
+        };
+        const test_buffer = sigutil.TypedDataUtils.sign(typedData);
+        const test_hash = ethUtil.bufferToHex(test_buffer)
+        console.log('eth_signTypedData_v4 test hash:',test_hash)
+
+        const privateKey = Buffer.from('cce64585e3b15a0e4ee601a467e050c9504a0db69a559d7ec416fa25ad3410c2', 'hex')
+        const test_sig = ethUtil.ecsign(test_buffer, privateKey);
+        console.log('eth_signTypedData_v4 test sig:',ethUtil.bufferToHex(sigutil.concatSig(test_sig.v, test_sig.r, test_sig.s)))
+
+        const eip712HashHexWithoutSha3 = imTokenEip712Utils.signHashHex(
+          typedData,
+          true
+        )
+        const eip712HashHex = ethUtil.bufferToHex(
+          ethUtil.sha3(eip712HashHexWithoutSha3)
+        )
+        console.log("eth_signTypedData_v4 imtoken hash: ",eip712HashHex)
+
+        const jsonobj = JSON.parse(args.params![1])
+        const buffer = sigutil.TypedDataUtils.sign(jsonobj);
+        const hash = ethUtil.bufferToHex(buffer)
+
+        console.log("eth_signTypedData_v4 hash: ",hash)
+
+        const sig = await this.imKeySign(
+          requestId++,
+          hash,
+          args.params![0],
+          false
         );
+        console.log("eth_signTypedData_v4 sign: ",sig)
+        // const sig = ethUtil.ecsign(buffer, privateKey);
+        // console.log("eth_signTypedData_v4 sig:",ethUtil.bufferToHex(sigutil.concatSig(sig.v, sig.r, sig.s)))
+        return sig
+        // return await this.imKeySign(
+        //   requestId++,
+        //   message,
+        //   args.params![0],
+        //   false
+        // );
       }
       default: {
         const payload = {
