@@ -245,6 +245,7 @@ export default class ImKeyProvider extends EventEmitter {
           typedData,
           true
         )
+        console.log("eth_signTypedData_v4 imtoken eip712HashHexWithoutSha3: ",eip712HashHexWithoutSha3)
         const eip712HashHex = ethUtil.bufferToHex(
           ethUtil.sha3(eip712HashHexWithoutSha3)
         )
@@ -255,10 +256,15 @@ export default class ImKeyProvider extends EventEmitter {
         const hash = ethUtil.bufferToHex(buffer)
 
         console.log("eth_signTypedData_v4 hash: ",hash)
+        const withoutsha3 = imTokenEip712Utils.signHashHex(
+          jsonobj,
+          true
+        )
+        console.log("eth_signTypedData_v4 withoutsha3: ",withoutsha3)
 
         const sig = await this.imKeySign(
           requestId++,
-          hash,
+          withoutsha3,
           args.params![0],
           false
         );
