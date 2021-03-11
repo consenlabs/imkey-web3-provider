@@ -5,6 +5,10 @@ import * as rlp from "rlp";
 import { RLPEncodedTransaction, TransactionConfig } from "web3-eth";
 import EventEmitter from "event-emitter-es6";
 import BN from "bn.js";
+import * as sigutil from "eth-sig-util";
+import * as ethUtil from 'ethereumjs-util'
+import imTokenEip712Utils from './eip712';
+
 interface IProviderOptions {
   rpcUrl?: string;
   infuraId?: string;
@@ -214,10 +218,21 @@ export default class ImKeyProvider extends EventEmitter {
       /* eslint-disable no-fallthrough */
       case "eth_signTypedData_v3":
       /* eslint-disable no-fallthrough */
+      return createProviderRpcError(
+        4200,
+        `${args.method} is not support now`
+      );
       case "eth_signTypedData_v4": {
-        return createProviderRpcError(
-          4200,
-          `${args.method} is not support now`
+        const jsonobj = JSON.parse(args.params![1])
+        const eip712HashHexWithoutSha3 = imTokenEip712Utils.signHashHex(
+          jsonobj,
+          true
+        )
+        return await this.imKeySign(
+          requestId++,
+          eip712HashHexWithoutSha3,
+          args.params![0],
+          false
         );
       }
       case "eth_getTransactionReceipt": {
