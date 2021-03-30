@@ -1,22 +1,56 @@
 import ImKeyProvider from "./index";
 import Web3 from "web3";
 import { RLPEncodedTransaction } from "web3-eth";
+import abi from "ethereumjs-abi";
+import BN from "bignumber.js";
 
+const APPROVE_METHOD = "approve(address,uint256)";
+
+export const toBN = (x): BN => {
+  if (isNaN(Number(x))) return new BN(0);
+  if (x instanceof BN) return x;
+
+  if (typeof x === "string") {
+    if (x.indexOf("0x") === 0 || x.indexOf("-0x") === 0) {
+      return new BN(x.replace("0x", ""), 16);
+    }
+  }
+  return new BN(x);
+};
+
+export function isHexPrefixed(str) {
+  return str.slice(0, 2) === "0x";
+}
+
+export function addHexPrefix(str: string) {
+  if (typeof str !== "string") {
+    return str;
+  }
+  return isHexPrefixed(str) ? str : `0x${str}`;
+}
 
 interface ProviderConnectInfo {
   readonly chainId: string;
 }
 
+const _getData = (spender) => {
+  const value = toBN(2).pow(256).minus(1).toString();
+  const encoded = abi.simpleEncode(APPROVE_METHOD, spender, value);
+  const data = addHexPrefix(encoded.toString("hex"));
+  return data;
+};
+
 const imkeyProvider = new ImKeyProvider({
-  rpcUrl: "put your infura address here",
+  rpcUrl: "https://eth-mainnet.token.im",
   chainId: 1,
   headers: {
-    "": ""
-  }
+    agent: "ios:2.4.2:2",
+  },
 });
 imkeyProvider.enable();
 const web3 = new Web3(imkeyProvider as any);
 
+// allowanceTest();
 imkeyProvider.on("disconnect", (code: any, reason: any) => {
   console.log(`Ethereum Provider connection closed: ${reason}. Code: ${code}`);
 });
@@ -89,24 +123,22 @@ btnSendTransaction.addEventListener("click", (e) => {
   }
 
   web3.eth
-    .sendTransaction(
-      {
-        from: "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
-        // gasPrice: "20000000008",
-        // nonce: 8,
-        // gas: "21000",
-        to: "0x3535353535353535353535353535353535353535",
-        value: "100000000000000000",
-        // chainId: 3,
-        // data: "",
-      }
-    )
+    .sendTransaction({
+      from: "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
+      // gasPrice: "20000000008",
+      // nonce: 8,
+      // gas: "21000",
+      to: "0x3535353535353535353535353535353535353535",
+      value: "100000000000000000",
+      // chainId: 3,
+      // data: "",
+    })
     .then(console.log);
 });
 
-const btnSignMessage = document.createElement("button");
-btnSignMessage.innerText = "Sign Message";
-btnSignMessage.addEventListener("click", (e) => {
+const btnSignPersonalMessage = document.createElement("button");
+btnSignPersonalMessage.innerText = "Sign Personal Message";
+btnSignPersonalMessage.addEventListener("click", (e) => {
   function showResult(error: Error, signature: string) {
     if (error != null) {
       console.log("show error: ", error);
@@ -120,6 +152,30 @@ btnSignMessage.addEventListener("click", (e) => {
       "Hello imKey",
       "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
       "",
+      showResult
+    )
+    .then(console.log)
+    // @ts-ignore
+    .catch((error) => {
+      console.log("error message: ", error.message);
+    });
+});
+
+const btnSignMessage = document.createElement("button");
+btnSignMessage.innerText = "Sign Message";
+btnSignMessage.addEventListener("click", (e) => {
+  function showResult(error: Error, signature: string) {
+    if (error != null) {
+      console.log("show error: ", error);
+    } else {
+      console.log("show result: ", signature);
+    }
+  }
+
+  web3.eth
+    .sign(
+      "Hello imKey",
+      "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
       showResult
     )
     .then(console.log)
@@ -160,7 +216,7 @@ btnRequest_eth_sign.innerText = "request eth_sign";
 btnRequest_eth_sign.addEventListener("click", async (e) => {
   imkeyProvider
     .request({
-      method: "personal_sign",
+      method: "eth_sign",
       params: [
         "0x49206861766520313030e282ac",
         "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
@@ -205,6 +261,7 @@ btnRequest_eth_signTransaction.addEventListener("click", async (e) => {
 document.body.append(btn);
 document.body.append(btnBalance);
 document.body.append(btnSignTransaction);
+document.body.append(btnSignPersonalMessage);
 document.body.append(btnSignMessage);
 document.body.append(btnSendTransaction);
 
