@@ -131,7 +131,6 @@ export default class ImKeyProvider extends EventEmitter {
   }
 
   async request(args: RequestArguments): Promise<any> {
-    console.log('request ',args)
     switch (args.method) {
       case "eth_getChainId": {
         return this.chainId;
@@ -301,21 +300,11 @@ export default class ImKeyProvider extends EventEmitter {
     if (transactionConfig.gas) {
       gasLimit = parseArgsNum(transactionConfig.gas);
     } else {
-      console.log('request gas:',         createJsonRpcRequest("eth_estimateGas", [
-        {
-          from: transactionConfig.from,
-          to: transactionConfig.from,// to 报错，先用from测试
-          gas: transactionConfig.gas,
-          gasPrice: Web3.utils.numberToHex(gasPriceDec),
-          value: transactionConfig.value,
-          data: transactionConfig.data,
-        },
-      ]))
       const gasRet: string = await this.callInnerProviderApi(
         createJsonRpcRequest("eth_estimateGas", [
           {
             from: transactionConfig.from,
-            to: transactionConfig.from,// to 报错，先用from测试
+            to: transactionConfig.to,
             gas: transactionConfig.gas,
             gasPrice: Web3.utils.numberToHex(gasPriceDec),
             value: transactionConfig.value,
@@ -323,7 +312,6 @@ export default class ImKeyProvider extends EventEmitter {
           },
         ])
       );
-      console.log('gasret:',gasRet)
       gasLimit = parseArgsNum(gasRet);
     }
 
