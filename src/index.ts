@@ -379,6 +379,9 @@ export default class ImKeyProvider extends EventEmitter {
     transactionConfig: TransactionConfig,
     callback?: (error: Error, ret: any) => void
   ) {
+    if(!transactionConfig.value){
+      transactionConfig.value = "0x0"
+    }
     if (!transactionConfig.to || !transactionConfig.value) {
       throw createProviderRpcError(-32602, "expected to,value");
     }
