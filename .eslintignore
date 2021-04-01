@@ -1,4 +1,8 @@
 webpack.config.js
+webpack.prod.js
 .eslintrc.js
 dist
 index.ts
+eip712.ts
+demo.ts
+node_modules
