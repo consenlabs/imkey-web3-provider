@@ -15,6 +15,7 @@ interface IProviderOptions {
   chainId?: number;
   headers?: Record<string, string>;
   accounts?: string[];
+  symbol?: string;
 }
 interface AddEthereumChainParameter {
   chainId: string;
@@ -111,6 +112,7 @@ export default class ImKeyProvider extends EventEmitter {
   private chainId: number;
   private accounts: string[];
   private headers: [];
+  private symbol: string;
 
   constructor(config: IProviderOptions) {
     super();
@@ -138,6 +140,7 @@ export default class ImKeyProvider extends EventEmitter {
       this.accounts = config.accounts;
     }
 
+    this.symbol = !config.symbol ? "ETH" : config.symbol;
     console.log(this);
   }
 
@@ -504,7 +507,7 @@ export default class ImKeyProvider extends EventEmitter {
               path: IMKEY_ETH_PATH,
             },
             preview: {
-              payment: valueInWei + " ETH",
+              payment: valueInWei + " " + this.symbol,
               receiver: to,
               sender: from,
               fee: fee,

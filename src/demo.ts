@@ -281,7 +281,7 @@ declare global {
 (async function (window) {
   "use strict";
 
-  const { chainId, rpcUrl, headers, accounts } = window.imKeyManager.accounts();
+  const { chainId, rpcUrl, headers, accounts, symbol } = window.imKeyManager.accounts();
   const imkeyProvider = new ImKeyProvider({
     // rpcUrl: "https://kovan.infura.io/v3/e35ac016a10548f1b4a835a1cd72d17a",
     // rpcUrl: 'https://eth-mainnet.token.im',
@@ -292,6 +292,7 @@ declare global {
     // },
     headers,
     accounts,
+    symbol
   });
 
   // const Web3 = require('web3')
