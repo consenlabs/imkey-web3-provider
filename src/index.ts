@@ -462,7 +462,7 @@ export default class ImKeyProvider extends EventEmitter {
     fee = Web3.utils.fromWei(fee, "Gwei"); //to Gwei
     const temp = Math.ceil(Number(fee));
     fee = (temp * 1000000000).toString(); //to ether
-    fee = Web3.utils.fromWei(fee) + " ether";
+    fee = Web3.utils.fromWei(fee) + " " + this.symbol;
 
     const to = Web3.utils.toChecksumAddress(transactionConfig.to);
     const value = parseArgsNum(transactionConfig.value);
