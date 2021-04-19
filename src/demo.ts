@@ -3,7 +3,7 @@ import Web3 from "web3";
 import { RLPEncodedTransaction } from "web3-eth";
 import abi from "ethereumjs-abi";
 import BN from "bignumber.js";
-
+import abi1 from 'human-standard-token-abi';
 const APPROVE_METHOD = "approve(address,uint256)";
 
 export const toBN = (x): BN => {
@@ -39,13 +39,13 @@ const _getData = (spender) => {
   const data = addHexPrefix(encoded.toString("hex"));
   return data;
 };
-
+import SINGLE_CALL_BALANCES_ABI from 'single-call-balance-checker-abi';
 const imkeyProvider = new ImKeyProvider({
-  rpcUrl: "https://eth-mainnet.token.im",
+  rpcUrl: "https://mainnet.infura.io/v3/2012498d93094f5f939f580516a92236",
   chainId: 1,
-  headers: {
-    agent: "ios:2.4.2:2",
-  },
+  // headers: {
+  //   agent: "ios:2.4.2:2",
+  // },
 });
 imkeyProvider.enable();
 const web3 = new Web3(imkeyProvider as any);
@@ -60,10 +60,86 @@ imkeyProvider.on("connect", (connectInfo: ProviderConnectInfo) => {
     `Ethereum Provider connected success, chainId: ${connectInfo.chainId}`
   );
 });
+import TransportWebUSB from "./hw-transport-webusb/TransportWebUSB";
+import Eth from "./hw-app-eth/Eth";
+import Transport from "./hw-transport/Transport";
+const webusbbtn = document.createElement("button");
+webusbbtn.innerText = "webusb Test";
+webusbbtn.addEventListener("click", async (e) => {
+  let  transport = await TransportWebUSB.create();
+  console.log(transport)
+  // transport.setDebugMode(true);
+  // let buffer = Buffer.alloc(1 );
+  // const response = await transport.exchange(new Buffer("80E200005E6f5c8408a000000003000000a550734a06072a864886fc6b01600c060a2a864886fc6b02020101630906072a864886fc6b03640b06092a864886fc6b041110650b06092b8510864864020103660c060a2b060104012a026e01029f6501ff","hex"))
+  // for(let i=0;i<10;i++){
 
+  const response = await transport.send(
+    0x00,
+    0xa4,
+    0x04,
+    0x00,
+    new Buffer("695F657468","hex")
+  )
+  // const response = await transport.exchange(new Buffer("00a40400","hex"))
+  console.log("response223223:"+response.toString("hex"))
+  const dd = "6f5c8408a000000003000000a550734a06072a864886fc6b01600c060a2a864886fc6b02020101630906072a864886fc6b03640b06092a864886fc6b041110650b06092b8510864864020103660c060a2b060104012a026e01029f6501ff";
+  const res = response.toString("hex");
+  // if( res === dd){
+  //   console.log("返回数据错误:")
+  //   break;
+  // }
+  // }
+
+  // 695F657468
+  // let path ="44'/60'/0'/0'/0";
+  // let paths = splitPath(path);
+  // let buffer = Buffer.alloc(1 + paths.length * 4);
+  // buffer[0] = paths.length;
+  // paths.forEach((element, index) => {
+  //   buffer.writeUInt32BE(element, 1 + 4 * index);
+  // });
+  // transport
+  //   .send(
+  //     0x00,
+  //     0xa4,
+  //     0x04,
+  //     0x00,
+  //     buffer
+  //   )
+  //   .then((response) => {
+  //     let result = {};
+  //     console.log(response)
+  //     let publicKeyLength = response[0];
+  //     return result;
+  //   });
+  // const appEth = new Eth(transport);
+  // const { ethAddress } = await appEth.getAddress(
+  //   "44'/0'/0'/0/0",
+  //   false
+  // );
+  // console.log("ethAddressethAddressethAddressethAddressethAddress")
+  // console.log(ethAddress)
+});
+// TODO use bip32-path library
+export function splitPath(path: string): number[] {
+  let result = [];
+  let components = path.split("/");
+  components.forEach((element) => {
+    let number = parseInt(element, 10);
+    if (isNaN(number)) {
+      return; // FIXME shouldn't it throws instead?
+    }
+    if (element.length > 1 && element[element.length - 1] === "'") {
+      number += 0x80000000;
+    }
+    result.push(number);
+  });
+  return result;
+}
 const btn = document.createElement("button");
 btn.innerText = "requestAccounts";
-btn.addEventListener("click", (e) => {
+btn.addEventListener("click", async (e) => {
+
   function showResult(error: Error, result: string[]) {
     if (error != null) {
       console.log("show error: ", error);
@@ -73,16 +149,177 @@ btn.addEventListener("click", (e) => {
   }
 
   web3.eth.requestAccounts(showResult).then(console.log);
-});
 
+
+});
+// function getContractAtAddress(tokenAddress) {
+//   web3.Contract(abi).at(tokenAddress);
+// }
 const btnBalance = document.createElement("button");
 btnBalance.innerText = "Get Balance";
-btnBalance.addEventListener("click", (e) => {
-  web3.eth
-    .getBalance("0x8663b811c9601db1c5a93e41b894196400c14ed6")
-    .then(console.log);
-});
+btnBalance.addEventListener("click", async (e) => {
 
+  const req = await imkeyProvider.test22();
+  console.log( web3.utils.fromWei(req.substring(2), 'ether')+' UNI')
+
+
+  // web3.eth
+  //   .getBalance("0x8663b811c9601db1c5a93e41b894196400c14ed6")
+  //   .then(console.log);
+  // web3.eth
+  //   .Contract("0x8663b811c9601db1c5a93e41b894196400c14ed6")
+  //   .then(console.log);
+  const addresses = ["0x272f28f2adb073dc02fb3d49a400275e791d9647"];
+  const deployedContractAddress = "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984";
+  // 定义合约abi
+  var contractAbi = [{"constant":true,"inputs":[],"name":"mintingFinished","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"name","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_spender","type":"address"},{"name":"_value","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"cap","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[],"name":"unpause","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_amount","type":"uint256"}],"name":"mint","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"_value","type":"uint256"}],"name":"burn","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"paused","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_spender","type":"address"},{"name":"_subtractedValue","type":"uint256"}],"name":"decreaseApproval","outputs":[{"name":"success","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[],"name":"finishMinting","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[],"name":"pause","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"owner","outputs":[{"name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"symbol","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"_spender","type":"address"},{"name":"_addedValue","type":"uint256"}],"name":"increaseApproval","outputs":[{"name":"success","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"},{"name":"_spender","type":"address"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"newOwner","type":"address"}],"name":"transferOwnership","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"inputs":[],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"name":"burner","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Burn","type":"event"},{"anonymous":false,"inputs":[],"name":"Pause","type":"event"},{"anonymous":false,"inputs":[],"name":"Unpause","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"to","type":"address"},{"indexed":false,"name":"amount","type":"uint256"}],"name":"Mint","type":"event"},{"anonymous":false,"inputs":[],"name":"MintFinished","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"owner","type":"address"},{"indexed":true,"name":"spender","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Approval","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"from","type":"address"},{"indexed":true,"name":"to","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Transfer","type":"event"}];
+
+// 合约地址
+  var contractAddress = "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984";
+// 账号
+  var currentAccount = "0x272f28f2adb073dc02fb3d49a400275e791d9647";
+
+  // 合约地址
+  var contractAddress = "0x0000000000095413afc295d19edeb1ad7b71c952";
+// 账号
+  var currentAccount = "0x0000006daea1723962647b7e189d311d757fb793";
+// 定义合约
+  var myContract = new web3.eth.Contract(abi1, contractAddress, {
+    from: currentAccount, // default from address
+    gasPrice: '10000000000' // default gas price in wei, 10 gwei in this case
+  });
+
+// 查询以太币余额
+//   web3.eth.getBalance(currentAccount).then(console.log);
+//   const  params =  [
+//     {
+//       to: contractAddress,
+//       data: web3.utils.sha3('balanceOf(address)').slice(0,10) + "000000000000000000000000" + currentAccount.substring(2),
+//     },
+//     ]
+//     console.log("params:"+params);
+//   console.log(JSON.stringify(params));
+//   [{"to":"0x1f9840a85d5af5bf1d1762f925bdaddc4201f984","data":"0x70a08231000000000000000000000000731b35c96ff8881a646f15d2e714843db26d674b"}]
+// // 查看某个账号的代币余额
+
+//
+  var coinName = ''
+  var coinCode = ''
+  var coinBal = ''
+// // // 获得代币名称
+  myContract.methods.name().call({from: currentAccount}, function(error, result){
+    if(!error) {
+      coinName = result
+    } else {
+      console.log(error);
+    }
+  });
+
+// // 获取代币符号
+  myContract.methods.symbol().call({from: currentAccount}, function(error, result){
+    if(!error) {
+      coinCode = result
+    } else {
+      console.log(error);
+    }
+  });
+
+  myContract.methods.balanceOf(currentAccount).call({from: currentAccount}, function(error, result){
+    if(!error) {
+      console.log(result)
+      coinBal = web3.utils.fromWei(result, 'ether');
+      console.log("此合约地址："+contractAddress+"\n代币名称为："+coinName+"\n代币符号："+coinCode+"\n当前账户："+currentAccount+"\n余额为："+coinBal+" "+coinCode);
+//
+    } else {
+      console.log(error);
+    }
+  });
+  // console.log("getTransactionCount:"+)
+  web3.eth.getTransactionReceipt(currentAccount).then(console.log)
+// 补齐64位，不够前面用0补齐
+  function addPreZero(num){
+    var t = (num+'').length,
+      s = '';
+    for(var i=0; i<64-t; i++){
+      s += '0';
+    }
+    return s+num;
+  }
+
+  web3.eth.getTransactionCount(currentAccount, web3.eth.defaultBlock.pending).then(function(nonce){
+
+    // 获取交易数据
+    var txData = {
+      nonce: web3.utils.toHex(nonce++),
+      gasLimit: web3.utils.toHex(99000),
+      gasPrice: web3.utils.toHex(10e9),
+      // 注意这里是代币合约地址
+      to: contractAddress,
+      from: currentAccount,
+      // 调用合约转账value这里留空
+      value: '0x00',
+      // data的组成，由：0x + 要调用的合约方法的function signature + 要传递的方法参数，每个参数都为64位(对transfer来说，第一个是接收人的地址去掉0x，第二个是代币数量的16进制表示，去掉前面0x，然后补齐为64位)
+      data: '0x' + 'a9059cbb' + addPreZero('3b11f5CAB8362807273e1680890A802c5F1B15a8') + addPreZero(web3.utils.toHex(1000000000000000000).substr(2))
+    }
+
+    var tx = new Tx(txData);
+
+    const privateKey = new Buffer('your account privateKey', 'hex');
+
+    tx.sign(privateKey);
+
+    var serializedTx = tx.serialize().toString('hex');
+
+    web3.eth.sendSignedTransaction('0x' + serializedTx.toString('hex'), function(err, hash) {
+      if (!err) {
+        console.log(hash);
+      } else {
+        console.error(err);
+      }
+    });
+  });
+// // 获取代币总量
+//   myContract.methods.totalSupply().call({from: currentAccount}, function(error, result){
+//     if(!error) {
+//       console.log(result);
+//     } else {
+//       console.log(error);
+//     }
+//   });
+
+// 查看某个账号允许另一个账号可使用的代币数量
+//   myContract.methods.allowance(sender, spender).call({from: currentAccount}, function(error, result){
+//     if(!error) {
+//       console.log(result);
+//     } else {
+//       console.log(error);
+//     }
+//   });
+  // const ethContract = web3.eth.Contract
+  //   .Contract(SINGLE_CALL_BALANCES_ABI)
+  //   .at(deployedContractAddress);
+  // const ethBalance = ['0x0'];
+  //
+  // ethContract.balances(addresses, ethBalance, (error, result) => {
+  //   if (error) {
+  //     // log.warn(
+  //     //   `MetaMask - Account Tracker single call balance fetch failed`,
+  //     //   error,
+  //     // );
+  //     // Promise.all(addresses.map(this._updateAccount.bind(this)));
+  //     return;
+  //   }
+  //   addresses.forEach((address, index) => {
+  //     const balance = result[index] ? bnToHex(result[index]) : '0x0';
+  //     // accounts[address] = { address, balance };
+  //     console.log("address:"+address,"balance:"+balance)
+  //   });
+  //   // this.store.updateState({ accounts });
+  // });
+});
+function bnToHex(inputBn) {
+  return addHexPrefix(inputBn.toString(16));
+}
 const btnSignTransaction = document.createElement("button");
 btnSignTransaction.innerText = "Sign Transaction";
 btnSignTransaction.addEventListener("click", (e) => {
@@ -258,6 +495,8 @@ btnRequest_eth_signTransaction.addEventListener("click", async (e) => {
 });
 
 // document.appendChild(btn);
+
+document.body.append(webusbbtn);
 document.body.append(btn);
 document.body.append(btnBalance);
 document.body.append(btnSignTransaction);
