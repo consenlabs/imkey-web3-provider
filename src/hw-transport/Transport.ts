@@ -52,7 +52,7 @@ export type Observer<Ev> = $ReadOnly<{
  */
 export default class Transport<Descriptor> {
   exchangeTimeout: number = 30000;
-  unresponsiveTimeout: number = 15000;
+  unresponsiveTimeout: number = 30000;
   deviceModel: DeviceModel = null;
 
   /**
@@ -187,27 +187,16 @@ setExchangeUnresponsiveTimeout(unresponsiveTimeout: number) {
  * @return a Promise of response buffer
  */
 send = async (
-  cla: number,
-  ins: number,
-  p1: number,
-  p2: number,
   data: Buffer = Buffer.alloc(0),
   statusList: Array<number> = [StatusCodes.OK]
 ): Promise<Buffer> => {
-  // if (data.length >= 256) {
-  //   throw new TransportError(
-  //     "data.length exceed 256 bytes limit. Got: " + data.length,
-  //     "DataLengthTooBig"
-  //   );
-  // }
-
-  const response = await this.exchange(
-    Buffer.concat([
-      Buffer.from([cla, ins, p1, p2]),
-      Buffer.from([data.length]),
-      data,
-    ])
-  );
+  if (data.length >= 256) {
+    throw new TransportError(
+      "data.length exceed 256 bytes limit. Got: " + data.length,
+      "DataLengthTooBig"
+    );
+  }
+  const response = await this.exchange(data);
   const sw = response.readUInt16BE(response.length - 2);
   if (!statusList.some((s) => s === sw)) {
     throw new TransportStatusError(sw);

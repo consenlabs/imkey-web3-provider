@@ -1,5 +1,5 @@
 //@flow
-import Transport from "../hw-transport/Transport";
+import Transport, { StatusCodes, TransportStatusError } from "../hw-transport/Transport";
 import  {
   Observer,
   DescriptorEvent,
@@ -190,17 +190,15 @@ export default class TransportWebUSB extends Transport<USBDevice> {
    * @returns a promise of apdu response
    */
   exchange = async (apdu: Buffer): Promise<Buffer> => {
+    console.log("apdu", "=> " + apdu.toString("hex").toUpperCase());
     return this.exchangeAtomicImpl(async () => {
-      console.log("apdu", "=> " + apdu.toString("hex"));
       const { channel, packetSize } = this;
-      console.log("apdu", "=> " + apdu.toString("hex"));
-
       const framing = hidFraming(channel, packetSize);
 
       // Write...
       const blocks = framing.makeBlocks(apdu);
       for (let i = 0; i < blocks.length; i++) {
-        console.log("blocks[i]", "=> " + blocks[i].toString("hex"));
+        // console.log("apdu", "=> " + blocks[i].toString("hex").toUpperCase());
         await this.device.transferOut(endpointNumber_out, blocks[i]);
       }
 
@@ -210,11 +208,9 @@ export default class TransportWebUSB extends Transport<USBDevice> {
       while (!(result = framing.getReducedResult(acc))) {
         const r = await this.device.transferIn(endpointNumber_in, packetSize);
         const buffer = Buffer.from(r.data.buffer);
-        console.log("apdu", "<= " + buffer.toString("hex"));
         acc = framing.reduceResponse(acc, buffer);
       }
-
-      console.log("apdu", "<= " + result.toString("hex"));
+      console.log("apdu", "<= " + result.toString("hex").toUpperCase());
       return result;
     }).catch((e) => {
       if (e && e.message && e.message.includes("disconnected")) {

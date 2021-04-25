@@ -61,29 +61,82 @@ imkeyProvider.on("connect", (connectInfo: ProviderConnectInfo) => {
   );
 });
 import TransportWebUSB from "./hw-transport-webusb/TransportWebUSB";
-import Eth from "./hw-app-eth/Eth";
+import ethApdu  from "./common/apdu";
+import ETH  from "./hw-app-eth/Eth";
 import Transport from "./hw-transport/Transport";
+import hidFraming from "./hw-transport-webusb/hid-framing";
 const webusbbtn = document.createElement("button");
 webusbbtn.innerText = "webusb Test";
 webusbbtn.addEventListener("click", async (e) => {
+  // const eth_apdu = ethApdu();
+  // eth_apdu.select_applet()
+  // let res = eth_apdu.select_applet().toString("hex");
+  // console.log("resresresresresresresresres1:"+res)
+  // res = eth_apdu.get_xpub("44'/60'/0'/0/0",false).toString("hex")
+  // console.log("resresresresresresresresres2:"+res)
+  // res = eth_apdu.get_xpub("44'/60'/0'/0/0",true).toString("hex")
+  // console.log("resresresresresresresresres3:"+res)
+  // let resArr = eth_apdu.prepare_sign(new Buffer("6f5c8408a000000003000000a550734a06072a864886fc6b01600c060a2a864886fc6b02020101630906072a864886fc6b03640b06092a864886fc6b041110650b06092b8510864864020103660c060a2b060104012a026e01029f6501ff6f5c8408a000000003000000a550734a06072a864886fc6b01600c060a2a864886fc6b02020101630906072a864886fc6b03640b06092a864886fc6b041110650b06092b8510864864020103660c060a2b060104012a026e01029f6501ff6f5c8408a000000003000000a550734a06072a864886fc6b01600c060a2a864886fc6b02020101630906072a864886fc6b03640b06092a864886fc6b041110650b06092b8510864864020103660c060a2b060104012a026e01029f6501ff6f5c8408a000000003000000a550734a06072a864886fc6b01600c060a2a864886fc6b02020101630906072a864886fc6b03640b06092a864886fc6b041110650b06092b8510864864020103660c060a2b060104012a026e01029f6501ff6f5c8408a000000003000000a550734a06072a864886fc6b01600c060a2a864886fc6b02020101630906072a864886fc6b03640b06092a864886fc6b041110650b06092b8510864864020103660c060a2b060104012a026e01029f6501ff6f5c8408a000000003000000a550734a06072a864886fc6b01600c060a2a864886fc6b02020101630906072a864886fc6b03640b06092a864886fc6b041110650b06092b8510864864020103660c060a2b060104012a026e01029f6501ff","hex"));
+  // for (let i = 0; i < resArr.length; i++) {
+  //   console.log("resArr[i]", "=> " + resArr[i].toString("hex"));
+  // }
+
   let  transport = await TransportWebUSB.create();
-  console.log(transport)
+  let eth = new ETH(transport)
+ await eth.getAddress("m/44'/60'/0'/0/0").then((ethres)=>{
+    console.log("eth.getAddress:"+ethres.address)
+  });
+  await eth.signMessage("m/44'/60'/0'/0/0","Hello imKey","0x3267b1042d5ffc693D78211ce1fA521d2d631724",true).then((ethres)=>{
+    console.log("eth.signPersonalMessage:"+ethres)
+    console.log(ethres)
+  });
+
+  const transaction= {
+      data: "",
+      gasLimit: "189000",
+      gasPrice: "20000000008",
+      nonce: "8",
+      to: "0x3535353535353535353535353535353535353535",
+      value: "512",
+      chainId: "28",
+      path: "m/44'/60'/0'/0/0"
+  }
+  const preview = {
+      payment: "0.01 ETH",
+      receiver: "0xE6F4142dfFA574D1d9f18770BF73814df07931F3",
+      sender: "0x3267b1042d5ffc693D78211ce1fA521d2d631724",
+      fee: "0.0032 ether"
+  }
+
+  await eth.signTransaction(transaction,preview).then(
+    (ethres)=>{
+         console.log("ethres.signature:"+ethres.signature)
+         console.log("ethres.txhash:"+ethres.txhash)
+         console.log(ethres)
+       }
+  )
+
+
+
+
+
+  // console.log(transport)
   // transport.setDebugMode(true);
   // let buffer = Buffer.alloc(1 );
   // const response = await transport.exchange(new Buffer("80E200005E6f5c8408a000000003000000a550734a06072a864886fc6b01600c060a2a864886fc6b02020101630906072a864886fc6b03640b06092a864886fc6b041110650b06092b8510864864020103660c060a2b060104012a026e01029f6501ff","hex"))
   // for(let i=0;i<10;i++){
 
-  const response = await transport.send(
-    0x00,
-    0xa4,
-    0x04,
-    0x00,
-    new Buffer("695F657468","hex")
-  )
-  // const response = await transport.exchange(new Buffer("00a40400","hex"))
-  console.log("response223223:"+response.toString("hex"))
-  const dd = "6f5c8408a000000003000000a550734a06072a864886fc6b01600c060a2a864886fc6b02020101630906072a864886fc6b03640b06092a864886fc6b041110650b06092b8510864864020103660c060a2b060104012a026e01029f6501ff";
-  const res = response.toString("hex");
+  // const response = await transport.send(
+  //   0x00,
+  //   0xa4,
+  //   0x04,
+  //   0x00,
+  //   new Buffer("695F657468","hex")
+  // )
+  // // const response = await transport.exchange(new Buffer("00a40400","hex"))
+  // console.log("response223223:"+response.toString("hex"))
+  // const dd = "6f5c8408a000000003000000a550734a06072a864886fc6b01600c060a2a864886fc6b02020101630906072a864886fc6b03640b06092a864886fc6b041110650b06092b8510864864020103660c060a2b060104012a026e01029f6501ff";
+  // const res = response.toString("hex");
   // if( res === dd){
   //   console.log("返回数据错误:")
   //   break;
@@ -120,22 +173,6 @@ webusbbtn.addEventListener("click", async (e) => {
   // console.log("ethAddressethAddressethAddressethAddressethAddress")
   // console.log(ethAddress)
 });
-// TODO use bip32-path library
-export function splitPath(path: string): number[] {
-  let result = [];
-  let components = path.split("/");
-  components.forEach((element) => {
-    let number = parseInt(element, 10);
-    if (isNaN(number)) {
-      return; // FIXME shouldn't it throws instead?
-    }
-    if (element.length > 1 && element[element.length - 1] === "'") {
-      number += 0x80000000;
-    }
-    result.push(number);
-  });
-  return result;
-}
 const btn = document.createElement("button");
 btn.innerText = "requestAccounts";
 btn.addEventListener("click", async (e) => {
