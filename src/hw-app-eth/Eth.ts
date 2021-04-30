@@ -1,15 +1,16 @@
 
 import { splitPath, foreach } from "./utils";
 import { EthAppPleaseEnableContractData } from "../errors";
-import  Transport from "../hw-transport/Transport";
-import { BigNumber } from "bignumber.js";
+import  type Transport from  "../hw-transport/Transport";
+// @ts-ignore
 import { encode, decode } from "rlp";
 import {constants} from "../common/constants";
 import ethApdu  from "../common/apdu";
+// @ts-ignore
 import { utils } from "ethers";
 import secp256k1 from "secp256k1"
 import BN from "bn.js";
-import Web3 from "web3";
+import Web3Utils from "web3-utils";
 function hexBuffer(str: string): Buffer {
   return Buffer.from(str.startsWith("0x") ? str.slice(2) : str, "hex");
 }
@@ -52,8 +53,9 @@ const remapTransactionRelatedErrors = (e) => {
  * const eth = new Eth(transport)
  */
 export default class Eth {
-  transport: Transport;
-  constructor(transport: Transport) {
+  transport: Transport<any>;
+  // @ts-ignore
+  constructor(transport: Transport<any>) {
     this.transport = transport;
     // transport.decorateAppAPIMethods(
     //   this,
@@ -80,12 +82,22 @@ export default class Eth {
     address: string,
     pubkey:string
   }> {
-    await this.transport.send(eth_apdu.select_applet());
-    let pubKeyResult =  await this.transport.send(eth_apdu.get_xpub(path, false))
+    let toSend = [];
+    let response;
+    toSend.push(eth_apdu.select_applet())
+    toSend.push(eth_apdu.get_xpub(path, false))
+    return foreach(toSend, (data, i) =>
+      this.transport
+        .send(data)
+        .then((apduResponse) => {
+          response = apduResponse;
+        })
+    ).then(() => {
       return {
-        address: address_from_pubkey(pubKeyResult),
-        pubkey:pubKeyResult.slice(0,65).toString("hex")
-    };
+        address: address_from_pubkey(response),
+        pubkey:response.slice(0,65).toString("hex")
+      }
+    });
   }
 
 
@@ -186,7 +198,9 @@ export default class Eth {
       }else{
         v = (35 + parseInt(transaction.chainId)*2).toString(16);
       }
+      // @ts-ignore
       const r = normalizes_sig.slice(0, 32).toString("hex");
+      // @ts-ignore
       const s = normalizes_sig.slice(32, 32 + 32).toString("hex");
       const signedTransaction = encode([numberToHex(transaction.nonce),numberToHex(transaction.gasPrice) , numberToHex(transaction.gasLimit), transaction.to, numberToHex(transaction.value), transaction.data,Buffer.from(v,"hex"), Buffer.from(r,"hex"), Buffer.from(s,"hex")]);
       const signature = "0x"+signedTransaction.toString("hex");
@@ -213,10 +227,16 @@ eth.signPersonalMessage("44'/60'/0'/0/0", Buffer.from("test").toString("hex")).t
     sender:string,
     isPersonalSign:boolean
   ): Promise<{
-    v: string,
-    r: string,
-    s: string,
+    signature: string,
   }> {
+    console.log("path:")
+    console.log(path)
+    console.log("message:")
+    console.log(message)
+    console.log("sender:")
+    console.log(sender)
+    console.log("isPersonalSign:")
+    console.log(isPersonalSign)
     let message_to_sign
     //判断是否是HEX
     if(is_valid_hex(message)){
@@ -252,7 +272,6 @@ eth.signPersonalMessage("44'/60'/0'/0/0", Buffer.from("test").toString("hex")).t
       [asUInt8(2),
         asUInt8(32),
         Buffer.from(bind_signature.slice(32,64))])
-
     let bind_signature_buf =  Buffer.concat(
       [asUInt8(48),
         asUInt8(bind_signature_r.length+bind_signature_s.length),
@@ -295,9 +314,13 @@ eth.signPersonalMessage("44'/60'/0'/0/0", Buffer.from("test").toString("hex")).t
         }
       }
       let v = (rec_id + 27).toString();
+      // @ts-ignore
       const r = normalizes_sig.slice(0, 32).toString("hex");
+      // @ts-ignore
       const s = normalizes_sig.slice(32, 32 + 32).toString("hex");
-      return { v, r, s };
+      // return { v, r, s };
+      const signature = r+s+v;
+      return { signature };
     });
   }
 }
@@ -330,5 +353,5 @@ function asUInt8(value) {
   return b;
 }
 function numberToHex(num: string | number | BN) {
-  return  Web3.utils.numberToHex(num);
+  return  Web3Utils.numberToHex(num);
 }

@@ -1,14 +1,19 @@
-import Web3 from "web3";
+// @ts-ignore
+import Web3Utils from "web3-utils";
+// @ts-ignore
 import { JsonRpcPayload, JsonRpcResponse } from "web3-core-helpers";
-
+import Web3HttpProvider from "web3-providers-http";
+// @ts-ignore
 import * as rlp from "rlp";
+// @ts-ignore
 import { RLPEncodedTransaction, TransactionConfig } from "web3-eth";
 import EventEmitter from "event-emitter-es6";
 import BN from "bn.js";
-import * as sigutil from "eth-sig-util";
-import * as ethUtil from 'ethereumjs-util'
+// import * as sigutil from "eth-sig-util";
+// import * as ethUtil from 'ethereumjs-util'
 import imTokenEip712Utils from './eip712';
-
+import Eth  from "./hw-app-eth/Eth";
+import TransportWebUSB from "./hw-transport-webusb/TransportWebUSB";
 interface IProviderOptions {
   rpcUrl?: string;
   infuraId?: string;
@@ -28,7 +33,8 @@ const IMKEY_ETH_PATH = "m/44'/60'/0'/0/0";
 let requestId = 0;
 let apirouter;
 var dialog;
-
+let ETH;
+let transport;
 function createJsonRpcRequest(method: string, params: any[] = []) {
   return {
     id: requestId++,
@@ -71,8 +77,8 @@ function chainId2InfuraNetwork(chainId: number) {
 function parseArgsNum(num: string | number | BN) {
   if (num instanceof BN) {
     return num.toNumber().toString();
-  } else if (typeof num === "string" && Web3.utils.isHex(num)) {
-    return Web3.utils.hexToNumberString(num);
+  } else if (typeof num === "string" && Web3Utils.isHex(num)) {
+    return Web3Utils.hexToNumberString(num);
   } else {
     return num.toString();
   }
@@ -84,18 +90,19 @@ export async function test33(){
 }
 
 function isNative(){
-  if(apirouter&&dialog){
-    console.log('isNative true')
-    return true
-  }else{
-    console.log('isNative false')
-    return false
-  }
+  return true
+  // if(apirouter&&dialog){
+  //   console.log('isNative true')
+  //   return true
+  // }else{
+  //   console.log('isNative false')
+  //   return false
+  // }
 }
 
 export default class ImKeyProvider extends EventEmitter {
   // @ts-ignore
-  private httpProvider: Web3.providers.HttpProvider;
+  private httpProvider: Web3HttpProvider.HttpProvider;
   private chainId: number;
 
   constructor(config: IProviderOptions) {
@@ -115,8 +122,9 @@ export default class ImKeyProvider extends EventEmitter {
       }
     }
 
-    this.httpProvider = new Web3.providers.HttpProvider(rpcUrl, {
-      headers,
+    // @ts-ignore
+    this.httpProvider = new Web3HttpProvider(rpcUrl, {
+      headers
     });
 
     apirouter = config.apirouter
@@ -142,11 +150,13 @@ export default class ImKeyProvider extends EventEmitter {
 
   async enable() {
     console.log('enable')
+    transport = await TransportWebUSB.create();
+    ETH =  new Eth(transport )
     const accounts = await this.imKeyRequestAccounts(requestId++);
     const chainIdHex = await this.callInnerProviderApi(
       createJsonRpcRequest("eth_chainId")
     );
-    const chainId = Web3.utils.hexToNumber(chainIdHex);
+    const chainId = Web3Utils.hexToNumber(chainIdHex);
     if (chainId !== this.chainId) {
       throw new Error("chain id and rpc endpoint don't match");
     } else {
@@ -154,7 +164,9 @@ export default class ImKeyProvider extends EventEmitter {
       return accounts;
     }
   }
-
+  stop(){
+    transport.close()
+  }
   async test22(){
     console.log('test22')
     return '22'
@@ -340,7 +352,7 @@ export default class ImKeyProvider extends EventEmitter {
       const accounts = await this.imKeyRequestAccounts(requestId++);
       from = accounts[0] as string;
     } else {
-      from = Web3.utils.toChecksumAddress(transactionConfig.from as string);
+      from = Web3Utils.toChecksumAddress(transactionConfig.from as string);
     }
 
     //gas price
@@ -351,7 +363,7 @@ export default class ImKeyProvider extends EventEmitter {
       const gasPriceRet = await this.callInnerProviderApi(
         createJsonRpcRequest("eth_gasPrice", [])
       );
-      gasPriceDec = Web3.utils.hexToNumberString(gasPriceRet);
+      gasPriceDec = Web3Utils.hexToNumberString(gasPriceRet);
     }
 
     //chain id
@@ -379,7 +391,7 @@ export default class ImKeyProvider extends EventEmitter {
           "pending",
         ])
       );
-      nonce = Web3.utils.hexToNumber(nonce).toString();
+      nonce = Web3Utils.hexToNumber(nonce).toString();
     }
 
     //estimate gas
@@ -393,7 +405,7 @@ export default class ImKeyProvider extends EventEmitter {
             from: transactionConfig.from,
             to: transactionConfig.to,
             gas: transactionConfig.gas,
-            gasPrice: Web3.utils.numberToHex(gasPriceDec),
+            gasPrice: Web3Utils.numberToHex(gasPriceDec),
             value: transactionConfig.value,
             data: transactionConfig.data,
           },
@@ -404,14 +416,14 @@ export default class ImKeyProvider extends EventEmitter {
 
     //fee
     let fee = (BigInt(gasLimit) * BigInt(gasPriceDec)).toString(); //wei
-    fee = Web3.utils.fromWei(fee, "Gwei"); //to Gwei
+    fee = Web3Utils.fromWei(fee, "Gwei"); //to Gwei
     const temp = Math.ceil(Number(fee));
     fee = (temp * 1000000000).toString(); //to ether
-    fee = Web3.utils.fromWei(fee) + " ether";
+    fee = Web3Utils.fromWei(fee) + " ether";
 
-    const to = Web3.utils.toChecksumAddress(transactionConfig.to);
+    const to = Web3Utils.toChecksumAddress(transactionConfig.to);
     const value = parseArgsNum(transactionConfig.value);
-    const valueInWei = Web3.utils.fromWei(value);
+    const valueInWei = Web3Utils.fromWei(value);
 
     const msg = transactionConfig.value + ' ETH\n'
     + '收款地址：' + to + '\n'
@@ -468,11 +480,11 @@ export default class ImKeyProvider extends EventEmitter {
           value: valueInWei,
           input: transactionConfig.data,
           // @ts-ignore
-          r: Web3.utils.bytesToHex(decoded.data[7]),
+          r: Web3Utils.bytesToHex(decoded.data[7]),
           // @ts-ignore
-          s: Web3.utils.bytesToHex(decoded.data[8]),
+          s: Web3Utils.bytesToHex(decoded.data[8]),
           // @ts-ignore
-          v: Web3.utils.bytesToHex(decoded.data[6]),
+          v: Web3Utils.bytesToHex(decoded.data[6]),
           hash: ret.result?.txHash,
         },
       };
@@ -508,12 +520,12 @@ export default class ImKeyProvider extends EventEmitter {
 
     let data = "";
     try {
-      data = Web3.utils.toUtf8(dataToSign);
+      data = Web3Utils.toUtf8(dataToSign);
     } catch (error) {
       data = dataToSign;
     }
 
-    const checksumAddress = Web3.utils.toChecksumAddress(address as string);
+    const checksumAddress = Web3Utils.toChecksumAddress(address as string);
 
     try {
       const ret = await callImKeyApi({
@@ -527,7 +539,6 @@ export default class ImKeyProvider extends EventEmitter {
         },
         id: requestId++,
       },isNative());
-
       let sigRet = ret.result?.signature.toLowerCase();
       if (!sigRet.startsWith("0x")) {
         sigRet = "0x" + sigRet;
@@ -546,7 +557,7 @@ async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
-function callImKeyApi(arg: Record<string, unknown>, isNative = false) {
+async function callImKeyApi(arg: Record<string, unknown>, isNative = false) {
     if(isNative){
       console.log('native222')
       console.log(JSON.stringify(arg))
@@ -563,7 +574,7 @@ function callImKeyApi(arg: Record<string, unknown>, isNative = false) {
         // }else{
         //   console.log('callNativeApi(arg)')
         // }
-        return callNativeApi(arg)
+        return  await callNativeApi(arg)
     }else{
       console.log('rpc')
       return callRpcApi(arg)
@@ -585,7 +596,25 @@ function callRpcApi(arg: Record<string, unknown>){
 }
 
 async function callNativeApi(arg: Record<string, unknown>){
-  const json = apirouter.api(arg)
+  // const json = apirouter.api(arg)
+  let param=  JSON.parse(JSON.stringify(arg)).params
+  let json;
+  if(arg.method ==="eth.signMessage"){
+    console.log("param:")
+    console.log(param)
+     json = await ETH.signMessage(param.path,param.data,param.sender,param.isPersonalSign)
+  }
+  if(arg.method ==="eth.signTransaction"){
+    console.log("param:")
+    console.log(param)
+    json = await ETH.signTransaction(param.transaction,param.preview)
+  }
+  if(arg.method ==="eth.getAddress"){
+    json = await ETH.getAddress(param.path)
+  }
+  await transport.close()
+  console.log("返回的数据：")
+  console.log(json)
   if (json.error) {
     if (json.error.message.includes("ImkeyUserNotConfirmed")) {
       throw new Error("user not confirmed");
@@ -593,7 +622,7 @@ async function callNativeApi(arg: Record<string, unknown>){
       throw new Error(json.error.message);
     }
   } else {
-    return json;
+    return {result:json};
   }
 }
 

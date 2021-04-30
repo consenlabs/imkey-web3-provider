@@ -225,7 +225,7 @@ export const DBNotReset = createCustomErrorClass("DBNotReset");
  * TransportError is used for any generic transport errors.
  * e.g. Error thrown when data received by exchanges are incorrect or if exchanged failed to communicate with the devices for various reason.
  */
-export function TransportError(message: string, id: string): void {
+export function TransportError(this: any, message: string, id: string): void {
   this.name = "TransportError";
   this.message = message;
   this.stack = new Error().stack;
@@ -297,7 +297,7 @@ export function getAltStatusMessage(code: number): string | undefined | null {
  * Error thrown when a devices returned a non success status.
  * the error.statusCode is one of the `StatusCodes` exported by this library.
  */
-export function TransportStatusError(statusCode: number): void {
+export function TransportStatusError(this: any, statusCode: number): void {
   this.name = "TransportStatusError";
   const statusText =
     Object.keys(StatusCodes).find((k) => StatusCodes[k] === statusCode) ||

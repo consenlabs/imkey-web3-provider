@@ -1,5 +1,5 @@
 import ImKeyProvider from "./index";
-import Web3 from "web3";
+import Web3Utils from "web3-utils";
 import { RLPEncodedTransaction } from "web3-eth";
 import abi from "ethereumjs-abi";
 import BN from "bignumber.js";
@@ -48,7 +48,7 @@ const imkeyProvider = new ImKeyProvider({
   // },
 });
 imkeyProvider.enable();
-const web3 = new Web3(imkeyProvider as any);
+// const web3 = new Web3(imkeyProvider as any);
 
 // allowanceTest();
 imkeyProvider.on("disconnect", (code: any, reason: any) => {
@@ -185,7 +185,7 @@ btn.addEventListener("click", async (e) => {
     }
   }
 
-  web3.eth.requestAccounts(showResult).then(console.log);
+  // web3.eth.requestAccounts(showResult).then(console.log);
 
 
 });
@@ -195,9 +195,9 @@ btn.addEventListener("click", async (e) => {
 const btnBalance = document.createElement("button");
 btnBalance.innerText = "Get Balance";
 btnBalance.addEventListener("click", async (e) => {
-
-  const req = await imkeyProvider.test22();
-  console.log( web3.utils.fromWei(req.substring(2), 'ether')+' UNI')
+  //
+  // const req = await imkeyProvider.test22();
+  // console.log( web3.utils.fromWei(req.substring(2), 'ether')+' UNI')
 
 
   // web3.eth
@@ -206,25 +206,25 @@ btnBalance.addEventListener("click", async (e) => {
   // web3.eth
   //   .Contract("0x8663b811c9601db1c5a93e41b894196400c14ed6")
   //   .then(console.log);
-  const addresses = ["0x272f28f2adb073dc02fb3d49a400275e791d9647"];
-  const deployedContractAddress = "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984";
-  // 定义合约abi
-  var contractAbi = [{"constant":true,"inputs":[],"name":"mintingFinished","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"name","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_spender","type":"address"},{"name":"_value","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"cap","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[],"name":"unpause","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_amount","type":"uint256"}],"name":"mint","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"_value","type":"uint256"}],"name":"burn","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"paused","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_spender","type":"address"},{"name":"_subtractedValue","type":"uint256"}],"name":"decreaseApproval","outputs":[{"name":"success","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[],"name":"finishMinting","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[],"name":"pause","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"owner","outputs":[{"name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"symbol","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"_spender","type":"address"},{"name":"_addedValue","type":"uint256"}],"name":"increaseApproval","outputs":[{"name":"success","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"},{"name":"_spender","type":"address"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"newOwner","type":"address"}],"name":"transferOwnership","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"inputs":[],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"name":"burner","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Burn","type":"event"},{"anonymous":false,"inputs":[],"name":"Pause","type":"event"},{"anonymous":false,"inputs":[],"name":"Unpause","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"to","type":"address"},{"indexed":false,"name":"amount","type":"uint256"}],"name":"Mint","type":"event"},{"anonymous":false,"inputs":[],"name":"MintFinished","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"owner","type":"address"},{"indexed":true,"name":"spender","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Approval","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"from","type":"address"},{"indexed":true,"name":"to","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Transfer","type":"event"}];
-
-// 合约地址
-  var contractAddress = "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984";
-// 账号
-  var currentAccount = "0x272f28f2adb073dc02fb3d49a400275e791d9647";
-
-  // 合约地址
-  var contractAddress = "0x0000000000095413afc295d19edeb1ad7b71c952";
-// 账号
-  var currentAccount = "0x0000006daea1723962647b7e189d311d757fb793";
-// 定义合约
-  var myContract = new web3.eth.Contract(abi1, contractAddress, {
-    from: currentAccount, // default from address
-    gasPrice: '10000000000' // default gas price in wei, 10 gwei in this case
-  });
+//   const addresses = ["0x272f28f2adb073dc02fb3d49a400275e791d9647"];
+//   const deployedContractAddress = "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984";
+//   // 定义合约abi
+//   var contractAbi = [{"constant":true,"inputs":[],"name":"mintingFinished","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"name","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_spender","type":"address"},{"name":"_value","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"cap","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[],"name":"unpause","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_amount","type":"uint256"}],"name":"mint","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"_value","type":"uint256"}],"name":"burn","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"paused","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_spender","type":"address"},{"name":"_subtractedValue","type":"uint256"}],"name":"decreaseApproval","outputs":[{"name":"success","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[],"name":"finishMinting","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[],"name":"pause","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"owner","outputs":[{"name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"symbol","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"_spender","type":"address"},{"name":"_addedValue","type":"uint256"}],"name":"increaseApproval","outputs":[{"name":"success","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"},{"name":"_spender","type":"address"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"newOwner","type":"address"}],"name":"transferOwnership","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"inputs":[],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"name":"burner","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Burn","type":"event"},{"anonymous":false,"inputs":[],"name":"Pause","type":"event"},{"anonymous":false,"inputs":[],"name":"Unpause","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"to","type":"address"},{"indexed":false,"name":"amount","type":"uint256"}],"name":"Mint","type":"event"},{"anonymous":false,"inputs":[],"name":"MintFinished","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"owner","type":"address"},{"indexed":true,"name":"spender","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Approval","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"from","type":"address"},{"indexed":true,"name":"to","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Transfer","type":"event"}];
+//
+// // 合约地址
+//   var contractAddress = "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984";
+// // 账号
+//   var currentAccount = "0x272f28f2adb073dc02fb3d49a400275e791d9647";
+//
+//   // 合约地址
+//   var contractAddress = "0x0000000000095413afc295d19edeb1ad7b71c952";
+// // 账号
+//   var currentAccount = "0x0000006daea1723962647b7e189d311d757fb793";
+// // 定义合约
+//   var myContract = new web3.eth.Contract(abi1, contractAddress, {
+//     from: currentAccount, // default from address
+//     gasPrice: '10000000000' // default gas price in wei, 10 gwei in this case
+//   });
 
 // 查询以太币余额
 //   web3.eth.getBalance(currentAccount).then(console.log);
@@ -244,77 +244,80 @@ btnBalance.addEventListener("click", async (e) => {
   var coinCode = ''
   var coinBal = ''
 // // // 获得代币名称
-  myContract.methods.name().call({from: currentAccount}, function(error, result){
-    if(!error) {
-      coinName = result
-    } else {
-      console.log(error);
-    }
-  });
+//   myContract.methods.name().call({from: currentAccount}, function(error, result){
+//     if(!error) {
+//       coinName = result
+//     } else {
+//       console.log(error);
+//     }
+//   });
 
 // // 获取代币符号
-  myContract.methods.symbol().call({from: currentAccount}, function(error, result){
-    if(!error) {
-      coinCode = result
-    } else {
-      console.log(error);
-    }
-  });
-
-  myContract.methods.balanceOf(currentAccount).call({from: currentAccount}, function(error, result){
-    if(!error) {
-      console.log(result)
-      coinBal = web3.utils.fromWei(result, 'ether');
-      console.log("此合约地址："+contractAddress+"\n代币名称为："+coinName+"\n代币符号："+coinCode+"\n当前账户："+currentAccount+"\n余额为："+coinBal+" "+coinCode);
+//   myContract.methods.symbol().call({from: currentAccount}, function(error, result){
+//     if(!error) {
+//       coinCode = result
+//     } else {
+//       console.log(error);
+//     }
+//   });
 //
-    } else {
-      console.log(error);
-    }
-  });
+//   myContract.methods.balanceOf(currentAccount).call({from: currentAccount}, function(error, result){
+//     if(!error) {
+//       console.log(result)
+//       coinBal = web3.utils.fromWei(result, 'ether');
+//       console.log("此合约地址："+contractAddress+"\n代币名称为："+coinName+"\n代币符号："+coinCode+"\n当前账户："+currentAccount+"\n余额为："+coinBal+" "+coinCode);
+// //
+//     } else {
+//       console.log(error);
+//     }
+//   });
   // console.log("getTransactionCount:"+)
-  web3.eth.getTransactionReceipt(currentAccount).then(console.log)
-// 补齐64位，不够前面用0补齐
-  function addPreZero(num){
-    var t = (num+'').length,
-      s = '';
-    for(var i=0; i<64-t; i++){
-      s += '0';
-    }
-    return s+num;
-  }
+//   web3.eth.getTransactionReceipt(currentAccount).then(console.log)
+// // 补齐64位，不够前面用0补齐
+//   function addPreZero(num){
+//     var t = (num+'').length,
+//       s = '';
+//     for(var i=0; i<64-t; i++){
+//       s += '0';
+//     }
+//     return s+num;
+//   }
 
-  web3.eth.getTransactionCount(currentAccount, web3.eth.defaultBlock.pending).then(function(nonce){
+  // web3.eth.getTransactionCount(currentAccount, web3.eth.defaultBlock.pending).then(function(nonce){
+  //
+  //   // 获取交易数据
+  //   var txData = {
+  //     nonce: web3.utils.toHex(nonce++),
+  //     gasLimit: web3.utils.toHex(99000),
+  //     gasPrice: web3.utils.toHex(10e9),
+  //     // 注意这里是代币合约地址
+  //     to: contractAddress,
+  //     from: currentAccount,
+  //     // 调用合约转账value这里留空
+  //     value: '0x00',
+  //     // data的组成，由：0x + 要调用的合约方法的function signature + 要传递的方法参数，每个参数都为64位(对transfer来说，第一个是接收人的地址去掉0x，第二个是代币数量的16进制表示，去掉前面0x，然后补齐为64位)
+  //     data: '0x' + 'a9059cbb' + addPreZero('3b11f5CAB8362807273e1680890A802c5F1B15a8') + addPreZero(web3.utils.toHex(1000000000000000000).substr(2))
+  //   }
 
-    // 获取交易数据
-    var txData = {
-      nonce: web3.utils.toHex(nonce++),
-      gasLimit: web3.utils.toHex(99000),
-      gasPrice: web3.utils.toHex(10e9),
-      // 注意这里是代币合约地址
-      to: contractAddress,
-      from: currentAccount,
-      // 调用合约转账value这里留空
-      value: '0x00',
-      // data的组成，由：0x + 要调用的合约方法的function signature + 要传递的方法参数，每个参数都为64位(对transfer来说，第一个是接收人的地址去掉0x，第二个是代币数量的16进制表示，去掉前面0x，然后补齐为64位)
-      data: '0x' + 'a9059cbb' + addPreZero('3b11f5CAB8362807273e1680890A802c5F1B15a8') + addPreZero(web3.utils.toHex(1000000000000000000).substr(2))
-    }
+  //   var tx = new Tx(txData);
+  //
+  //   const privateKey = new Buffer('your account privateKey', 'hex');
+  //
+  //   tx.sign(privateKey);
+  //
+  //   var serializedTx = tx.serialize().toString('hex');
+  //
+  //   web3.eth.sendSignedTransaction('0x' + serializedTx.toString('hex'), function(err, hash) {
+  //     if (!err) {
+  //       console.log(hash);
+  //     } else {
+  //       console.error(err);
+  //     }
+  //   });
+  // });
+  //
 
-    var tx = new Tx(txData);
 
-    const privateKey = new Buffer('your account privateKey', 'hex');
-
-    tx.sign(privateKey);
-
-    var serializedTx = tx.serialize().toString('hex');
-
-    web3.eth.sendSignedTransaction('0x' + serializedTx.toString('hex'), function(err, hash) {
-      if (!err) {
-        console.log(hash);
-      } else {
-        console.error(err);
-      }
-    });
-  });
 // // 获取代币总量
 //   myContract.methods.totalSupply().call({from: currentAccount}, function(error, result){
 //     if(!error) {
@@ -368,21 +371,21 @@ btnSignTransaction.addEventListener("click", (e) => {
     }
   }
 
-  web3.eth
-    .signTransaction(
-      {
-        from: "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
-        // gasPrice: "20000000008",
-        // nonce: 8,
-        // gas: "21000",
-        to: "0x3535353535353535353535353535353535353535",
-        value: "100000000000000000",
-        // chainId: 3,
-        // data: "",
-      },
-      showResult
-    )
-    .then(console.log);
+  // web3.eth
+  //   .signTransaction(
+  //     {
+  //       from: "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
+  //       // gasPrice: "20000000008",
+  //       // nonce: 8,
+  //       // gas: "21000",
+  //       to: "0x3535353535353535353535353535353535353535",
+  //       value: "100000000000000000",
+  //       // chainId: 3,
+  //       // data: "",
+  //     },
+  //     showResult
+  //   )
+  //   .then(console.log);
 });
 
 const btnSendTransaction = document.createElement("button");
@@ -396,18 +399,18 @@ btnSendTransaction.addEventListener("click", (e) => {
     }
   }
 
-  web3.eth
-    .sendTransaction({
-      from: "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
-      // gasPrice: "20000000008",
-      // nonce: 8,
-      // gas: "21000",
-      to: "0x3535353535353535353535353535353535353535",
-      value: "100000000000000000",
-      // chainId: 3,
-      // data: "",
-    })
-    .then(console.log);
+  // web3.eth
+  //   .sendTransaction({
+  //     from: "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
+  //     // gasPrice: "20000000008",
+  //     // nonce: 8,
+  //     // gas: "21000",
+  //     to: "0x3535353535353535353535353535353535353535",
+  //     value: "100000000000000000",
+  //     // chainId: 3,
+  //     // data: "",
+  //   })
+  //   .then(console.log);
 });
 
 const btnSignPersonalMessage = document.createElement("button");
@@ -421,18 +424,18 @@ btnSignPersonalMessage.addEventListener("click", (e) => {
     }
   }
 
-  web3.eth.personal
-    .sign(
-      "Hello imKey",
-      "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
-      "",
-      showResult
-    )
-    .then(console.log)
-    // @ts-ignore
-    .catch((error) => {
-      console.log("error message: ", error.message);
-    });
+  // web3.eth.personal
+  //   .sign(
+  //     "Hello imKey",
+  //     "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
+  //     "",
+  //     showResult
+  //   )
+  //   .then(console.log)
+  //   // @ts-ignore
+  //   .catch((error) => {
+  //     console.log("error message: ", error.message);
+  //   });
 });
 
 const btnSignMessage = document.createElement("button");
@@ -446,17 +449,17 @@ btnSignMessage.addEventListener("click", (e) => {
     }
   }
 
-  web3.eth
-    .sign(
-      "Hello imKey",
-      "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
-      showResult
-    )
-    .then(console.log)
-    // @ts-ignore
-    .catch((error) => {
-      console.log("error message: ", error.message);
-    });
+  // web3.eth
+  //   .sign(
+  //     "Hello imKey",
+  //     "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
+  //     showResult
+  //   )
+  //   .then(console.log)
+  //   // @ts-ignore
+  //   .catch((error) => {
+  //     console.log("error message: ", error.message);
+  //   });
 });
 
 const btnRequest_eth_requestAccounts = document.createElement("button");

@@ -1,4 +1,4 @@
-//@flow
+
 import Transport, { StatusCodes, TransportStatusError } from "../hw-transport/Transport";
 import  {
   Observer,
@@ -8,7 +8,6 @@ import  {
 import hidFraming from "./hid-framing";
 import { identifyUSBProductId } from "./webusb";
 import  { DeviceModel } from "./webusb";
-// $FlowFixMe
 
 import {
   TransportOpenUserCancelled,
@@ -27,7 +26,6 @@ import {
 const configurationValue = 1;
 let endpointNumber_in = 5;
 let endpointNumber_out = 4;
-
 /**
  * WebUSB Transport implementation
  * @example
@@ -35,14 +33,14 @@ let endpointNumber_out = 4;
  * ...
  * TransportWebUSB.create().then(transport => ...)
  */
-export default class TransportWebUSB extends Transport<USBDevice> {
-  device: USBDevice;
+export default class TransportWebUSB extends Transport<any> {
+  device: any;
   deviceModel: DeviceModel;
   channel = 0x3f;
   packetSize = 64;
   interfaceNumber: number;
 
-  constructor(device: USBDevice, interfaceNumber: number) {
+  constructor(device: any, interfaceNumber: number) {
     super();
     this.device = device;
     this.interfaceNumber = interfaceNumber;
@@ -65,8 +63,8 @@ export default class TransportWebUSB extends Transport<USBDevice> {
    *
    * Important: it must be called in the context of a UI click!
    */
-  static listen = (
-    observer: Observer<DescriptorEvent<USBDevice>>
+   static listen = (
+    observer: Observer<DescriptorEvent<any>>
   ): Subscription => {
     let unsubscribed = false;
     getFirstimkeyDevice().then(
@@ -123,7 +121,8 @@ export default class TransportWebUSB extends Transport<USBDevice> {
 }
    * Create a imkey transport with a USBDevice
    */
-  static async open(device: USBDevice) {
+  static async open(device: any) {
+
     await device.open();
     if (device.configuration === null) {
       await device.selectConfiguration(configurationValue);
@@ -157,12 +156,12 @@ export default class TransportWebUSB extends Transport<USBDevice> {
     const transport = new TransportWebUSB(device, interfaceNumber);
     const onDisconnect = (e) => {
       if (device === e.device) {
-        // $FlowFixMe
+        // @ts-ignore
         navigator.usb.removeEventListener("disconnect", onDisconnect);
         transport._emitDisconnect(new DisconnectedDevice());
       }
     };
-    // $FlowFixMe
+    // @ts-ignore
     navigator.usb.addEventListener("disconnect", onDisconnect);
     return transport;
   }
@@ -229,7 +228,7 @@ export default class TransportWebUSB extends Transport<USBDevice> {
 //   const deviceModel = devicesList.find((d) => d.productIdMM === mm);
 //   return deviceModel;
 // };
-async function gracefullyResetDevice(device: USBDevice) {
+async function gracefullyResetDevice(device: any) {
   try {
     await device.reset();
   } catch (err) {

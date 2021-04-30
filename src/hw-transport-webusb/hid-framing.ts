@@ -25,8 +25,8 @@ const initialAcc = {
 const createHIDframing = (channel: number, packetSize: number) => {
   return {
     makeBlocks(apdu: Buffer): Buffer[] {
-      let data = Buffer.concat([asUInt16BE(apdu.length), apdu]);
-      let blockSize = packetSize - 3;
+      const data = Buffer.concat([asUInt16BE(apdu.length), apdu]);
+      const blockSize = packetSize - 3;
       const nbBlocks = Math.ceil(data.length / blockSize);
       const blocks = [];
       let chunk ;
