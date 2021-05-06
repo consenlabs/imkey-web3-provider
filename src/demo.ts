@@ -1,9 +1,7 @@
 import ImKeyProvider from "./index";
-import Web3Utils from "web3-utils";
-import { RLPEncodedTransaction } from "web3-eth";
+
 import abi from "ethereumjs-abi";
 import BN from "bignumber.js";
-import abi1 from 'human-standard-token-abi';
 const APPROVE_METHOD = "approve(address,uint256)";
 
 export const toBN = (x): BN => {
@@ -363,13 +361,13 @@ function bnToHex(inputBn) {
 const btnSignTransaction = document.createElement("button");
 btnSignTransaction.innerText = "Sign Transaction";
 btnSignTransaction.addEventListener("click", (e) => {
-  function showResult(error: Error, result: RLPEncodedTransaction) {
-    if (error != null) {
-      console.log("show error: ", error);
-    } else {
-      console.log("show result: ", result);
-    }
-  }
+  // function showResult(error: Error, result: RLPEncodedTransaction) {
+  //   if (error != null) {
+  //     console.log("show error: ", error);
+  //   } else {
+  //     console.log("show result: ", result);
+  //   }
+  // }
 
   // web3.eth
   //   .signTransaction(
@@ -391,13 +389,13 @@ btnSignTransaction.addEventListener("click", (e) => {
 const btnSendTransaction = document.createElement("button");
 btnSendTransaction.innerText = "Send Transaction";
 btnSendTransaction.addEventListener("click", (e) => {
-  function showResult(error: Error, result: RLPEncodedTransaction) {
-    if (error != null) {
-      console.log("show error: ", error);
-    } else {
-      console.log("show result: ", result);
-    }
-  }
+  // function showResult(error: Error, result: RLPEncodedTransaction) {
+  //   if (error != null) {
+  //     console.log("show error: ", error);
+  //   } else {
+  //     console.log("show result: ", result);
+  //   }
+  // }
 
   // web3.eth
   //   .sendTransaction({

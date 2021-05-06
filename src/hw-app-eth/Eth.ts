@@ -1,24 +1,13 @@
 
-import { splitPath, foreach } from "./utils";
-import { EthAppPleaseEnableContractData } from "../errors";
+import { foreach,asUInt16BE,asUInt8,addressFromPubkey,numberToHex,isValidHex } from "../common/utils";
 import  type Transport from  "../hw-transport/Transport";
 // @ts-ignore
 import { encode, decode } from "rlp";
-import {constants} from "../common/constants";
 import ethApdu  from "../common/apdu";
 // @ts-ignore
 import { utils } from "ethers";
 import secp256k1 from "secp256k1"
-import BN from "bn.js";
-import Web3Utils from "web3-utils";
-function hexBuffer(str: string): Buffer {
-  return Buffer.from(str.startsWith("0x") ? str.slice(2) : str, "hex");
-}
 
-function maybeHexBuffer(str: string): Buffer {
-  if (!str) return null;
-  return hexBuffer(str);
-}
 type Transaction= {
   data: string,
   gasLimit:string,
@@ -36,14 +25,6 @@ type Preview= {
     fee: string,
   }
 const eth_apdu = ethApdu();
-const remapTransactionRelatedErrors = (e) => {
-  if (e && e.statusCode === 0x6a80) {
-    return new EthAppPleaseEnableContractData(
-      "Please enable Contract data on the Ethereum app Settings"
-    );
-  }
-  return e;
-};
 
 /**
  * Ethereum API
@@ -84,8 +65,8 @@ export default class Eth {
   }> {
     let toSend = [];
     let response;
-    toSend.push(eth_apdu.select_applet())
-    toSend.push(eth_apdu.get_xpub(path, false))
+    toSend.push(eth_apdu.selectApplet())
+    toSend.push(eth_apdu.getXpub(path, false))
     return foreach(toSend, (data, i) =>
       this.transport
         .send(data)
@@ -94,7 +75,7 @@ export default class Eth {
         })
     ).then(() => {
       return {
-        address: address_from_pubkey(response),
+        address: addressFromPubkey(response),
         pubkey:response.slice(0,65).toString("hex")
       }
     });
@@ -128,39 +109,12 @@ export default class Eth {
            asUInt8(7), asUInt8(preview.payment.length),Buffer.from(preview.payment,"ascii"),
            asUInt8(8), asUInt8(preview.receiver.length),Buffer.from(preview.receiver,"ascii"),
            asUInt8(9), asUInt8(preview.fee.length),Buffer.from(preview.fee,"ascii")]);
-    // let key_manager_obj = KEY_MANAGER.lock();
-    let pri_key = Buffer.from("18e14a7b6a307f426a94f8114701e7c8e774e7f9a47e2c2035db29a206321725","hex");
-    let ha256_hash =  utils.sha256(utils.sha256(data_to_sign)).substring(2)
-    let bind_signature = secp256k1.ecdsaSign(Buffer.from(ha256_hash,"hex"),pri_key).signature
-    let bind_signature_r =(bind_signature[0]>0x80) ? Buffer.concat(
-      [asUInt8(2),
-        asUInt8(33),
-        asUInt8(0),
-        Buffer.from(bind_signature.slice(0,32))]) :Buffer.concat(
-      [asUInt8(2),
-        asUInt8(32),
-        Buffer.from(bind_signature.slice(0,32))])
-    let bind_signature_s =(bind_signature[32]>0x80) ? Buffer.concat(
-      [asUInt8(2),
-        asUInt8(33),
-        asUInt8(0),
-        Buffer.from(bind_signature.slice(32,64))]) :Buffer.concat(
-      [asUInt8(2),
-        asUInt8(32),
-        Buffer.from(bind_signature.slice(32,64))])
-
-    let bind_signature_buf =  Buffer.concat(
-      [asUInt8(48),
-        asUInt8(bind_signature_r.length+bind_signature_s.length),
-        bind_signature_r,
-        bind_signature_s]);
-    console.log("bind_signature_buf:"+bind_signature_buf.toString("hex"))
+    let bind_signature_buf =  bindSignature(data_to_sign);
     let apdu_pack = Buffer.concat(
       [asUInt8(0),
         asUInt8(bind_signature_buf.length),
         Buffer.from(bind_signature_buf),
         data_to_sign]);
-    console.log("apdu_packapdu_pack:"+apdu_pack.toString("hex"))
     let toSend = [];
     let response;
     const get_address = await this.getAddress(transaction.path)
@@ -168,8 +122,8 @@ export default class Eth {
       throw "address not match"
     }
     const pubkey = get_address.pubkey
-    toSend =  eth_apdu.prepare_sign(apdu_pack)
-    toSend.push(eth_apdu.sign_digest(transaction.path))
+    toSend =  eth_apdu.prepareSign(apdu_pack)
+    toSend.push(eth_apdu.signDigest(transaction.path))
     return foreach(toSend, (data, i) =>
       this.transport
         .send(data)
@@ -183,7 +137,6 @@ export default class Eth {
       let data_hash = Buffer.from(utils.keccak256(rawTransaction).substring(2), "hex")
       for (let i = 0; i <= 3; i++) {
         try {
-          console.log(Buffer.from(secp256k1.ecdsaRecover(normalizes_sig, i, data_hash, false)).toString("hex"))
           if (Buffer.from(secp256k1.ecdsaRecover(normalizes_sig, i, data_hash, false)).toString("hex") === pubkey) {
             rec_id = i
           }
@@ -239,7 +192,7 @@ eth.signPersonalMessage("44'/60'/0'/0/0", Buffer.from("test").toString("hex")).t
     console.log(isPersonalSign)
     let message_to_sign
     //判断是否是HEX
-    if(is_valid_hex(message)){
+    if(isValidHex(message)){
       message_to_sign = Buffer.from(message.substring(2), "hex");
     }else{
       message_to_sign = Buffer.from(message, "ascii");
@@ -252,31 +205,7 @@ eth.signPersonalMessage("44'/60'/0'/0/0", Buffer.from("test").toString("hex")).t
       data = message_to_sign;
     }
     let  data_to_sign = Buffer.concat([asUInt8(1), asUInt16BE(data.length),data]);
-    // let key_manager_obj = KEY_MANAGER.lock();
-    let pri_key = Buffer.from("18e14a7b6a307f426a94f8114701e7c8e774e7f9a47e2c2035db29a206321725","hex");
-    let ha256_hash =  utils.sha256(utils.sha256(data_to_sign)).substring(2)
-    let bind_signature = secp256k1.ecdsaSign(Buffer.from(ha256_hash,"hex"),pri_key).signature
-    let bind_signature_r =(bind_signature[0]>0x80) ? Buffer.concat(
-      [asUInt8(2),
-        asUInt8(33),
-        asUInt8(0),
-        Buffer.from(bind_signature.slice(0,32))]) :Buffer.concat(
-      [asUInt8(2),
-        asUInt8(32),
-        Buffer.from(bind_signature.slice(0,32))])
-    let bind_signature_s =(bind_signature[32]>0x80) ? Buffer.concat(
-      [asUInt8(2),
-        asUInt8(33),
-        asUInt8(0),
-        Buffer.from(bind_signature.slice(32,64))]) :Buffer.concat(
-      [asUInt8(2),
-        asUInt8(32),
-        Buffer.from(bind_signature.slice(32,64))])
-    let bind_signature_buf =  Buffer.concat(
-      [asUInt8(48),
-        asUInt8(bind_signature_r.length+bind_signature_s.length),
-        bind_signature_r,
-        bind_signature_s]);
+    let bind_signature_buf =  bindSignature(data_to_sign);
     let apdu_pack = Buffer.concat(
       [asUInt8(0),
         asUInt8(bind_signature_buf.length),
@@ -289,8 +218,8 @@ eth.signPersonalMessage("44'/60'/0'/0/0", Buffer.from("test").toString("hex")).t
       throw "address not match"
     }
     const pubkey = get_address.pubkey
-    toSend =  eth_apdu.prepare_personal_sign(apdu_pack)
-    toSend.push(eth_apdu.personal_sign(path))
+    toSend =  eth_apdu.preparePersonalSign(apdu_pack)
+    toSend.push(eth_apdu.personalSign(path))
     return foreach(toSend, (data, i) =>
       this.transport
         .send(data)
@@ -299,11 +228,9 @@ eth.signPersonalMessage("44'/60'/0'/0/0", Buffer.from("test").toString("hex")).t
         })
     ).then(() => {
       let  rec_id = 0;
-      console.log(response.toString("hex"))
       let sign_compact = response.slice(1,65);
       let normalizes_sig = secp256k1.signatureNormalize(sign_compact)
       let data_hash =  Buffer.from(utils.keccak256(data).substring(2),"hex")
-      console.log(data_hash.toString("hex"))
       for(let i=0;i<=3;i++){
         try {
           if(Buffer.from(secp256k1.ecdsaRecover(normalizes_sig,i,data_hash,false)).toString("hex")===pubkey){
@@ -313,7 +240,7 @@ eth.signPersonalMessage("44'/60'/0'/0/0", Buffer.from("test").toString("hex")).t
           continue
         }
       }
-      let v = (rec_id + 27).toString();
+      let v = (rec_id + 27).toString(16);
       // @ts-ignore
       const r = normalizes_sig.slice(0, 32).toString("hex");
       // @ts-ignore
@@ -324,34 +251,32 @@ eth.signPersonalMessage("44'/60'/0'/0/0", Buffer.from("test").toString("hex")).t
     });
   }
 }
-function address_from_pubkey(pubkey: Buffer):string {
-  let pubkey_hash = utils.keccak256(pubkey.slice(1,65));
-return  utils.getAddress("0x"+pubkey_hash.substring(26));
-}
-function is_valid_hex(input: string) :boolean {
-  let value =  input
-  if (input.startsWith("0x") || input.startsWith("0X") ){
-    value = input.substring(2)
-  };
 
-  if (value.length == 0 || value.length % 2 != 0 ){
-    return false;
-  }
-  if (typeof(value) !== "string" || !value.match(/^0x[0-9A-Fa-f]*$/)) {
-    return false
-  }
-  return true;
-}
-function asUInt16BE(value) {
-  const b = Buffer.alloc(2);
-  b.writeUInt16BE(value, 0);
-  return b;
-}
-function asUInt8(value) {
-  const b = Buffer.alloc(1);
-  b.writeUInt8(value, 0);
-  return b;
-}
-function numberToHex(num: string | number | BN) {
-  return  Web3Utils.numberToHex(num);
+function bindSignature(data: Buffer) :Buffer{
+  let pri_key = Buffer.from("18e14a7b6a307f426a94f8114701e7c8e774e7f9a47e2c2035db29a206321725","hex");
+  let ha256_hash =  utils.sha256(utils.sha256(data)).substring(2)
+  let bind_signature = secp256k1.ecdsaSign(Buffer.from(ha256_hash,"hex"),pri_key).signature
+  let bind_signature_r =(bind_signature[0]>0x80) ? Buffer.concat(
+    [asUInt8(2),
+      asUInt8(33),
+      asUInt8(0),
+      Buffer.from(bind_signature.slice(0,32))]) :Buffer.concat(
+    [asUInt8(2),
+      asUInt8(32),
+      Buffer.from(bind_signature.slice(0,32))])
+  let bind_signature_s =(bind_signature[32]>0x80) ? Buffer.concat(
+    [asUInt8(2),
+      asUInt8(33),
+      asUInt8(0),
+      Buffer.from(bind_signature.slice(32,64))]) :Buffer.concat(
+    [asUInt8(2),
+      asUInt8(32),
+      Buffer.from(bind_signature.slice(32,64))])
+
+  let bind_signature_buf =  Buffer.concat(
+    [asUInt8(48),
+      asUInt8(bind_signature_r.length+bind_signature_s.length),
+      bind_signature_r,
+      bind_signature_s]);
+  return bind_signature_buf;
 }

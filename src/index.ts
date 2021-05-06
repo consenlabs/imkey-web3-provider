@@ -1,7 +1,6 @@
 // @ts-ignore
-import Web3Utils from "web3-utils";
-// @ts-ignore
-import { JsonRpcPayload, JsonRpcResponse } from "web3-core-helpers";
+import { hexToNumber,numberToHex,hexToNumberString,isHex,toChecksumAddress,fromWei ,toUtf8} from "./common/utils";
+import {JsonRpcPayload,JsonRpcResponse} from "./common/utils";
 import Web3HttpProvider from "web3-providers-http";
 // @ts-ignore
 import * as rlp from "rlp";
@@ -77,8 +76,8 @@ function chainId2InfuraNetwork(chainId: number) {
 function parseArgsNum(num: string | number | BN) {
   if (num instanceof BN) {
     return num.toNumber().toString();
-  } else if (typeof num === "string" && Web3Utils.isHex(num)) {
-    return Web3Utils.hexToNumberString(num);
+  } else if (typeof num === "string" && isHex(num)) {
+    return hexToNumberString(num);
   } else {
     return num.toString();
   }
@@ -156,7 +155,7 @@ export default class ImKeyProvider extends EventEmitter {
     const chainIdHex = await this.callInnerProviderApi(
       createJsonRpcRequest("eth_chainId")
     );
-    const chainId = Web3Utils.hexToNumber(chainIdHex);
+    const chainId = hexToNumber(chainIdHex);
     if (chainId !== this.chainId) {
       throw new Error("chain id and rpc endpoint don't match");
     } else {
@@ -229,11 +228,11 @@ export default class ImKeyProvider extends EventEmitter {
       // case 'eth_signTypedData_v1':
       /* eslint-disable no-fallthrough */
       case "eth_signTypedData_v3":
-      /* eslint-disable no-fallthrough */
-      return createProviderRpcError(
-        4200,
-        `${args.method} is not support now`
-      );
+        /* eslint-disable no-fallthrough */
+        return createProviderRpcError(
+          4200,
+          `${args.method} is not support now`
+        );
       case "eth_signTypedData_v4": {
         const jsonobj = JSON.parse(args.params![1])
         const eip712HashHexWithoutSha3 = imTokenEip712Utils.signHashHex(
@@ -281,17 +280,17 @@ export default class ImKeyProvider extends EventEmitter {
     // if(args.method === 'eth_coinbase'){
     //   callback(null, createJsonRpcResponse(args.id, '0x407d73d8a49eeb85d32cf465507dd71d507100c1'))
     // }else{
-      this.request(args)
+    this.request(args)
       .then((ret) => {
         console.log('request ret:' + ret + ' method:' + args.method)
         console.log(JSON.stringify(ret))
         // if(args.method === 'eth_getTransactionReceipt'){
         //   console.log('diff ret:' + typeof ret)
-          
+
         //   callback(null, createJsonRpcResponse(args.id, {"blockHash":"0x09e5d45158e71a6c07ac10142c3abfb24078de838bf8d3b5b6641fac67f42684","blockNumber":"0x15f56e4","contractAddress":null,"cumulativeGasUsed":"0xb64b5","from":"0x6031564e7b2f5cc33737807b2e58daff870b590b","gasUsed":"0x5208","logs":[],"logsBloom":"0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000","status":"0x2","to":"0xd6a6bc087d12ae864491240bf457856c71d48eb8","transactionHash":"0xbc86e19ae2856061b4fa38bba6aa0e60d02e7d54be738de088241df820c6ee24","transactionIndex":"0x2"}))
         //   // callback(null, createJsonRpcResponse(args.id, ret + ''))
         // }else{
-          callback(null, createJsonRpcResponse(args.id, ret))
+        callback(null, createJsonRpcResponse(args.id, ret))
         // }
       })
       .catch((err) => {
@@ -299,7 +298,7 @@ export default class ImKeyProvider extends EventEmitter {
         callback(err, null)
       });
     // }
-    
+
     // this.request(args)
     // .then((ret) => callback(null, createJsonRpcResponse(args.id, ret)))
     // .catch((err) => callback(err, null));
@@ -352,7 +351,7 @@ export default class ImKeyProvider extends EventEmitter {
       const accounts = await this.imKeyRequestAccounts(requestId++);
       from = accounts[0] as string;
     } else {
-      from = Web3Utils.toChecksumAddress(transactionConfig.from as string);
+      from = toChecksumAddress(transactionConfig.from as string);
     }
 
     //gas price
@@ -363,7 +362,7 @@ export default class ImKeyProvider extends EventEmitter {
       const gasPriceRet = await this.callInnerProviderApi(
         createJsonRpcRequest("eth_gasPrice", [])
       );
-      gasPriceDec = Web3Utils.hexToNumberString(gasPriceRet);
+      gasPriceDec = hexToNumberString(gasPriceRet);
     }
 
     //chain id
@@ -391,7 +390,7 @@ export default class ImKeyProvider extends EventEmitter {
           "pending",
         ])
       );
-      nonce = Web3Utils.hexToNumber(nonce).toString();
+      nonce = hexToNumber(nonce).toString();
     }
 
     //estimate gas
@@ -405,7 +404,7 @@ export default class ImKeyProvider extends EventEmitter {
             from: transactionConfig.from,
             to: transactionConfig.to,
             gas: transactionConfig.gas,
-            gasPrice: Web3Utils.numberToHex(gasPriceDec),
+            gasPrice: numberToHex(gasPriceDec),
             value: transactionConfig.value,
             data: transactionConfig.data,
           },
@@ -416,26 +415,26 @@ export default class ImKeyProvider extends EventEmitter {
 
     //fee
     let fee = (BigInt(gasLimit) * BigInt(gasPriceDec)).toString(); //wei
-    fee = Web3Utils.fromWei(fee, "Gwei"); //to Gwei
+    fee = fromWei(fee, "Gwei"); //to Gwei
     const temp = Math.ceil(Number(fee));
     fee = (temp * 1000000000).toString(); //to ether
-    fee = Web3Utils.fromWei(fee) + " ether";
+    fee = fromWei(fee) + " ether";
 
-    const to = Web3Utils.toChecksumAddress(transactionConfig.to);
+    const to = toChecksumAddress(transactionConfig.to);
     const value = parseArgsNum(transactionConfig.value);
-    const valueInWei = Web3Utils.fromWei(value);
+    const valueInWei = fromWei(value);
 
     const msg = transactionConfig.value + ' ETH\n'
-    + '收款地址：' + to + '\n'
-    + '付款地址：' + from + '\n'
-    + '矿工费：' + fee + '\n';
-    
+      + '收款地址：' + to + '\n'
+      + '付款地址：' + from + '\n'
+      + '矿工费：' + fee + '\n';
+
     if(isNative){
       const ret = dialog.showMessageBoxSync({
-      type: 'info',
-      title: '访问说明',
-      message: msg,
-      buttons: ['OK', 'Cancel']
+        type: 'info',
+        title: '访问说明',
+        message: msg,
+        buttons: ['OK', 'Cancel']
       })
     }
 
@@ -520,12 +519,12 @@ export default class ImKeyProvider extends EventEmitter {
 
     let data = "";
     try {
-      data = Web3Utils.toUtf8(dataToSign);
+      data = toUtf8(dataToSign);
     } catch (error) {
       data = dataToSign;
     }
 
-    const checksumAddress = Web3Utils.toChecksumAddress(address as string);
+    const checksumAddress = toChecksumAddress(address as string);
 
     try {
       const ret = await callImKeyApi({
@@ -558,27 +557,27 @@ async function sleep(ms) {
 }
 
 async function callImKeyApi(arg: Record<string, unknown>, isNative = false) {
-    if(isNative){
-      console.log('native222')
-      console.log(JSON.stringify(arg))
-        // const ret = dialog.showMessageBoxSync({
-        //   type: 'info',
-        //   title: '访问说明',
-        //   message: '你正在访问第三方DAPP\n' + JSON.stringify(arg),
-        //   buttons: ['OK', 'Cancel']
-        // })
-        // console.log(ret)
-        // console.log('dialog')
-        // if(ret === 0){
-        //   console.log(0)
-        // }else{
-        //   console.log('callNativeApi(arg)')
-        // }
-        return  await callNativeApi(arg)
-    }else{
-      console.log('rpc')
-      return callRpcApi(arg)
-    }
+  if(isNative){
+    console.log('native222')
+    console.log(JSON.stringify(arg))
+    // const ret = dialog.showMessageBoxSync({
+    //   type: 'info',
+    //   title: '访问说明',
+    //   message: '你正在访问第三方DAPP\n' + JSON.stringify(arg),
+    //   buttons: ['OK', 'Cancel']
+    // })
+    // console.log(ret)
+    // console.log('dialog')
+    // if(ret === 0){
+    //   console.log(0)
+    // }else{
+    //   console.log('callNativeApi(arg)')
+    // }
+    return  await callNativeApi(arg)
+  }else{
+    console.log('rpc')
+    return callRpcApi(arg)
+  }
 }
 
 function callRpcApi(arg: Record<string, unknown>){
@@ -597,12 +596,14 @@ function callRpcApi(arg: Record<string, unknown>){
 
 async function callNativeApi(arg: Record<string, unknown>){
   // const json = apirouter.api(arg)
+  transport = await TransportWebUSB.create();
+  ETH =  new Eth(transport )
   let param=  JSON.parse(JSON.stringify(arg)).params
   let json;
   if(arg.method ==="eth.signMessage"){
     console.log("param:")
     console.log(param)
-     json = await ETH.signMessage(param.path,param.data,param.sender,param.isPersonalSign)
+    json = await ETH.signMessage(param.path,param.data,param.sender,param.isPersonalSign)
   }
   if(arg.method ==="eth.signTransaction"){
     console.log("param:")

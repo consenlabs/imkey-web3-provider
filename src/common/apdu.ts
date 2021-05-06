@@ -6,26 +6,26 @@ const ethApdu = () => {
 
   return {
 
-    select_applet(): Buffer {
+    selectApplet(): Buffer {
      return  genApdu(0x00,0xa4,0x04,0x00,Buffer.from(constants.ETH_AID,"hex"))
     },
-    get_xpub(path: string, verify_flag: boolean): Buffer {
-      return get_pubkey(path, 0x53,verify_flag)
+    getXpub(path: string, verify_flag: boolean): Buffer {
+      return getPubkey(path, 0x53,verify_flag)
     },
-    register_address(address: Buffer = Buffer.alloc(0)): Buffer {
-      return register_address(0x56,address)
+    registerAddress(address: Buffer = Buffer.alloc(0)): Buffer {
+      return registerAddress(0x56,address)
     },
-    prepare_sign(data: Buffer = Buffer.alloc(0)): Buffer[] {
-      return prepare_sign(0x51,data)
+    prepareSign(data: Buffer = Buffer.alloc(0)): Buffer[] {
+      return prepareSign(0x51,data)
     },
-    sign_digest(path: string): Buffer {
-      return sign_digest(0x52, 0x00, 0x00, path)
+    signDigest(path: string): Buffer {
+      return signDigest(0x52, 0x00, 0x00, path)
     },
-    prepare_personal_sign(data: Buffer = Buffer.alloc(0)): Buffer[] {
-      return prepare_sign(0x54,data)
+    preparePersonalSign(data: Buffer = Buffer.alloc(0)): Buffer[] {
+      return prepareSign(0x54,data)
     },
-    personal_sign(path: string): Buffer {
-      return sign_digest(0x55, 0x00, 0x00, path)
+    personalSign(path: string): Buffer {
+      return signDigest(0x55, 0x00, 0x00, path)
     },
 };
 };
@@ -45,18 +45,18 @@ function genApdu (
     ])
   return response;
 }
-function get_pubkey( path: string, ins: number, verify_flag: boolean) : Buffer {
+function getPubkey( path: string, ins: number, verify_flag: boolean) : Buffer {
   let p1 = verify_flag ? 0x01 : 0x00 ;
   return  genApdu(0x80,ins,p1,0x00,Buffer.from(path,"ascii"));
 }
-function register_address( ins: number, data: Buffer = Buffer.alloc(0)) : Buffer {
+function registerAddress( ins: number, data: Buffer = Buffer.alloc(0)) : Buffer {
   return  genApdu(0x80,ins,0x00,0x00,data);
 }
-function sign_digest( ins: number,index: number, hashtype: number, path:string) : Buffer {
+function signDigest( ins: number,index: number, hashtype: number, path:string) : Buffer {
 
   return  genApdu(0x80,ins,index,hashtype,Buffer.from(path,"ascii"));
 }
-function prepare_sign( ins: number ,data:Buffer) : Buffer[] {
+function prepareSign( ins: number ,data:Buffer) : Buffer[] {
   let apduList = [];
   let size = Math.ceil(data.length / constants.LC_MAX);
   for(let i=0 ;i<size;i++){

@@ -41,7 +41,6 @@ export const identifyUSBProductId = (usbProductId: number): DeviceModel => {
   const legacy = devicesList.find(d => d.legacyUsbProductId === usbProductId);
   if (legacy) return legacy;
   const mm = usbProductId >> 8;
-  console.log("mmmmmmmm:" + mm);
   const deviceModel = devicesList.find(d => d.productIdMM === mm);
   return deviceModel;
 };
