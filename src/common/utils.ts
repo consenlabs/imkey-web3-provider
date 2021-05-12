@@ -2,7 +2,6 @@ import { utils } from "ethers";
 import _  from 'underscore';
 import BN  from 'bn.js';
 import numberToBN  from 'number-to-bn';
-import { Unit } from "web3-utils";
 import utf8 from'utf8';
 type Defer<T> = {
   promise: Promise<T>;
@@ -136,6 +135,14 @@ export function  hexToNumber (value: string) :number|string {
 
   return toBN(value).toNumber();
 };
+export function  stringToNumber (value: string) :number {
+
+  if (_.isString(value)) {
+    throw new Error('Given value "'+value+'" is not a valid hex string.');
+  }
+
+  return toBN(value).toNumber();
+};
 export function  hexToNumberString (value: string) :string{
   if (!value) {
     return value;
@@ -166,6 +173,16 @@ var hexToBytes = function(hex) {
   for (var bytes = [], c = 0; c < hex.length; c += 2)
     bytes.push(parseInt(hex.substr(c, 2), 16));
   return bytes;
+};
+
+export function  bytesToHex (bytes) {
+  for (var hex = [], i = 0; i < bytes.length; i++) {
+    /* jshint ignore:start */
+    hex.push((bytes[i] >>> 4).toString(16));
+    hex.push((bytes[i] & 0xF).toString(16));
+    /* jshint ignore:end */
+  }
+  return '0x'+ hex.join("");
 };
 
 export function  fromWei (value: string | number, unit?: Unit) :string{
@@ -200,7 +217,15 @@ var hexToUtf8 = function(hex) {
   return utf8.decode(str);
 };
 
-
+export function parseArgsNum(num: string | number | BN) {
+  if (num instanceof BN) {
+    return num.toNumber().toString();
+  } else if (typeof num === "string" && isHex(num)) {
+    return hexToNumberString(num);
+  } else {
+    return num.toString();
+  }
+}
 export interface JsonRpcPayload {
   jsonrpc: string;
   method: string;
@@ -214,3 +239,88 @@ export interface JsonRpcResponse {
   result?: any;
   error?: string;
 }
+export interface RLPEncodedTransaction {
+  raw: string;
+  tx: {
+    nonce: string;
+    gasPrice: string;
+    gas: string;
+    to: string;
+    value: string;
+    input: string;
+    r: string;
+    s: string;
+    v: string;
+    hash: string;
+  };
+}
+export interface TransactionConfig {
+  from?: string | number;
+  to?: string;
+  value?: number | string | BN;
+  gas?: number | string;
+  gasPrice?: number | string | BN;
+  data?: string;
+  nonce?: number;
+  chainId?: number;
+  common?: Common;
+  chain?: string;
+  hardfork?: string;
+}
+export type chain =
+  | 'mainnet'
+  | 'goerli'
+  | 'kovan'
+  | 'rinkeby'
+  | 'ropsten';
+
+export type hardfork =
+  | 'chainstart'
+  | 'homestead'
+  | 'dao'
+  | 'tangerineWhistle'
+  | 'spuriousDragon'
+  | 'byzantium'
+  | 'constantinople'
+  | 'petersburg'
+  | 'istanbul';
+
+export interface Common {
+  customChain: CustomChainParams;
+  baseChain?: chain;
+  hardfork?: hardfork;
+}
+
+export interface CustomChainParams {
+  name?: string;
+  networkId: number;
+  chainId: number;
+}
+export type Unit =
+  | 'noether'
+  | 'wei'
+  | 'kwei'
+  | 'Kwei'
+  | 'babbage'
+  | 'femtoether'
+  | 'mwei'
+  | 'Mwei'
+  | 'lovelace'
+  | 'picoether'
+  | 'gwei'
+  | 'Gwei'
+  | 'shannon'
+  | 'nanoether'
+  | 'nano'
+  | 'szabo'
+  | 'microether'
+  | 'micro'
+  | 'finney'
+  | 'milliether'
+  | 'milli'
+  | 'ether'
+  | 'kether'
+  | 'grand'
+  | 'mether'
+  | 'gether'
+  | 'tether';

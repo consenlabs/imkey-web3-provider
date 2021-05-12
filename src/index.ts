@@ -1,25 +1,34 @@
 // @ts-ignore
-import { hexToNumber,numberToHex,hexToNumberString,isHex,toChecksumAddress,fromWei ,toUtf8} from "./common/utils";
+import { hexToNumber,numberToHex,hexToNumberString,isHex,toChecksumAddress,fromWei ,toUtf8,stringToNumber,bytesToHex} from "./common/utils";
 import {JsonRpcPayload,JsonRpcResponse} from "./common/utils";
-import Web3HttpProvider from "web3-providers-http";
+import {RLPEncodedTransaction,TransactionConfig} from "./common/utils";
 // @ts-ignore
 import * as rlp from "rlp";
-// @ts-ignore
-import { RLPEncodedTransaction, TransactionConfig } from "web3-eth";
 import EventEmitter from "event-emitter-es6";
 import BN from "bn.js";
-// import * as sigutil from "eth-sig-util";
-// import * as ethUtil from 'ethereumjs-util'
 import imTokenEip712Utils from './eip712';
 import Eth  from "./hw-app-eth/Eth";
 import TransportWebUSB from "./hw-transport-webusb/TransportWebUSB";
+import { providers } from "ethers";
+import { ExternalProvider } from "@ethersproject/providers/src.ts/web3-provider";
 interface IProviderOptions {
   rpcUrl?: string;
   infuraId?: string;
   chainId?: number;
   headers?: Record<string, string>;
-  apirouter?:any;
-  dialog?:any;
+  symbol?: string;
+}
+interface AddEthereumChainParameter {
+  chainId: string;
+  blockExplorerUrls?: string[];
+  chainName?: string;
+  iconUrls?: string[];
+  nativeCurrency?: {
+    name: string;
+    symbol: string;
+    decimals: number;
+  };
+  rpcUrls?: string[];
 }
 
 interface RequestArguments {
@@ -30,8 +39,6 @@ interface RequestArguments {
 const IMKEY_MANAGER_ENDPOINT = "http://localhost:8081/api/imkey";
 const IMKEY_ETH_PATH = "m/44'/60'/0'/0/0";
 let requestId = 0;
-let apirouter;
-var dialog;
 let ETH;
 let transport;
 function createJsonRpcRequest(method: string, params: any[] = []) {
@@ -101,9 +108,10 @@ function isNative(){
 
 export default class ImKeyProvider extends EventEmitter {
   // @ts-ignore
-  private httpProvider: Web3HttpProvider.HttpProvider;
+  private httpProvider: Web3Provider;
   private chainId: number;
-
+  private headers: [];
+  private symbol: string;
   constructor(config: IProviderOptions) {
     super();
     let rpcUrl = config.rpcUrl;
@@ -112,23 +120,20 @@ export default class ImKeyProvider extends EventEmitter {
       const network = chainId2InfuraNetwork(this.chainId);
       rpcUrl = `https://${network}.infura.io/v3/${config.infuraId}`;
     }
-    // @ts-ignore
+
     let headers = null;
     if (config.headers) {
       headers = [];
       for (const idx in config.headers) {
         headers.push({ name: idx, value: config.headers[idx] });
       }
+      this.headers = headers;
     }
+    this.httpProvider = new providers.Web3Provider({
+      host:rpcUrl
+    },{name:chainId2InfuraNetwork(this.chainId),chainId:this.chainId});
 
-    // @ts-ignore
-    this.httpProvider = new Web3HttpProvider(rpcUrl, {
-      headers
-    });
-
-    apirouter = config.apirouter
-    dialog = config.dialog
-
+    this.symbol = !config.symbol ? "ETH" : config.symbol;
     console.log(this)
   }
 
@@ -165,17 +170,6 @@ export default class ImKeyProvider extends EventEmitter {
   }
   stop(){
     transport.close()
-  }
-  async test22(){
-    console.log('test22')
-    return '22'
-  }
-
-  request2(args: RequestArguments): Promise<any>{
-    console.log(args)
-    return new Promise(function(resolve, reject){
-      return resolve('0x6031564e7b2F5cc33737807b2E58DaFF870B590b')
-    });
   }
 
   request = async (args: RequestArguments): Promise<any> => {
@@ -255,6 +249,10 @@ export default class ImKeyProvider extends EventEmitter {
         };
         return await this.requestTransactionReceipt(payload)
       }
+      case "wallet_addEthereumChain": {
+        this.changeChain(args.params[0])
+        return null;
+      }
       default: {
         console.log('request default')
         const payload = {
@@ -267,7 +265,17 @@ export default class ImKeyProvider extends EventEmitter {
       }
     }
   }
+  changeChain(args: AddEthereumChainParameter) {
+    console.log("wallet_addEthereumChain: ", JSON.stringify(args));
+    this.chainId = stringToNumber(parseArgsNum(args.chainId));
 
+    if (args.rpcUrls) {
+      let headers = this.headers;
+      this.httpProvider = new providers.Web3Provider({
+        host:args.rpcUrls[0]
+      },{name:chainId2InfuraNetwork(this.chainId),chainId:this.chainId});
+    }
+  }
   sendAsync(
     args: JsonRpcPayload,
     callback: (err: Error | null, ret: any) => void
@@ -413,30 +421,9 @@ export default class ImKeyProvider extends EventEmitter {
       gasLimit = parseArgsNum(gasRet);
     }
 
-    //fee
-    let fee = (BigInt(gasLimit) * BigInt(gasPriceDec)).toString(); //wei
-    fee = fromWei(fee, "Gwei"); //to Gwei
-    const temp = Math.ceil(Number(fee));
-    fee = (temp * 1000000000).toString(); //to ether
-    fee = fromWei(fee) + " ether";
-
     const to = toChecksumAddress(transactionConfig.to);
     const value = parseArgsNum(transactionConfig.value);
     const valueInWei = fromWei(value);
-
-    const msg = transactionConfig.value + ' ETH\n'
-      + '收款地址：' + to + '\n'
-      + '付款地址：' + from + '\n'
-      + '矿工费：' + fee + '\n';
-
-    if(isNative){
-      const ret = dialog.showMessageBoxSync({
-        type: 'info',
-        title: '访问说明',
-        message: msg,
-        buttons: ['OK', 'Cancel']
-      })
-    }
 
     try {
       const ret = await callImKeyApi({
@@ -452,13 +439,8 @@ export default class ImKeyProvider extends EventEmitter {
             value,
             chainId,
             path: IMKEY_ETH_PATH,
-          },
-          preview: {
-            payment: valueInWei + " ETH",
-            receiver: to,
-            sender: from,
-            fee: fee,
-          },
+            symbol:this.symbol
+          }
         },
         id: requestId++,
       }, isNative());
@@ -479,11 +461,11 @@ export default class ImKeyProvider extends EventEmitter {
           value: valueInWei,
           input: transactionConfig.data,
           // @ts-ignore
-          r: Web3Utils.bytesToHex(decoded.data[7]),
+          r: bytesToHex(decoded.data[7]),
           // @ts-ignore
-          s: Web3Utils.bytesToHex(decoded.data[8]),
+          s: bytesToHex(decoded.data[8]),
           // @ts-ignore
-          v: Web3Utils.bytesToHex(decoded.data[6]),
+          v: bytesToHex(decoded.data[6]),
           hash: ret.result?.txHash,
         },
       };
@@ -560,20 +542,35 @@ async function callImKeyApi(arg: Record<string, unknown>, isNative = false) {
   if(isNative){
     console.log('native222')
     console.log(JSON.stringify(arg))
-    // const ret = dialog.showMessageBoxSync({
-    //   type: 'info',
-    //   title: '访问说明',
-    //   message: '你正在访问第三方DAPP\n' + JSON.stringify(arg),
-    //   buttons: ['OK', 'Cancel']
-    // })
-    // console.log(ret)
-    // console.log('dialog')
-    // if(ret === 0){
-    //   console.log(0)
-    // }else{
-    //   console.log('callNativeApi(arg)')
-    // }
-    return  await callNativeApi(arg)
+    transport = await TransportWebUSB.create();
+    ETH =  new Eth(transport )
+    let param=  JSON.parse(JSON.stringify(arg)).params
+    let json;
+    if(arg.method ==="eth.signMessage"){
+      console.log("param:")
+      console.log(param)
+      json = await ETH.signMessage(param.path,param.data,param.sender,param.isPersonalSign)
+    }
+    if(arg.method ==="eth.signTransaction"){
+      console.log("param:")
+      console.log(param)
+      json = await ETH.signTransaction(param.transaction)
+    }
+    if(arg.method ==="eth.getAddress"){
+      json = await ETH.getAddress(param.path)
+    }
+    await transport.close()
+    console.log("返回的数据：")
+    console.log(json)
+    if (json.error) {
+      if (json.error.message.includes("ImkeyUserNotConfirmed")) {
+        throw new Error("user not confirmed");
+      } else {
+        throw new Error(json.error.message);
+      }
+    } else {
+      return {result:json};
+    }
   }else{
     console.log('rpc')
     return callRpcApi(arg)
@@ -592,39 +589,6 @@ function callRpcApi(arg: Record<string, unknown>){
       return json;
     }
   });
-}
-
-async function callNativeApi(arg: Record<string, unknown>){
-  // const json = apirouter.api(arg)
-  transport = await TransportWebUSB.create();
-  ETH =  new Eth(transport )
-  let param=  JSON.parse(JSON.stringify(arg)).params
-  let json;
-  if(arg.method ==="eth.signMessage"){
-    console.log("param:")
-    console.log(param)
-    json = await ETH.signMessage(param.path,param.data,param.sender,param.isPersonalSign)
-  }
-  if(arg.method ==="eth.signTransaction"){
-    console.log("param:")
-    console.log(param)
-    json = await ETH.signTransaction(param.transaction,param.preview)
-  }
-  if(arg.method ==="eth.getAddress"){
-    json = await ETH.getAddress(param.path)
-  }
-  await transport.close()
-  console.log("返回的数据：")
-  console.log(json)
-  if (json.error) {
-    if (json.error.message.includes("ImkeyUserNotConfirmed")) {
-      throw new Error("user not confirmed");
-    } else {
-      throw new Error(json.error.message);
-    }
-  } else {
-    return {result:json};
-  }
 }
 
 function postData(url: string, data: Record<string, unknown>) {

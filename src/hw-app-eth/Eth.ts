@@ -1,5 +1,15 @@
 
-import { foreach,asUInt16BE,asUInt8,addressFromPubkey,numberToHex,isValidHex } from "../common/utils";
+import {
+  foreach,
+  asUInt16BE,
+  asUInt8,
+  addressFromPubkey,
+  numberToHex,
+  isValidHex,
+  fromWei,
+  toChecksumAddress,
+  parseArgsNum
+} from "../common/utils";
 import  type Transport from  "../hw-transport/Transport";
 // @ts-ignore
 import { encode, decode } from "rlp";
@@ -17,13 +27,8 @@ type Transaction= {
   value:string,
   chainId:string,
   path: string,
+  symbol?:string
 }
-type Preview= {
-    payment: string,
-    receiver: string,
-    sender: string,
-    fee: string,
-  }
 const eth_apdu = ethApdu();
 
 /**
@@ -91,13 +96,32 @@ export default class Eth {
 
 
   async signTransaction(
-    transaction:Transaction,
-    preview:Preview
+    transaction:Transaction
   ): Promise<{
     signature: string,
     txhash: string,
   }> {
     let rawTransaction
+    let preview
+    const get_address = await this.getAddress(transaction.path)
+    let symbol = !transaction.symbol ? "ETH" : transaction.symbol;
+    //fee
+    let fee = (BigInt(transaction.gasLimit) * BigInt(transaction.gasPrice)).toString(); //wei
+    fee = fromWei(fee, "Gwei"); //to Gwei
+    const temp = Math.ceil(Number(fee));
+    fee = (temp * 1000000000).toString(); //to ether
+    fee = fromWei(fee)+ " " + symbol;
+
+    const to = toChecksumAddress(transaction.to);
+    const value = parseArgsNum(transaction.value);
+    const valueInWei = fromWei(value);
+    preview={
+      payment: valueInWei + " " + symbol,
+        receiver: to,
+        sender: get_address.address,
+        fee: fee,
+    }
+
     if(transaction.chainId===""||transaction.chainId==="undefined")
     {
       rawTransaction = encode([numberToHex(transaction.nonce),numberToHex(transaction.gasPrice) , numberToHex(transaction.gasLimit), transaction.to, numberToHex(transaction.value), transaction.data]);
@@ -117,10 +141,7 @@ export default class Eth {
         data_to_sign]);
     let toSend = [];
     let response;
-    const get_address = await this.getAddress(transaction.path)
-    if(get_address.address !== preview.sender){
-      throw "address not match"
-    }
+
     const pubkey = get_address.pubkey
     toSend =  eth_apdu.prepareSign(apdu_pack)
     toSend.push(eth_apdu.signDigest(transaction.path))

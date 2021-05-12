@@ -106,7 +106,7 @@ webusbbtn.addEventListener("click", async (e) => {
       fee: "0.0032 ether"
   }
 
-  await eth.signTransaction(transaction,preview).then(
+  await eth.signTransaction(transaction).then(
     (ethres)=>{
          console.log("ethres.signature:"+ethres.signature)
          console.log("ethres.txhash:"+ethres.txhash)
