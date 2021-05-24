@@ -1,6 +1,5 @@
 
 import {
-  foreach,
   asUInt16BE,
   asUInt8,
   addressFromPubkey,
@@ -9,7 +8,6 @@ import {
   fromWei,
   toChecksumAddress,
   parseArgsNum,
-fromEther
 } from "../common/utils";
 import  type Transport from  "../hw-transport/Transport";
 // @ts-ignore
