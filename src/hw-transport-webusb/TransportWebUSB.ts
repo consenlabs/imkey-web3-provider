@@ -24,8 +24,8 @@ import {
 } from "./webusb";
 
 const configurationValue = 1;
-let endpointNumber_in = 5;
-let endpointNumber_out = 4;
+const endpointNumber_in = 5;
+const endpointNumber_out = 4;
 /**
  * WebUSB Transport implementation
  * @example
@@ -195,7 +195,7 @@ export default class TransportWebUSB extends Transport<any> {
       // Write...
       const blocks = framing.makeBlocks(apdu);
       for (let i = 0; i < blocks.length; i++) {
-        // console.log("apdu", "=> " + blocks[i].toString("hex").toUpperCase());
+        console.log("apdu", "=> " + blocks[i].toString("hex").toUpperCase());
         await this.device.transferOut(endpointNumber_out, blocks[i]);
       }
 
@@ -207,7 +207,7 @@ export default class TransportWebUSB extends Transport<any> {
         const buffer = Buffer.from(r.data.buffer);
         acc = framing.reduceResponse(acc, buffer);
       }
-      // console.log("apdu", "<= " + result.toString("hex").toUpperCase());
+      console.log("apdu", "<= " + result.toString("hex").toUpperCase());
       return result;
     }).catch((e) => {
       if (e && e.message && e.message.includes("disconnected")) {

@@ -46,7 +46,7 @@ function genApdu (
   return response;
 }
 function getPubkey( path: string, ins: number, verify_flag: boolean) : Buffer {
-  let p1 = verify_flag ? 0x01 : 0x00 ;
+  const p1 = verify_flag ? 0x01 : 0x00 ;
   return  genApdu(0x80,ins,p1,0x00,Buffer.from(path,"ascii"));
 }
 function registerAddress( ins: number, data: Buffer = Buffer.alloc(0)) : Buffer {
@@ -57,10 +57,10 @@ function signDigest( ins: number,index: number, hashtype: number, path:string) :
   return  genApdu(0x80,ins,index,hashtype,Buffer.from(path,"ascii"));
 }
 function prepareSign( ins: number ,data:Buffer) : Buffer[] {
-  let apduList = [];
-  let size = Math.ceil(data.length / constants.LC_MAX);
+  const apduList = [];
+  const size = Math.ceil(data.length / constants.LC_MAX);
   for(let i=0 ;i<size;i++){
-    let p1 = (i==0) ? 0x00 : 0x80;
+    const p1 = (i==0) ? 0x00 : 0x80;
     let p2,lc;
     if(i==size-1){
       p2=0x80;

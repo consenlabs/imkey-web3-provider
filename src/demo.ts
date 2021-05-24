@@ -2,6 +2,7 @@ import ImKeyProvider from "./index";
 
 import abi from "ethereumjs-abi";
 import BN from "bignumber.js";
+import Web3 from 'web3'
 const APPROVE_METHOD = "approve(address,uint256)";
 
 export const toBN = (x): BN => {
@@ -37,16 +38,17 @@ const _getData = (spender) => {
   const data = addHexPrefix(encoded.toString("hex"));
   return data;
 };
-import SINGLE_CALL_BALANCES_ABI from 'single-call-balance-checker-abi';
+// import SINGLE_CALL_BALANCES_ABI from 'single-call-balance-checker-abi';
 const imkeyProvider = new ImKeyProvider({
-  rpcUrl: "https://mainnet.infura.io/v3/2012498d93094f5f939f580516a92236",
-  chainId: 1,
+  rpcUrl: "https://kovan.infura.io/v3/2012498d93094f5f939f580516a92236",
+  chainId: 42,
+  symbol:'ETH'
   // headers: {
   //   agent: "ios:2.4.2:2",
   // },
 });
 imkeyProvider.enable();
-// const web3 = new Web3(imkeyProvider as any);
+const web3 = new Web3(imkeyProvider as any);
 
 // allowanceTest();
 imkeyProvider.on("disconnect", (code: any, reason: any) => {
@@ -59,32 +61,18 @@ imkeyProvider.on("connect", (connectInfo: ProviderConnectInfo) => {
   );
 });
 import TransportWebUSB from "./hw-transport-webusb/TransportWebUSB";
-import ethApdu  from "./common/apdu";
 import ETH  from "./hw-app-eth/Eth";
-import Transport from "./hw-transport/Transport";
-import hidFraming from "./hw-transport-webusb/hid-framing";
+import {RLPEncodedTransaction} from "./common/utils";
 const webusbbtn = document.createElement("button");
 webusbbtn.innerText = "webusb Test";
 webusbbtn.addEventListener("click", async (e) => {
-  // const eth_apdu = ethApdu();
-  // eth_apdu.select_applet()
-  // let res = eth_apdu.select_applet().toString("hex");
-  // console.log("resresresresresresresresres1:"+res)
-  // res = eth_apdu.get_xpub("44'/60'/0'/0/0",false).toString("hex")
-  // console.log("resresresresresresresresres2:"+res)
-  // res = eth_apdu.get_xpub("44'/60'/0'/0/0",true).toString("hex")
-  // console.log("resresresresresresresresres3:"+res)
-  // let resArr = eth_apdu.prepare_sign(new Buffer("6f5c8408a000000003000000a550734a06072a864886fc6b01600c060a2a864886fc6b02020101630906072a864886fc6b03640b06092a864886fc6b041110650b06092b8510864864020103660c060a2b060104012a026e01029f6501ff6f5c8408a000000003000000a550734a06072a864886fc6b01600c060a2a864886fc6b02020101630906072a864886fc6b03640b06092a864886fc6b041110650b06092b8510864864020103660c060a2b060104012a026e01029f6501ff6f5c8408a000000003000000a550734a06072a864886fc6b01600c060a2a864886fc6b02020101630906072a864886fc6b03640b06092a864886fc6b041110650b06092b8510864864020103660c060a2b060104012a026e01029f6501ff6f5c8408a000000003000000a550734a06072a864886fc6b01600c060a2a864886fc6b02020101630906072a864886fc6b03640b06092a864886fc6b041110650b06092b8510864864020103660c060a2b060104012a026e01029f6501ff6f5c8408a000000003000000a550734a06072a864886fc6b01600c060a2a864886fc6b02020101630906072a864886fc6b03640b06092a864886fc6b041110650b06092b8510864864020103660c060a2b060104012a026e01029f6501ff6f5c8408a000000003000000a550734a06072a864886fc6b01600c060a2a864886fc6b02020101630906072a864886fc6b03640b06092a864886fc6b041110650b06092b8510864864020103660c060a2b060104012a026e01029f6501ff","hex"));
-  // for (let i = 0; i < resArr.length; i++) {
-  //   console.log("resArr[i]", "=> " + resArr[i].toString("hex"));
-  // }
-
-  let  transport = await TransportWebUSB.create();
-  let eth = new ETH(transport)
+  const  transport = await TransportWebUSB.create();
+  const eth = new ETH(transport)
  await eth.getAddress("m/44'/60'/0'/0/0").then((ethres)=>{
     console.log("eth.getAddress:"+ethres.address)
+   console.log("eth.pubkey:"+ethres.pubkey)
   });
-  await eth.signMessage("m/44'/60'/0'/0/0","Hello imKey","0x3267b1042d5ffc693D78211ce1fA521d2d631724",true).then((ethres)=>{
+  await eth.signMessage("m/44'/60'/0'/0/0","Hello imKey","0x6031564e7b2F5cc33737807b2E58DaFF870B590b",true).then((ethres)=>{
     console.log("eth.signPersonalMessage:"+ethres)
     console.log(ethres)
   });
@@ -97,14 +85,15 @@ webusbbtn.addEventListener("click", async (e) => {
       to: "0x3535353535353535353535353535353535353535",
       value: "512",
       chainId: "28",
-      path: "m/44'/60'/0'/0/0"
+      path: "m/44'/60'/0'/0/0",
+      symbol:'ETH'
   }
-  const preview = {
-      payment: "0.01 ETH",
-      receiver: "0xE6F4142dfFA574D1d9f18770BF73814df07931F3",
-      sender: "0x3267b1042d5ffc693D78211ce1fA521d2d631724",
-      fee: "0.0032 ether"
-  }
+  // const preview = {
+  //     payment: "0.01 ETH",
+  //     receiver: "0xE6F4142dfFA574D1d9f18770BF73814df07931F3",
+  //     sender: "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
+  //     fee: "0.0032 ether"
+  // }
 
   await eth.signTransaction(transaction).then(
     (ethres)=>{
@@ -113,63 +102,6 @@ webusbbtn.addEventListener("click", async (e) => {
          console.log(ethres)
        }
   )
-
-
-
-
-
-  // console.log(transport)
-  // transport.setDebugMode(true);
-  // let buffer = Buffer.alloc(1 );
-  // const response = await transport.exchange(new Buffer("80E200005E6f5c8408a000000003000000a550734a06072a864886fc6b01600c060a2a864886fc6b02020101630906072a864886fc6b03640b06092a864886fc6b041110650b06092b8510864864020103660c060a2b060104012a026e01029f6501ff","hex"))
-  // for(let i=0;i<10;i++){
-
-  // const response = await transport.send(
-  //   0x00,
-  //   0xa4,
-  //   0x04,
-  //   0x00,
-  //   new Buffer("695F657468","hex")
-  // )
-  // // const response = await transport.exchange(new Buffer("00a40400","hex"))
-  // console.log("response223223:"+response.toString("hex"))
-  // const dd = "6f5c8408a000000003000000a550734a06072a864886fc6b01600c060a2a864886fc6b02020101630906072a864886fc6b03640b06092a864886fc6b041110650b06092b8510864864020103660c060a2b060104012a026e01029f6501ff";
-  // const res = response.toString("hex");
-  // if( res === dd){
-  //   console.log("返回数据错误:")
-  //   break;
-  // }
-  // }
-
-  // 695F657468
-  // let path ="44'/60'/0'/0'/0";
-  // let paths = splitPath(path);
-  // let buffer = Buffer.alloc(1 + paths.length * 4);
-  // buffer[0] = paths.length;
-  // paths.forEach((element, index) => {
-  //   buffer.writeUInt32BE(element, 1 + 4 * index);
-  // });
-  // transport
-  //   .send(
-  //     0x00,
-  //     0xa4,
-  //     0x04,
-  //     0x00,
-  //     buffer
-  //   )
-  //   .then((response) => {
-  //     let result = {};
-  //     console.log(response)
-  //     let publicKeyLength = response[0];
-  //     return result;
-  //   });
-  // const appEth = new Eth(transport);
-  // const { ethAddress } = await appEth.getAddress(
-  //   "44'/0'/0'/0/0",
-  //   false
-  // );
-  // console.log("ethAddressethAddressethAddressethAddressethAddress")
-  // console.log(ethAddress)
 });
 const btn = document.createElement("button");
 btn.innerText = "requestAccounts";
@@ -238,9 +170,9 @@ btnBalance.addEventListener("click", async (e) => {
 // // 查看某个账号的代币余额
 
 //
-  var coinName = ''
-  var coinCode = ''
-  var coinBal = ''
+//   const coinName = ''
+//   const coinCode = ''
+//   const coinBal = ''
 // // // 获得代币名称
 //   myContract.methods.name().call({from: currentAccount}, function(error, result){
 //     if(!error) {
@@ -361,54 +293,54 @@ function bnToHex(inputBn) {
 const btnSignTransaction = document.createElement("button");
 btnSignTransaction.innerText = "Sign Transaction";
 btnSignTransaction.addEventListener("click", (e) => {
-  // function showResult(error: Error, result: RLPEncodedTransaction) {
-  //   if (error != null) {
-  //     console.log("show error: ", error);
-  //   } else {
-  //     console.log("show result: ", result);
-  //   }
-  // }
+  function showResult(error: Error, result: RLPEncodedTransaction) {
+    if (error != null) {
+      console.log("show error: ", error);
+    } else {
+      console.log("show result: ", result);
+    }
+  }
 
-  // web3.eth
-  //   .signTransaction(
-  //     {
-  //       from: "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
-  //       // gasPrice: "20000000008",
-  //       // nonce: 8,
-  //       // gas: "21000",
-  //       to: "0x3535353535353535353535353535353535353535",
-  //       value: "100000000000000000",
-  //       // chainId: 3,
-  //       // data: "",
-  //     },
-  //     showResult
-  //   )
-  //   .then(console.log);
+  web3.eth
+    .signTransaction(
+      {
+        from: "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
+        // gasPrice: "20000000008",
+        // nonce: 8,
+        // gas: "21000",
+        to: "0x3535353535353535353535353535353535353535",
+        value: "100000000000000000",
+        // chainId: 3,
+        // data: "",
+      },
+      showResult
+    )
+    .then(console.log);
 });
 
 const btnSendTransaction = document.createElement("button");
 btnSendTransaction.innerText = "Send Transaction";
 btnSendTransaction.addEventListener("click", (e) => {
-  // function showResult(error: Error, result: RLPEncodedTransaction) {
-  //   if (error != null) {
-  //     console.log("show error: ", error);
-  //   } else {
-  //     console.log("show result: ", result);
-  //   }
-  // }
+  function showResult(error: Error, result: RLPEncodedTransaction) {
+    if (error != null) {
+      console.log("show error: ", error);
+    } else {
+      console.log("show result: ", result);
+    }
+  }
 
-  // web3.eth
-  //   .sendTransaction({
-  //     from: "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
-  //     // gasPrice: "20000000008",
-  //     // nonce: 8,
-  //     // gas: "21000",
-  //     to: "0x3535353535353535353535353535353535353535",
-  //     value: "100000000000000000",
-  //     // chainId: 3,
-  //     // data: "",
-  //   })
-  //   .then(console.log);
+  web3.eth
+    .sendTransaction({
+      from: "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
+      // gasPrice: "20000000008",
+      // nonce: 8,
+      // gas: "21000",
+      to: "0x3535353535353535353535353535353535353535",
+      value: "100000000000000000",
+      // chainId: 3,
+      // data: "",
+    })
+    .then(console.log);
 });
 
 const btnSignPersonalMessage = document.createElement("button");
@@ -422,18 +354,18 @@ btnSignPersonalMessage.addEventListener("click", (e) => {
     }
   }
 
-  // web3.eth.personal
-  //   .sign(
-  //     "Hello imKey",
-  //     "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
-  //     "",
-  //     showResult
-  //   )
-  //   .then(console.log)
-  //   // @ts-ignore
-  //   .catch((error) => {
-  //     console.log("error message: ", error.message);
-  //   });
+  web3.eth.personal
+    .sign(
+      "Hello imKey",
+      "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
+      "",
+      showResult
+    )
+    .then(console.log)
+    // @ts-ignore
+    .catch((error) => {
+      console.log("error message: ", error.message);
+    });
 });
 
 const btnSignMessage = document.createElement("button");
@@ -447,17 +379,17 @@ btnSignMessage.addEventListener("click", (e) => {
     }
   }
 
-  // web3.eth
-  //   .sign(
-  //     "Hello imKey",
-  //     "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
-  //     showResult
-  //   )
-  //   .then(console.log)
-  //   // @ts-ignore
-  //   .catch((error) => {
-  //     console.log("error message: ", error.message);
-  //   });
+  web3.eth
+    .sign(
+      "Hello imKey",
+      "0x6031564e7b2F5cc33737807b2E58DaFF870B590b",
+      showResult
+    )
+    .then(console.log)
+    // @ts-ignore
+    .catch((error) => {
+      console.log("error message: ", error.message);
+    });
 });
 
 const btnRequest_eth_requestAccounts = document.createElement("button");

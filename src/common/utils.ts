@@ -3,6 +3,7 @@ import _  from 'underscore';
 import BN  from 'bn.js';
 import numberToBN  from 'number-to-bn';
 import utf8 from'utf8';
+import { formatUnits } from "@ethersproject/units/src.ts/index";
 type Defer<T> = {
   promise: Promise<T>;
   resolve: (arg0: T) => void;
@@ -54,14 +55,14 @@ export function asyncWhile<T>(
 }
 
 export function addressFromPubkey(pubkey: Buffer):string {
-  let pubkey_hash = utils.keccak256(pubkey.slice(1,65));
+  const pubkey_hash = utils.keccak256(pubkey.slice(1,65));
   return  utils.getAddress("0x"+pubkey_hash.substring(26));
 }
 export function isValidHex(input: string) :boolean {
   let value =  input
   if (input.startsWith("0x") || input.startsWith("0X") ){
     value = input.substring(2)
-  };
+  }
 
   if (value.length == 0 || value.length % 2 != 0 ){
     return false;
@@ -91,8 +92,8 @@ export function numberToHex(value: string | number |BN) {
     throw new Error('Given input "'+value+'" is not a number.');
   }
 
-  var number = toBN(value);
-  var result = number.toString(16);
+  const number = toBN(value);
+  const result = number.toString(16);
 
   return number.lt(new BN(0)) ? '-0x' + result.substr(1) : '0x' + result;
 }
@@ -106,22 +107,33 @@ export function maybeHexBuffer(str: string): Buffer {
 }
 
 
-var toBN = function(number){
-  try {
-    return numberToBN.apply(null, arguments);
-  } catch(e) {
-    throw new Error(e + ' Given value: "'+ number +'"');
+// const toBN = function(number){
+//   try {
+//     return numberToBN.apply(null, number);
+//   } catch(e) {
+//     throw new Error(e + ' Given value: "'+ number +'"');
+//   }
+// };
+const toBN = (x): BN => {
+  if (isNaN(Number(x))) return new BN(0);
+  if (x instanceof BN) return x;
+
+  if (typeof x === "string") {
+    if (x.indexOf("0x") === 0 || x.indexOf("-0x") === 0) {
+      return new BN(x.replace("0x", ""), 16);
+    }
   }
+  return new BN(x);
 };
 
-
-var isHexStrict = function (hex) {
+const isHexStrict = function (hex) {
   return ((_.isString(hex) || _.isNumber(hex)) && /^(-)?0x[0-9a-f]*$/i.test(hex));
 };
 
 
 export function isHex(value: string | number ) : boolean{
-  return ((_.isString(value) || _.isNumber(value)) && /^(-0x|0x)?[0-9a-f]*$/i.test(<string>value));
+  return (_.isString(value) && isHexStrict(value));
+  // return ((_.isString(value) || _.isNumber(value)) && /^(-0x|0x)?[0-9a-f]*$/i.test(<string>value));
 }
 
 export function  hexToNumber (value: string) :number|string {
@@ -134,7 +146,7 @@ export function  hexToNumber (value: string) :number|string {
   }
 
   return toBN(value).toNumber();
-};
+}
 export function  stringToNumber (value: string) :number {
 
   if (_.isString(value)) {
@@ -142,7 +154,7 @@ export function  stringToNumber (value: string) :number {
   }
 
   return toBN(value).toNumber();
-};
+}
 export function  hexToNumberString (value: string) :string{
   if (!value) {
     return value;
@@ -152,16 +164,16 @@ export function  hexToNumberString (value: string) :string{
     throw new Error('Given value "'+value+'" is not a valid hex string.');
   }
 
-  return toBN(value).toNumber().toString();
-};
+  return utils.hexValue(value);
+}
 export function  toChecksumAddress (address: string) :string{
   return utils.getAddress(address);
 }
 
-var isBN = function (object) {
+const isBN = function (object) {
   return BN.isBN(object);
 };
-var hexToBytes = function(hex) {
+const hexToBytes = function(hex) {
   hex = hex.toString(16);
 
   if (!isHexStrict(hex)) {
@@ -169,34 +181,67 @@ var hexToBytes = function(hex) {
   }
 
   hex = hex.replace(/^0x/i,'');
-
-  for (var bytes = [], c = 0; c < hex.length; c += 2)
+  const bytes = []
+  for (let byte = [], c = 0; c < hex.length; c += 2)
     bytes.push(parseInt(hex.substr(c, 2), 16));
   return bytes;
-};
+}
 
 export function  bytesToHex (bytes) {
-  for (var hex = [], i = 0; i < bytes.length; i++) {
+  const hexs = [];
+  for (let hex = [], i = 0; i < bytes.length; i++) {
     /* jshint ignore:start */
-    hex.push((bytes[i] >>> 4).toString(16));
-    hex.push((bytes[i] & 0xF).toString(16));
+    hexs.push((bytes[i] >>> 4).toString(16));
+    hexs.push((bytes[i] & 0xF).toString(16));
     /* jshint ignore:end */
   }
-  return '0x'+ hex.join("");
-};
+  return '0x'+ hexs.join("");
+}
 
-export function  fromWei (value: string | number, unit?: Unit) :string{
+export function  fromWei (value: string | number, unit?: string) :string{
   return utils.formatUnits(value,unit);
 }
+export function  fromEther (value: string | number, unit?: string) :string{
+  return utils.formatEther(value);
+}
+// complete ethereum unit map
+const unitMap = {
+  'noether': '0', // eslint-disable-line
+  'wei': '1', // eslint-disable-line
+  'kwei': '1000', // eslint-disable-line
+  'Kwei': '1000', // eslint-disable-line
+  'babbage': '1000', // eslint-disable-line
+  'femtoether': '1000', // eslint-disable-line
+  'mwei': '1000000', // eslint-disable-line
+  'Mwei': '1000000', // eslint-disable-line
+  'lovelace': '1000000', // eslint-disable-line
+  'picoether': '1000000', // eslint-disable-line
+  'gwei': '1000000000', // eslint-disable-line
+  'Gwei': '1000000000', // eslint-disable-line
+  'shannon': '1000000000', // eslint-disable-line
+  'nanoether': '1000000000', // eslint-disable-line
+  'nano': '1000000000', // eslint-disable-line
+  'szabo': '1000000000000', // eslint-disable-line
+  'microether': '1000000000000', // eslint-disable-line
+  'micro': '1000000000000', // eslint-disable-line
+  'finney': '1000000000000000', // eslint-disable-line
+  'milliether': '1000000000000000', // eslint-disable-line
+  'milli': '1000000000000000', // eslint-disable-line
+  'ether': '1000000000000000000', // eslint-disable-line
+  'kether': '1000000000000000000000', // eslint-disable-line
+  'grand': '1000000000000000000000', // eslint-disable-line
+  'mether': '1000000000000000000000000', // eslint-disable-line
+  'gether': '1000000000000000000000000000', // eslint-disable-line
+  'tether': '1000000000000000000000000000000' };
 export function  toUtf8 (value: string ) :string{
   return hexToUtf8(value);
 }
-var hexToUtf8 = function(hex) {
+const hexToUtf8 = function(hex) {
   if (!isHexStrict(hex))
     throw new Error('The parameter "'+ hex +'" must be a valid HEX string.');
 
-  var str = "";
-  var code = 0;
+  let str = "";
+  let code = 0;
   hex = hex.replace(/^0x/i,'');
 
   // remove 00 padding from either side
@@ -205,9 +250,9 @@ var hexToUtf8 = function(hex) {
   hex = hex.replace(/^(?:00)*/,'');
   hex = hex.split("").reverse().join("");
 
-  var l = hex.length;
+  const l = hex.length;
 
-  for (var i=0; i < l; i+=2) {
+  for (let i=0; i < l; i+=2) {
     code = parseInt(hex.substr(i, 2), 16);
     // if (code !== 0) {
     str += String.fromCharCode(code);
@@ -215,7 +260,7 @@ var hexToUtf8 = function(hex) {
   }
 
   return utf8.decode(str);
-};
+}
 
 export function parseArgsNum(num: string | number | BN) {
   if (num instanceof BN) {

@@ -9,8 +9,9 @@ import BN from "bn.js";
 import imTokenEip712Utils from './eip712';
 import Eth  from "./hw-app-eth/Eth";
 import TransportWebUSB from "./hw-transport-webusb/TransportWebUSB";
-import { providers } from "ethers";
-import { ExternalProvider } from "@ethersproject/providers/src.ts/web3-provider";
+
+// @ts-ignore
+import Web3HttpProvider from "web3-providers-http";
 interface IProviderOptions {
   rpcUrl?: string;
   infuraId?: string;
@@ -108,7 +109,7 @@ function isNative(){
 
 export default class ImKeyProvider extends EventEmitter {
   // @ts-ignore
-  private httpProvider: Web3Provider;
+  private httpProvider: Web3HttpProvider.HttpProvider;
   private chainId: number;
   private headers: [];
   private symbol: string;
@@ -129,22 +130,29 @@ export default class ImKeyProvider extends EventEmitter {
       }
       this.headers = headers;
     }
-    this.httpProvider = new providers.Web3Provider({
-      host:rpcUrl
-    },{name:chainId2InfuraNetwork(this.chainId),chainId:this.chainId});
-
+    // this.httpProvider = new providers.Web3Provider({
+    //   host:rpcUrl
+    // },{name:chainId2InfuraNetwork(this.chainId),chainId:this.chainId});
+    // @ts-ignore
+    this.httpProvider = new Web3HttpProvider(rpcUrl, {
+      headers
+    });
     this.symbol = !config.symbol ? "ETH" : config.symbol;
     console.log(this)
   }
 
   async callInnerProviderApi(req: JsonRpcPayload): Promise<any> {
+    console.log("req:"+req)
+    console.log(JSON.stringify(req))
     return new Promise((resolve, reject) => {
       this.httpProvider.send(
         req,
         (error: Error | null, result?: JsonRpcResponse) => {
           if (error) {
+            console.log(error)
             reject(createProviderRpcError(4001, error.message));
           } else {
+            console.log(result)
             resolve(result.result);
           }
         }
@@ -271,9 +279,13 @@ export default class ImKeyProvider extends EventEmitter {
 
     if (args.rpcUrls) {
       let headers = this.headers;
-      this.httpProvider = new providers.Web3Provider({
-        host:args.rpcUrls[0]
-      },{name:chainId2InfuraNetwork(this.chainId),chainId:this.chainId});
+      // this.httpProvider = new providers.Web3Provider({
+      //   host:args.rpcUrls[0]
+      // },{name:chainId2InfuraNetwork(this.chainId),chainId:this.chainId});
+      // @ts-ignore
+      this.httpProvider = new Web3HttpProvider(args.rpcUrls, {
+        headers
+      });
     }
   }
   sendAsync(
@@ -403,9 +415,11 @@ export default class ImKeyProvider extends EventEmitter {
 
     //estimate gas
     let gasLimit: string;
+
     if (transactionConfig.gas) {
       gasLimit = parseArgsNum(transactionConfig.gas);
     } else {
+      console.log("transactionConfig.gas:"+transactionConfig.gas)
       const gasRet: string = await this.callInnerProviderApi(
         createJsonRpcRequest("eth_estimateGas", [
           {
@@ -418,6 +432,7 @@ export default class ImKeyProvider extends EventEmitter {
           },
         ])
       );
+      console.log("gasRet:"+gasRet)
       gasLimit = parseArgsNum(gasRet);
     }
 

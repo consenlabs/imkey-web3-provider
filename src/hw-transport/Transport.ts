@@ -50,8 +50,8 @@ export type Observer<Ev> = $ReadOnly<{
  */
  type Descriptor=any
 export  default class Transport<Descriptor> {
-  exchangeTimeout: number = 30000;
-  unresponsiveTimeout: number = 15000;
+  exchangeTimeout = 30000;
+  unresponsiveTimeout = 15000;
   deviceModel: DeviceModel | null | undefined = null;
 
 
@@ -118,13 +118,6 @@ export  default class Transport<Descriptor> {
   exchange(_apdu: Buffer): Promise<Buffer> {
     throw new Error("exchange not implemented");
   }
-
-  /**
-   * set the "scramble key" for the next exchanges with the device.
-   * Each App can have a different scramble key and they internally will set it at instanciation.
-   * @param key the scramble key
-   */
-  setScrambleKey(_key: string) {}
 
   /**
    * close the exchange with the device.
@@ -299,70 +292,6 @@ export  default class Transport<Descriptor> {
     }
   };
 
-  decorateAppAPIMethods(
-    self: Record<string, any>,
-    methods: Array<string>,
-    scrambleKey: string,
-  ) {
-    for (let methodName of methods) {
-      self[methodName] = this.decorateAppAPIMethod(
-        methodName,
-        self[methodName],
-        self,
-        scrambleKey,
-      );
-    }
-  }
-
-  _appAPIlock = null;
-
-  // decorateAppAPIMethod<R, A:any[]>(
-  //   methodName: string,
-  //   f: (...args: A) => Promise<R>,
-  //   ctx: *,
-  // scrambleKey: string
-  // ): (...args: A) => Promise<R> {
-  //   return async (...args) => {
-  //     const { _appAPIlock } = this;
-  //     if (_appAPIlock) {
-  //       return Promise.reject(
-  //         new TransportError(
-  //           "imkey Device is busy (lock " + _appAPIlock + ")",
-  //           "TransportLocked"
-  //         )
-  //       );
-  //     }
-  //     try {
-  //       this._appAPIlock = methodName;
-  //       this.setScrambleKey(scrambleKey);
-  //       return await f.apply(ctx, args);
-  //     } finally {
-  //       this._appAPIlock = null;
-  //     }
-  //   };
-  // }
-  decorateAppAPIMethod(methodName, f, ctx, scrambleKey) {
-    return async (...args) => {
-      const {_appAPIlock} = this;
-
-      if (_appAPIlock) {
-        return Promise.reject(
-          new TransportError(
-            "imkey Device is busy (lock " + _appAPIlock + ")",
-            "TransportLocked",
-          ),
-        );
-      }
-
-      try {
-        this._appAPIlock = methodName;
-        this.setScrambleKey(scrambleKey);
-        return await f.apply(ctx, args);
-      } finally {
-        this._appAPIlock = null;
-      }
-    };
-  }
 
   static ErrorMessage_ListenTimeout = "No imkey device found (timeout)";
   static ErrorMessage_NoDeviceFound = "No imkey device found";
