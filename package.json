@@ -18,7 +18,19 @@
     "build:types": "tsc --emitDeclarationOnly",
     "build:js": "babel src --out-dir dist --extensions \".ts,.tsx\" --source-maps inline",
     "bundle": "webpack",
-    "start": "webpack-dev-server"
+    "start": "webpack-dev-server",
+    "test": "ts-mocha test/utils.test.ts",
+    "lint": "tslint --project tsconfig.json 'src/**/*.@(ts|tsx)' -t verbose",
+    "lint:fix": "tslint --project tsconfig.json --fix 'src/**/*.@(ts|tsx)' -t verbose",
+    "prettier:fix": "prettier --write --check 'src/**/*.@(ts|tsx)'",
+    "prettier-lint:check": "tslint-config-prettier-check ./tslint.json",
+    "prettier-lint:fix": "yarn prettier:fix && yarn lint:fix"
+  },
+  "mocha": {
+    "require": [
+      "ts-node/register",
+      "tsconfig-paths/register"
+    ]
   },
   "repository": {
     "type": "git",
@@ -35,10 +47,10 @@
     "@babel/cli": "^7.8.3",
     "@babel/core": "^7.8.3",
     "@babel/plugin-proposal-class-properties": "^7.8.3",
+    "@babel/plugin-transform-classes": "^7.13.0",
     "@babel/plugin-transform-runtime": "^7.10.3",
     "@babel/preset-env": "^7.8.3",
     "@babel/preset-typescript": "^7.8.3",
-    "@babel/plugin-transform-classes": "^7.13.0",
     "@typescript-eslint/eslint-plugin": "^3.7.0",
     "@typescript-eslint/parser": "^3.7.0",
     "babel-loader": "^8.1.0",
@@ -54,10 +66,10 @@
     "prettier": "2.0.5",
     "typescript": "^3.9.5",
     "utility-types": "^3.10.0",
+    "web3": "^1.3.6",
     "webpack": "^4.43.0",
     "webpack-cli": "^3.3.11",
-    "webpack-dev-server": "^3.11.0",
-    "web3": "^1.3.6"
+    "webpack-dev-server": "^3.11.0"
   },
   "author": "imkey",
   "license": " Apache-2.0",
@@ -66,26 +78,28 @@
   },
   "homepage": "https://github.com/consenlabs/imkey-web3-provider#readme",
   "dependencies": {
+    "@types/chai": "^4.2.20",
     "@types/event-emitter-es6": "^1.1.0",
+    "@types/mocha": "^8.2.3",
     "@types/sha.js": "^2.4.0",
-    "eth-sig-util": "^3.0.1",
-    "ethjs": "^0.4.0",
-    "ethjs-query": "^0.3.8",
-    "event-emitter-es6": "^1.1.5",
-    "rlp": "^2.2.5",
-    "ethereumjs-util": "^5.1.1",
-    "single-call-balance-checker-abi": "^1.0.0",
-    "human-standard-token-abi": "^2.0.0",
-    "semver": "^7.3.5",
     "bignumber.js": "^9.0.1",
+    "chai": "^4.3.4",
+    "cross-env": "^7.0.3",
+    "ethereumjs-util": "^5.1.1",
     "ethers": "^5.1.3",
+    "event-emitter-es6": "^1.1.5",
+    "mocha": "^9.0.2",
+    "nyc": "^15.1.0",
+    "rlp": "^2.2.5",
     "secp256k1": "^4.0.2",
-    "utility-types": "^3.10.0",
+    "ts-node": "^10.0.0",
+    "ts-mocha": "^8.0.0",
+    "tsconfig-paths": "^3.10.1",
     "underscore": "^1.13.1",
     "utf8": "^3.0.0",
+    "utility-types": "^3.10.0",
     "web3-providers-http": "^1.3.6"
   },
-
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
   }

@@ -1,26 +1,24 @@
-
 // @ts-ignore
-import {$ReadOnly} from "utility-types";
-import EventEmitter from "events";
-import type {DeviceModel} from "../hw-transport-webusb/webusb";
+import { $ReadOnly } from 'utility-types'
+import EventEmitter from 'events'
+import type { DeviceModel } from '../hw-transport-webusb/webusb'
 import {
   TransportRaceCondition,
   TransportError,
   StatusCodes,
-  getAltStatusMessage,
   TransportStatusError,
-} from "../errors";
-export {TransportError, TransportStatusError, StatusCodes, getAltStatusMessage};
+} from '../errors'
+export { TransportError, TransportStatusError, StatusCodes }
 
 /**
  */
 export type Subscription = {
-  unsubscribe: () => void;
-};
+  unsubscribe: () => void
+}
 
 /**
  */
-export type Device = Record<string, any>;
+export type Device = Record<string, any>
 
 /**
  * type: add or remove event
@@ -29,39 +27,34 @@ export type Device = Record<string, any>;
  * device: transport specific device info
  */
 export type DescriptorEvent<Descriptor> = {
-  type: "add" | "remove";
-  descriptor: Descriptor;
-  deviceModel?: DeviceModel | null | undefined;
-  device?: Device;
-};
-
+  type: 'add' | 'remove'
+  descriptor: Descriptor
+  deviceModel?: DeviceModel | null | undefined
+  device?: Device
+}
 
 /**
  */
 export type Observer<Ev> = $ReadOnly<{
-  next: (event: Ev) => unknown;
-  error: (e: any) => unknown;
-  complete: () => unknown;
-}>;
+  next: (event: Ev) => unknown
+  error: (e: any) => unknown
+  complete: () => unknown
+}>
 /**
  * Transport defines the generic interface to share between node/u2f impl
  * A **Descriptor** is a parametric type that is up to be determined for the implementation.
  * it can be for instance an ID, an file path, a URL,...
  */
- type Descriptor=any
-export  default class Transport<Descriptor> {
-  exchangeTimeout = 30000;
-  unresponsiveTimeout = 15000;
-  deviceModel: DeviceModel | null | undefined = null;
-
+type Descriptor = any
+export default class Transport<Descriptor> {
+  exchangeTimeout = 30000
+  unresponsiveTimeout = 15000
+  deviceModel: DeviceModel | null | undefined = null
 
   /**
    * Statically check if a transport is supported on the user's platform/browser.
    */
-  static readonly isSupported: () => Promise<boolean>;
-
-
-
+  static readonly isSupported: () => Promise<boolean>
 
   /**
    * List once all available descriptors. For a better granularity, checkout `listen()`.
@@ -69,7 +62,7 @@ export  default class Transport<Descriptor> {
    * @example
    * TransportFoo.list().then(descriptors => ...)
    */
-   static readonly list: () => Promise<Array<any>>;
+  static readonly list: () => Promise<Array<any>>
 
   /**
    * Listen all device events for a given Transport. The method takes an Obverver of DescriptorEvent and returns a Subscription (according to Observable paradigm https://github.com/tc39/proposal-observable )
@@ -92,8 +85,8 @@ export  default class Transport<Descriptor> {
   })
    */
   static readonly listen: (
-    observer: Observer<DescriptorEvent<any>>,
-  ) => Subscription;
+    observer: Observer<DescriptorEvent<any>>
+  ) => Subscription
 
   /**
    * attempt to create a Transport instance with potentially a descriptor.
@@ -105,8 +98,8 @@ export  default class Transport<Descriptor> {
    */
   static readonly open: (
     descriptor: any,
-    timeout?: number,
-  ) => Promise<Transport<any>>;
+    timeout?: number
+  ) => Promise<Transport<any>>
 
   /**
    * low level api to communicate with the device
@@ -116,7 +109,7 @@ export  default class Transport<Descriptor> {
    * @return a Promise of response data
    */
   exchange(_apdu: Buffer): Promise<Buffer> {
-    throw new Error("exchange not implemented");
+    throw new Error('exchange not implemented')
   }
 
   /**
@@ -124,11 +117,11 @@ export  default class Transport<Descriptor> {
    * @return a Promise that ends when the transport is closed.
    */
   close(): Promise<void> {
-    return Promise.resolve();
+    return Promise.resolve()
   }
 
   // @ts-ignore
-  _events = new EventEmitter();
+  _events = new EventEmitter()
 
   /**
    * Listen to an event on an instance of transport.
@@ -136,18 +129,18 @@ export  default class Transport<Descriptor> {
    * * `"disconnect"` : triggered if Transport is disconnected
    */
   on(eventName: string, cb: (...args: Array<any>) => any) {
-    this._events.on(eventName, cb);
+    this._events.on(eventName, cb)
   }
 
   /**
    * Stop listening to an event on an instance of transport.
    */
   off(eventName: string, cb: (...args: Array<any>) => any) {
-    this._events.removeListener(eventName, cb);
+    this._events.removeListener(eventName, cb)
   }
 
   emit(event: string, ...args) {
-    this._events.emit(event, ...args);
+    this._events.emit(event, ...args)
   }
 
   /**
@@ -155,22 +148,22 @@ export  default class Transport<Descriptor> {
    */
   setDebugMode() {
     console.warn(
-      "setDebugMode is deprecated. use @imkeyhq/logs instead. No logs are emitted in this anymore.",
-    );
+      'setDebugMode is deprecated. use @imkeyhq/logs instead. No logs are emitted in this anymore.'
+    )
   }
 
   /**
    * Set a timeout (in milliseconds) for the exchange call. Only some transport might implement it. (e.g. U2F)
    */
   setExchangeTimeout(exchangeTimeout: number) {
-    this.exchangeTimeout = exchangeTimeout;
+    this.exchangeTimeout = exchangeTimeout
   }
 
   /**
    * Define the delay before emitting "unresponsive" on an exchange that does not respond
    */
   setExchangeUnresponsiveTimeout(unresponsiveTimeout: number) {
-    this.unresponsiveTimeout = unresponsiveTimeout;
+    this.unresponsiveTimeout = unresponsiveTimeout
   }
 
   /**
@@ -185,24 +178,24 @@ export  default class Transport<Descriptor> {
    */
   send = async (
     data: Buffer = Buffer.alloc(0),
-    statusList: Array<number> = [StatusCodes.OK],
+    statusList: Array<number> = [StatusCodes.OK]
   ): Promise<Buffer> => {
     if (data.length >= 256) {
       throw new TransportError(
-        "data.length exceed 256 bytes limit. Got: " + data.length,
-        "DataLengthTooBig",
-      );
+        'data.length exceed 256 bytes limit. Got: ' + data.length,
+        'DataLengthTooBig'
+      )
     }
 
-    const response = await this.exchange(data);
-    const sw = response.readUInt16BE(response.length - 2);
+    const response = await this.exchange(data)
+    const sw = response.readUInt16BE(response.length - 2)
 
-    if (!statusList.some(s => s === sw)) {
-      throw new TransportStatusError(sw);
+    if (!statusList.some((s) => s === sw)) {
+      throw new TransportStatusError(sw)
     }
 
-    return response;
-  };
+    return response
+  }
 
   /**
    * create() allows to open the first descriptor available or
@@ -212,87 +205,86 @@ export  default class Transport<Descriptor> {
    TransportFoo.create().then(transport => ...)
    */
   static create(
-    openTimeout?: number ,
-    listenTimeout?: number,
+    openTimeout?: number,
+    listenTimeout?: number
   ): Promise<Transport<any>> {
     return new Promise((resolve, reject) => {
-      let found = false;
+      let found = false
       const sub = this.listen({
-        next: e => {
-          found = true;
-          if (sub) sub.unsubscribe();
-          if (listenTimeoutId) clearTimeout(listenTimeoutId);
-          openTimeout =3000
-          this.open(e.descriptor, openTimeout).then(resolve, reject);
+        next: (e) => {
+          found = true
+          if (sub) sub.unsubscribe()
+          if (listenTimeoutId) clearTimeout(listenTimeoutId)
+          openTimeout = 3000
+          this.open(e.descriptor, openTimeout).then(resolve, reject)
         },
-        error: e => {
-          if (listenTimeoutId) clearTimeout(listenTimeoutId);
-          reject(e);
+        error: (e) => {
+          if (listenTimeoutId) clearTimeout(listenTimeoutId)
+          reject(e)
         },
         complete: () => {
-          if (listenTimeoutId) clearTimeout(listenTimeoutId);
+          if (listenTimeoutId) clearTimeout(listenTimeoutId)
 
           if (!found) {
             reject(
               new TransportError(
-                this.ErrorMessage_NoDeviceFound,
-                "NoDeviceFound",
-              ),
-            );
+                this.ErrorMessageNoDeviceFound,
+                'NoDeviceFound'
+              )
+            )
           }
         },
-      });
+      })
       const listenTimeoutId = listenTimeout
         ? setTimeout(() => {
-          sub.unsubscribe();
-          reject(
-            new TransportError(
-              this.ErrorMessage_ListenTimeout,
-              "ListenTimeout",
-            ),
-          );
-        }, listenTimeout)
-        : null;
-    });
+            sub.unsubscribe()
+            reject(
+              new TransportError(
+                this.ErrorMessageListenTimeout,
+                'ListenTimeout'
+              )
+            )
+          }, listenTimeout)
+        : null
+    })
   }
 
-  exchangeBusyPromise: Promise<void>;
+  exchangeBusyPromise: Promise<void>
   // $FlowFixMe
-  exchangeAtomicImpl = async f => {
+  exchangeAtomicImpl = async (f) => {
     if (this.exchangeBusyPromise) {
       throw new TransportRaceCondition(
-        "An action was already pending on the imkey device. Please deny or reconnect.",
-      );
+        'An action was already pending on the imkey device. Please deny or reconnect.'
+      )
     }
 
-    let resolveBusy;
-    const busyPromise = new Promise(r => {
-      resolveBusy = r;
-    });
+    let resolveBusy
+    const busyPromise = new Promise((r) => {
+      resolveBusy = r
+    })
     // @ts-ignore
-    this.exchangeBusyPromise = busyPromise;
-    let unresponsiveReached = false;
+    this.exchangeBusyPromise = busyPromise
+    let unresponsiveReached = false
     const timeout = setTimeout(() => {
-      unresponsiveReached = true;
-      this.emit("unresponsive");
-    }, this.unresponsiveTimeout);
+      unresponsiveReached = true
+      this.emit('unresponsive')
+    }, this.unresponsiveTimeout)
 
     try {
-      const res = await f();
+      const res = await f()
 
       if (unresponsiveReached) {
-        this.emit("responsive");
+        this.emit('responsive')
       }
 
-      return res;
+      return res
     } finally {
-      clearTimeout(timeout);
-      if (resolveBusy) resolveBusy();
-      this.exchangeBusyPromise = null;
+      clearTimeout(timeout)
+      if (resolveBusy) resolveBusy()
+      this.exchangeBusyPromise = null
     }
-  };
+  }
 
-
-  static ErrorMessage_ListenTimeout = "No imkey device found (timeout)";
-  static ErrorMessage_NoDeviceFound = "No imkey device found";
+  static ErrorMessageListenTimeout = 'No imKey device found (timeout)'
+  static ErrorMessageNoDeviceFound = 'No imKey device found'
 }

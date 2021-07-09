@@ -1,4 +1,3 @@
-
 import {
   asUInt16BE,
   asUInt8,
@@ -8,27 +7,31 @@ import {
   fromWei,
   toChecksumAddress,
   parseArgsNum,
-} from "../common/utils";
-import  type Transport from  "../hw-transport/Transport";
-// @ts-ignore
-import { encode, decode } from "rlp";
-import ethApdu  from "../common/apdu";
-// @ts-ignore
-import { utils } from "ethers";
-import secp256k1 from "secp256k1"
+} from '../common/utils'
+import type Transport from '../hw-transport/Transport'
+import { encode } from 'rlp'
+import { ETHApdu } from '../common/apdu'
+import { utils } from 'ethers'
+import secp256k1 from 'secp256k1'
 
-type Transaction= {
-  data: string,
-  gasLimit:string,
-  gasPrice: string,
-  nonce:string,
-  to:string,
-  value:string,
-  chainId:string,
-  path: string,
-  symbol?:string
+type Transaction = {
+  data: string
+  gasLimit: string
+  gasPrice: string
+  nonce: string
+  to: string
+  value: string
+  chainId: string
+  path: string
+  symbol?: string
 }
-const eth_apdu = ethApdu();
+type Preview = {
+  payment: string
+  receiver: string
+  sender: string
+  fee: string
+}
+const ethApdu = new ETHApdu()
 
 /**
  * Ethereum API
@@ -38,18 +41,10 @@ const eth_apdu = ethApdu();
  * const eth = new Eth(transport)
  */
 export default class Eth {
-  transport: Transport<any>;
+  transport: Transport<any>
   // @ts-ignore
   constructor(transport: Transport<any>) {
-    this.transport = transport;
-    // transport.decorateAppAPIMethods(
-    //   this,
-    //   [
-    //     "getAddress",
-    //     "signTransaction",
-    //     "signMessage",
-    //   ]
-    // );
+    this.transport = transport
   }
 
   /**
@@ -64,35 +59,21 @@ export default class Eth {
   async getAddress(
     path: string
   ): Promise<{
-    address: string,
-    pubkey:string
+    address: string
+    pubkey: string
   }> {
-    const toSend = [];
-    let response;
-    toSend.push(eth_apdu.selectApplet())
-    toSend.push(eth_apdu.getXpub(path, false))
-    for(const  i in toSend ){
-      response =  await this.transport.send(toSend[i]);
+    const toSend = []
+    let response
+    toSend.push(ethApdu.selectApplet())
+    toSend.push(ethApdu.getXPub(path, false))
+    for (const i in toSend) {
+      response = await this.transport.send(toSend[i])
     }
     return {
       address: addressFromPubkey(response),
-      pubkey:response.slice(0,65).toString("hex")
+      pubkey: response.slice(0, 65).toString('hex'),
     }
-    // return foreach(toSend, (data, i) =>
-    //   this.transport
-    //     .send(data)
-    //     .then((apduResponse) => {
-    //       response = apduResponse;
-    //     })
-    // ).then(() => {
-    //   return {
-    //     address: addressFromPubkey(response),
-    //     pubkey:response.slice(0,65).toString("hex")
-    //   }
-    // });
   }
-
-
 
   /**
    * You can sign a transaction and retrieve v, r, s given the raw transaction and the BIP 32 path of the account to sign
@@ -100,95 +81,50 @@ export default class Eth {
    eth.signTransaction("44'/60'/0'/0/0", "e8018504e3b292008252089428ee52a8f3d6e5d15f8b131996950d7f296c7952872bd72a2487400080").then(result => ...)
    */
 
-
   async signTransaction(
-    transaction:Transaction
+    transaction: Transaction
   ): Promise<{
-    signature: string,
-    txhash: string,
+    signature: string
+    txhash: string
   }> {
-    let rawTransaction
-    const get_address = await this.getAddress(transaction.path)
-    const symbol = !transaction.symbol ? "ETH" : transaction.symbol;
-    //fee
-    let fee = (BigInt(transaction.gasLimit) * BigInt(transaction.gasPrice)).toString(); //wei
-    fee = fromWei(fee,'gwei'); //to Gwei
-    const temp = Math.ceil(Number(fee));
-    fee = (temp * 1000000000).toString(); //to ether
-    fee = fromWei(fee)+ " " + symbol;
-
-    const to = toChecksumAddress(transaction.to);
-    const value = parseArgsNum(transaction.value);
-    const valueInWei = fromWei(value);
-    const preview={
-      payment: valueInWei + " " + symbol,
-        receiver: to,
-        sender: get_address.address,
-        fee: fee,
+    console.log('transaction:')
+    console.log(transaction)
+    const getAddress = await this.getAddress(transaction.path)
+    const preview = genPreview(transaction, getAddress.address)
+    const rawTransaction = genRawTransaction(transaction)
+    const toSend = genApdu(rawTransaction, preview, transaction)
+    let response
+    for (const i in toSend) {
+      response = await this.transport.send(toSend[i])
     }
-
-    if(transaction.chainId===""||transaction.chainId==="undefined")
-    {
-      rawTransaction = encode([numberToHex(transaction.nonce),numberToHex(transaction.gasPrice) , numberToHex(transaction.gasLimit), transaction.to, numberToHex(transaction.value), transaction.data]);
-    }else{
-      rawTransaction = encode([numberToHex(transaction.nonce),numberToHex(transaction.gasPrice) , numberToHex(transaction.gasLimit), transaction.to, numberToHex(transaction.value), transaction.data,numberToHex(transaction.chainId),0x00,0x00]);
+    const pubkey = getAddress.pubkey
+    const signCompact = response.slice(1, 65)
+    const normalizesSig = secp256k1.signatureNormalize(signCompact)
+    const recId = getRecID(rawTransaction, normalizesSig, pubkey)
+    let v
+    if (transaction.chainId === '' || transaction.chainId === 'undefined') {
+      v = numberToHex(27)
+    } else {
+      v = (recId + 35 + Number(transaction.chainId) * 2).toString(16)
     }
-    const  data_to_sign = Buffer.concat(
-      [asUInt8(1), asUInt16BE(rawTransaction.length),rawTransaction,
-           asUInt8(7), asUInt8(preview.payment.length),Buffer.from(preview.payment,"ascii"),
-           asUInt8(8), asUInt8(preview.receiver.length),Buffer.from(preview.receiver,"ascii"),
-           asUInt8(9), asUInt8(preview.fee.length),Buffer.from(preview.fee,"ascii")]);
-    const bind_signature_buf =  bindSignature(data_to_sign);
-    const apdu_pack = Buffer.concat(
-      [asUInt8(0),
-        asUInt8(bind_signature_buf.length),
-        Buffer.from(bind_signature_buf),
-        data_to_sign]);
-    let toSend = [];
-    let response;
-
-    const pubkey = get_address.pubkey
-    toSend =  eth_apdu.prepareSign(apdu_pack)
-    toSend.push(eth_apdu.signDigest(transaction.path))
-    for(const  i in toSend ){
-      response =  await this.transport.send(toSend[i]);
-    }
-    // return foreach(toSend, (data, i) =>
-    //   this.transport
-    //     .send(data)
-    //     .then((apduResponse) => {
-    //       response = apduResponse;
-    //     })
-    // ).then(() => {
-      let rec_id = 0;
-      const sign_compact = response.slice(1, 65);
-      const normalizes_sig = secp256k1.signatureNormalize(sign_compact)
-      const data_hash = Buffer.from(utils.keccak256(rawTransaction).substring(2), "hex")
-      for (let i = 0; i <= 3; i++) {
-        try {
-          if (Buffer.from(secp256k1.ecdsaRecover(normalizes_sig, i, data_hash, false)).toString("hex") === pubkey) {
-            rec_id = i
-          }
-        } catch (e) {
-          continue
-        }
-      }
-      let v;
-      if(transaction.chainId===""||transaction.chainId==="undefined")
-      {
-        v = numberToHex(27)
-      }else{
-        v = (35 + parseInt(transaction.chainId)*2).toString(16);
-      }
-      // @ts-ignore
-      const r = normalizes_sig.slice(0, 32).toString("hex");
-      // @ts-ignore
-      const s = normalizes_sig.slice(32, 32 + 32).toString("hex");
-      const signedTransaction = encode([numberToHex(transaction.nonce),numberToHex(transaction.gasPrice) , numberToHex(transaction.gasLimit), transaction.to, numberToHex(transaction.value), transaction.data,Buffer.from(v,"hex"), Buffer.from(r,"hex"), Buffer.from(s,"hex")]);
-      const signature = "0x"+signedTransaction.toString("hex");
-      const txhash =utils.keccak256(signedTransaction)
-      return { signature, txhash };
-    // });
+    // @ts-ignore
+    const r = normalizesSig.slice(0, 32).toString('hex')
+    // @ts-ignore
+    const s = normalizesSig.slice(32, 32 + 32).toString('hex')
+    const signedTransaction = encode([
+      numberToHex(transaction.nonce),
+      numberToHex(transaction.gasPrice),
+      numberToHex(transaction.gasLimit),
+      transaction.to,
+      numberToHex(transaction.value),
+      transaction.data,
+      Buffer.from(v, 'hex'),
+      Buffer.from(r, 'hex'),
+      Buffer.from(s, 'hex'),
+    ])
+    const signature = '0x' + signedTransaction.toString('hex')
+    const txhash = utils.keccak256(signedTransaction)
+    return { signature, txhash }
   }
 
   /**
@@ -206,109 +142,163 @@ eth.signPersonalMessage("44'/60'/0'/0/0", Buffer.from("test").toString("hex")).t
   async signMessage(
     path: string,
     message: string,
-    sender:string,
-    isPersonalSign:boolean
+    sender: string,
+    isPersonalSign: boolean
   ): Promise<{
-    signature: string,
+    signature: string
   }> {
-    console.log("path:")
+    console.log('path:')
     console.log(path)
-    console.log("message:")
+    console.log('message:')
     console.log(message)
-    console.log("sender:")
+    console.log('sender:')
     console.log(sender)
-    console.log("isPersonalSign:")
+    console.log('isPersonalSign:')
     console.log(isPersonalSign)
-    let message_to_sign
-    //判断是否是HEX
-    if(isValidHex(message)){
-      message_to_sign = Buffer.from(message.substring(2), "hex");
-    }else{
-      message_to_sign = Buffer.from(message, "ascii");
+    let messageToSign
+    // 判断是否是HEX
+    if (isValidHex(message)) {
+      messageToSign = Buffer.from(message.substring(2), 'hex')
+    } else {
+      messageToSign = Buffer.from(message, 'ascii')
     }
     let data
     if (isPersonalSign) {
-      const header = Buffer.from("Ethereum Signed Message:\n"+message_to_sign.length, "ascii");
-      data = Buffer.concat([header, message_to_sign]);
-    }else{
-      data = message_to_sign;
+      const header = Buffer.from(
+        'Ethereum Signed Message:\n' + messageToSign.length,
+        'ascii'
+      )
+      data = Buffer.concat([header, messageToSign])
+    } else {
+      data = messageToSign
     }
-    const  data_to_sign = Buffer.concat([asUInt8(1), asUInt16BE(data.length),data]);
-    const bind_signature_buf =  bindSignature(data_to_sign);
-    const apdu_pack = Buffer.concat(
-      [asUInt8(0),
-        asUInt8(bind_signature_buf.length),
-        Buffer.from(bind_signature_buf),
-        data_to_sign]);
-    let toSend = [];
-    let response;
-   const get_address = await this.getAddress(path)
-    if(get_address.address !== sender){
-      throw "address not match"
+    const dataToSign = Buffer.concat([
+      asUInt8(1),
+      asUInt16BE(data.length),
+      data,
+    ])
+    // const bindSignatureBuf = bindSignature(dataToSign)
+    const apduPack = Buffer.concat([asUInt8(0), asUInt8(0), dataToSign])
+    let toSend = []
+    let response
+    const getAddress = await this.getAddress(path)
+    if (getAddress.address !== sender) {
+      throw 'address not match'
     }
-    const pubkey = get_address.pubkey
-    toSend =  eth_apdu.preparePersonalSign(apdu_pack)
-    toSend.push(eth_apdu.personalSign(path))
-    for(const  i in toSend ){
-      response =  await this.transport.send(toSend[i]);
+    const pubkey = getAddress.pubkey
+    toSend = ethApdu.preparePersonalSign(apduPack)
+    toSend.push(ethApdu.personalSign(path))
+    for (const i in toSend) {
+      response = await this.transport.send(toSend[i])
     }
-    // return foreach(toSend, (data, i) =>
-    //   this.transport
-    //     .send(data)
-    //     .then((apduResponse) => {
-    //       response = apduResponse;
-    //     })
-    // ).then(() => {
-      let  rec_id = 0;
-      const sign_compact = response.slice(1,65);
-      const normalizes_sig = secp256k1.signatureNormalize(sign_compact)
-      const data_hash =  Buffer.from(utils.keccak256(data).substring(2),"hex")
-      for(let i=0;i<=3;i++){
-        try {
-          if(Buffer.from(secp256k1.ecdsaRecover(normalizes_sig,i,data_hash,false)).toString("hex")===pubkey){
-            rec_id = i
-          }
-        }catch (e){
-          continue
-        }
-      }
-      const v = (rec_id + 27).toString(16);
-      // @ts-ignore
-      const r = normalizes_sig.slice(0, 32).toString("hex");
-      // @ts-ignore
-      const s = normalizes_sig.slice(32, 32 + 32).toString("hex");
-      // return { v, r, s };
-      const signature = r+s+v;
-      return { signature };
-    // });
+    const signCompact = response.slice(1, 65)
+    const normalizesSig = secp256k1.signatureNormalize(signCompact)
+    const recId = getRecID(data, normalizesSig, pubkey)
+    const v = (recId + 27).toString(16)
+    // @ts-ignore
+    const r = normalizesSig.slice(0, 32).toString('hex')
+    // @ts-ignore
+    const s = normalizesSig.slice(32, 32 + 32).toString('hex')
+    // return { v, r, s };
+    const signature = r + s + v
+    return { signature }
   }
 }
+function getRecID(
+  data: Buffer,
+  normalizesSig: Uint8Array,
+  pubkey: string
+): number {
+  let recId = 0
 
-function bindSignature(data: Buffer) :Buffer{
-  const pri_key = Buffer.from("18e14a7b6a307f426a94f8114701e7c8e774e7f9a47e2c2035db29a206321725","hex");
-  const ha256_hash =  utils.sha256(utils.sha256(data)).substring(2)
-  const bind_signature = secp256k1.ecdsaSign(Buffer.from(ha256_hash,"hex"),pri_key).signature
-  const bind_signature_r =(bind_signature[0]>0x80) ? Buffer.concat(
-    [asUInt8(2),
-      asUInt8(33),
-      asUInt8(0),
-      Buffer.from(bind_signature.slice(0,32))]) :Buffer.concat(
-    [asUInt8(2),
-      asUInt8(32),
-      Buffer.from(bind_signature.slice(0,32))])
-  const bind_signature_s =(bind_signature[32]>0x80) ? Buffer.concat(
-    [asUInt8(2),
-      asUInt8(33),
-      asUInt8(0),
-      Buffer.from(bind_signature.slice(32,64))]) :Buffer.concat(
-    [asUInt8(2),
-      asUInt8(32),
-      Buffer.from(bind_signature.slice(32,64))])
+  const dataHash = Buffer.from(utils.keccak256(data).substring(2), 'hex')
+  for (let i = 0; i <= 3; i++) {
+    try {
+      if (
+        Buffer.from(
+          secp256k1.ecdsaRecover(normalizesSig, i, dataHash, false)
+        ).toString('hex') === pubkey
+      ) {
+        recId = i
+        break
+      }
+    } catch (e) {
+      continue
+    }
+  }
+  return recId
+}
 
-  const bind_signature_buf =  Buffer.concat(
-    [asUInt8(48),
-      asUInt8(bind_signature_r.length+bind_signature_s.length),
-      bind_signature_r,
-      bind_signature_s]);
-  return bind_signature_buf;
+function genPreview(transaction: Transaction, address: string): Preview {
+  const symbol = !transaction.symbol ? 'ETH' : transaction.symbol
+  const gasLimit = parseArgsNum(transaction.gasLimit)
+  const gasPrice = parseArgsNum(transaction.gasPrice)
+  // fee
+  let fee = (BigInt(gasLimit) * BigInt(gasPrice)).toString() // wei
+  fee = fromWei(fee, 'gwei') // to Gwei
+  const temp = Math.ceil(Number(fee))
+  fee = (BigInt(temp) * BigInt(1000000000)).toString() // to ether
+  fee = fromWei(fee) + ' ' + symbol
+
+  const to = toChecksumAddress(transaction.to)
+  const value = parseArgsNum(transaction.value)
+  const valueInWei = fromWei(value)
+  const preview = {
+    payment: valueInWei + ' ' + symbol,
+    receiver: to,
+    sender: address,
+    fee: fee,
+  }
+  return preview
+}
+function genRawTransaction(transaction: Transaction): Buffer {
+  let rawTransaction
+  if (transaction.chainId === '' || transaction.chainId === 'undefined') {
+    rawTransaction = encode([
+      numberToHex(transaction.nonce),
+      numberToHex(transaction.gasPrice),
+      numberToHex(transaction.gasLimit),
+      transaction.to,
+      numberToHex(transaction.value),
+      transaction.data,
+    ])
+  } else {
+    rawTransaction = encode([
+      numberToHex(transaction.nonce),
+      numberToHex(transaction.gasPrice),
+      numberToHex(transaction.gasLimit),
+      transaction.to,
+      numberToHex(transaction.value),
+      transaction.data,
+      numberToHex(transaction.chainId),
+      0x00,
+      0x00,
+    ])
+  }
+  return rawTransaction
+}
+function genApdu(
+  rawTransaction: Buffer,
+  preview: Preview,
+  transaction: Transaction
+): any[] {
+  let apduList = []
+  const data = Buffer.concat([
+    asUInt8(1),
+    asUInt16BE(rawTransaction.length),
+    rawTransaction,
+    asUInt8(7),
+    asUInt8(preview.payment.length),
+    Buffer.from(preview.payment, 'ascii'),
+    asUInt8(8),
+    asUInt8(preview.receiver.length),
+    Buffer.from(preview.receiver, 'ascii'),
+    asUInt8(9),
+    asUInt8(preview.fee.length),
+    Buffer.from(preview.fee, 'ascii'),
+  ])
+  const apduPack = Buffer.concat([asUInt8(0), asUInt8(1), asUInt8(0), data])
+  apduList = ethApdu.prepareSign(apduPack)
+  apduList.push(ethApdu.signDigest(transaction.path))
+  return apduList
 }
