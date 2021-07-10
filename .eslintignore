@@ -2,3 +2,4 @@ webpack.config.js
 .eslintrc.js
 dist
 index.ts
+eip712.ts

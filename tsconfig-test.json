@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "es6",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "noImplicitAny": false,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "strictNullChecks": false,
+    "resolveJsonModule": true,
+    "jsx": "preserve",
+    "baseUrl": "./src",
+    "strict": true,
+    "declaration": true,
+    "outDir": "dist"
+  },
+  "include": ["src", "test"]
+}
