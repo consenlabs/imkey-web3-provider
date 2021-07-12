@@ -1,5 +1,5 @@
 import { ethers } from 'ethers'
-import _ from 'underscore'
+import _, {isNull, isUndefined, isString, isNumber} from 'underscore'
 import BN from 'bn.js'
 import utf8 from 'utf8'
 
@@ -32,7 +32,7 @@ export function asUInt8(value) {
   return b
 }
 export function numberToHex(value: string | number | BN) {
-  if (_.isNull(value) || _.isUndefined(value)) {
+  if (isNull(value) || isUndefined(value)) {
     return value
   }
 
@@ -69,11 +69,11 @@ export function toBN(x): BN {
 }
 
 function isHexStrict(hex: string): boolean {
-  return (_.isString(hex) || _.isNumber(hex)) && /^(-)?0x[0-9a-f]*$/i.test(hex)
+  return (isString(hex) || isNumber(hex)) && /^(-)?0x[0-9a-f]*$/i.test(hex)
 }
 
 export function isHex(value: string | number): boolean {
-  return _.isString(value) && isHexStrict(value.toString())
+  return isString(value) && isHexStrict(value.toString())
 }
 
 export function hexToNumber(value: string): number | string {
@@ -81,21 +81,21 @@ export function hexToNumber(value: string): number | string {
     return value
   }
 
-  if (_.isString(value) && !isHexStrict(value)) {
+  if (isString(value) && !isHexStrict(value)) {
     throw new Error('Given value "' + value + '" is not a valid hex string.')
   }
 
   return toBN(value).toNumber()
 }
 export function stringToNumber(value: string): number {
-  if (!_.isString(value)) {
+  if (!isString(value)) {
     throw new Error('Given value "' + value + '" is not a string.')
   }
 
   return toBN(value).toNumber()
 }
 export function hexToNumberString(value: string): string {
-  if (_.isString(value) && !isHexStrict(value)) {
+  if (isString(value) && !isHexStrict(value)) {
     throw new Error('Given value "' + value + '" is not a valid hex string.')
   }
 
