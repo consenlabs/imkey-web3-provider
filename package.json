@@ -7,6 +7,7 @@
   "browser": "dist/imkey-web3-provider.umd.js",
   "types": "dist/index.d.ts",
   "typings": "dist/index.d.ts",
+  "prettier": "@consenlabs-fe/prettier",
   "directories": {
     "test": "test"
   },
@@ -23,9 +24,10 @@
     "bundle": "webpack",
     "start": "webpack-dev-server",
     "test": "ts-mocha -p tsconfig-test.json test/utils.test.ts",
-    "lint": "tslint --project tsconfig.json 'src/**/*.@(ts|tsx)' -t verbose",
-    "lint:fix": "tslint --project tsconfig.json --fix 'src/**/*.@(ts|tsx)' -t verbose",
+    "lint": "eslint 'src/**/*.@(ts|tsx)'",
+    "lint:fix": "eslint --fix 'src/**/*.@(ts|tsx)'",
     "prettier:fix": "prettier --write --check 'src/**/*.@(ts|tsx)'",
+    "prettier:check": "prettier --check 'src/**/*.@(ts|tsx)'",
     "prettier-lint:check": "tslint-config-prettier-check ./tslint.json",
     "prettier-lint:fix": "yarn prettier:fix && yarn lint:fix"
   },
@@ -54,6 +56,8 @@
     "@babel/plugin-transform-runtime": "^7.10.3",
     "@babel/preset-env": "^7.8.3",
     "@babel/preset-typescript": "^7.8.3",
+    "@consenlabs-fe/eslint-config-ts": "^0.2.3",
+    "@consenlabs-fe/prettier": "^0.1.2",
     "@rollup/plugin-commonjs": "^19.0.0",
     "@rollup/plugin-json": "^4.1.0",
     "@rollup/plugin-node-resolve": "^13.0.0",
