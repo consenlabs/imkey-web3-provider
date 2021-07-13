@@ -33,10 +33,27 @@ imKeyProvider.on('connect', (connectInfo: ProviderConnectInfo) => {
     `Ethereum Provider connected success, chainId: ${connectInfo.chainId}`
   )
 })
+// 补齐64位，不够前面用0补齐
+  function addPreZero(num){
+    const t = (num+'').length;
+    let  s = '';
+    for(let i=0; i<64-t; i++){
+      s += '0';
+    }
+    return s+num;
+  }
 
+function deleteZero(str:string):string{
+  return str.replace(/\b(0+)/gi,"");
+}
 const webUsbBtn = document.createElement('button')
 webUsbBtn.innerText = 'WebUSB Test'
 webUsbBtn.addEventListener('click', async (e) => {
+  // 0xa9059cbb
+  const address = "0000000000000000000000003b11f5CAB8362807273e1680890A802c5F1B15a8"
+  const amount = "0000000000000000000000000000000000000000000000000de0b6b3a7640000"
+  console.log("address:"+deleteZero(address))
+  console.log("amount:"+deleteZero(amount))
   const transport = await TransportWebUSB.create()
   const eth = new ETH(transport)
   await eth.getAddress("m/44'/60'/0'/0/0").then((response) => {
@@ -55,12 +72,14 @@ webUsbBtn.addEventListener('click', async (e) => {
     })
 
   const transaction = {
-    data: '',
+        to: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+        // 调用合约转账value这里留空
+        value: '0x00',
+        // data的组成，由：0x + 要调用的合约方法的function signature + 要传递的方法参数，每个参数都为64位(对transfer来说，第一个是接收人的地址去掉0x，第二个是代币数量的16进制表示，去掉前面0x，然后补齐为64位)
+        data: '0x' + 'a9059cbb' + addPreZero('3b11f5CAB8362807273e1680890A802c5F1B15a8') + addPreZero(web3.utils.toHex(1000000000000000000).substr(2)),
     gasLimit: '21000',
     gasPrice: '6000000000',
     nonce: '8',
-    to: '0x3535353535353535353535353535353535353535',
-    value: '100000000000000000', // 0.1 ETH
     chainId: '28',
     path: "m/44'/60'/0'/0/0",
     symbol: 'ETH',

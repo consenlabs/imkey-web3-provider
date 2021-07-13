@@ -7,26 +7,13 @@ export function addressFromPubkey(pubkey: Buffer): string {
   const pubkeyHash = ethers.utils.keccak256(pubkey.slice(1, 65))
   return ethers.utils.getAddress('0x' + pubkeyHash.substring(26))
 }
-export function isValidHex(input: string): boolean {
-  let value = input
-  if (input.startsWith('0x') || input.startsWith('0X')) {
-    value = input.substring(2)
-  }
 
-  if (value.length === 0 || value.length % 2 !== 0) {
-    return false
-  }
-  if (typeof value !== 'string' || !value.match(/^0x[0-9A-Fa-f]*$/)) {
-    return false
-  }
-  return true
-}
-export function asUInt16BE(value) {
+export function asUInt16BE(value:number) {
   const b = Buffer.alloc(2)
   b.writeUInt16BE(value, 0)
   return b
 }
-export function asUInt8(value) {
+export function asUInt8(value:number) {
   const b = Buffer.alloc(1)
   b.writeUInt8(value, 0)
   return b
@@ -43,17 +30,10 @@ export function numberToHex(value: string | number | BN) {
 
   const numberBN = toBN(value)
   const result = numberBN.toString(16)
-
-  return numberBN.lt(new BN(0)) ? '-0x' + result.substr(1) : '0x' + result
-}
-
-export function hexBuffer(str: string): Buffer {
-  return Buffer.from(str.startsWith('0x') ? str.slice(2) : str, 'hex')
-}
-
-export function maybeHexBuffer(str: string): Buffer {
-  if (!str) return null
-  return hexBuffer(str)
+  if(numberBN.lt(new BN(0))){
+    throw new Error('number "' + result + '" is -0x.')
+  }
+  return '0x' + result
 }
 
 export function toBN(x): BN {
@@ -61,7 +41,7 @@ export function toBN(x): BN {
   if (x instanceof BN) return x
 
   if (typeof x === 'string') {
-    if (x.indexOf('0x') === 0 || x.indexOf('-0x') === 0) {
+    if (x.indexOf('0x') === 0 ) {
       return new BN(x.replace('0x', ''), 16)
     }
   }

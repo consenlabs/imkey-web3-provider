@@ -3,7 +3,6 @@ import {
   asUInt8,
   addressFromPubkey,
   numberToHex,
-  isValidHex,
   fromWei,
   toChecksumAddress,
   parseArgsNum,
@@ -11,7 +10,7 @@ import {
 import type Transport from '../hw-transport/Transport'
 import { encode } from 'rlp'
 import { ETHApdu } from '../common/apdu'
-import { utils } from 'ethers'
+import { ethers } from 'ethers'
 import secp256k1 from 'secp256k1'
 
 type Transaction = {
@@ -24,6 +23,7 @@ type Transaction = {
   chainId: string
   path: string
   symbol?: string
+  decimal?:string
 }
 type Preview = {
   payment: string
@@ -123,7 +123,7 @@ export default class Eth {
       Buffer.from(s, 'hex'),
     ])
     const signature = '0x' + signedTransaction.toString('hex')
-    const txhash = utils.keccak256(signedTransaction)
+    const txhash = ethers.utils.keccak256(signedTransaction)
     return { signature, txhash }
   }
 
@@ -157,7 +157,7 @@ eth.signPersonalMessage("44'/60'/0'/0/0", Buffer.from("test").toString("hex")).t
     console.log(isPersonalSign)
     let messageToSign
     // 判断是否是HEX
-    if (isValidHex(message)) {
+    if (ethers.utils.isHexString(message)) {
       messageToSign = Buffer.from(message.substring(2), 'hex')
     } else {
       messageToSign = Buffer.from(message, 'ascii')
@@ -211,7 +211,7 @@ function getRecID(
 ): number {
   let recId = 0
 
-  const dataHash = Buffer.from(utils.keccak256(data).substring(2), 'hex')
+  const dataHash = Buffer.from(ethers.utils.keccak256(data).substring(2), 'hex')
   for (let i = 0; i <= 3; i++) {
     try {
       if (
@@ -231,6 +231,9 @@ function getRecID(
 
 function genPreview(transaction: Transaction, address: string): Preview {
   const symbol = !transaction.symbol ? 'ETH' : transaction.symbol
+  const decimal = !transaction.decimal ? '18': transaction.decimal
+
+
   const gasLimit = parseArgsNum(transaction.gasLimit)
   const gasPrice = parseArgsNum(transaction.gasPrice)
   // fee
@@ -239,10 +242,17 @@ function genPreview(transaction: Transaction, address: string): Preview {
   const temp = Math.ceil(Number(fee))
   fee = (BigInt(temp) * BigInt(1000000000)).toString() // to ether
   fee = fromWei(fee) + ' ' + symbol
-
+  console.log("data:"+transaction.data)
+  if(transaction.value==="0"||transaction.value==="0x00"){
+    //代币转账
+    //通过transaction.to 合约地址 查询代币的代币名称和decimal
+    //解析data数据获取要转账的地址和金额
+    //  data: '0x' + 'a9059cbb' + addPreZero('3b11f5CAB8362807273e1680890A802c5F1B15a8') + addPreZero(web3.utils.toHex(1000000000000000000).substr(2)),
+    //
+  }
   const to = toChecksumAddress(transaction.to)
   const value = parseArgsNum(transaction.value)
-  const valueInWei = fromWei(value)
+  const valueInWei = fromWei(value,decimal)
   const preview = {
     payment: valueInWei + ' ' + symbol,
     receiver: to,
