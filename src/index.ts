@@ -28,6 +28,7 @@ interface IProviderOptions {
   chainId?: number
   headers?: Record<string, string>
   symbol?: string
+  decimals?:number
 }
 interface AddEthereumChainParameter {
   chainId: string
@@ -118,6 +119,7 @@ export default class ImKeyProvider extends EventEmitter {
   private chainId: number
   private headers: []
   private symbol: string
+  private decimals: number
   constructor(config: IProviderOptions) {
     super()
     let rpcUrl = config.rpcUrl
@@ -143,6 +145,7 @@ export default class ImKeyProvider extends EventEmitter {
       headers,
     })
     this.symbol = !config.symbol ? 'ETH' : config.symbol
+    this.decimals = !config.decimals ? 18 : config.decimals
     console.log(this)
   }
 
@@ -278,7 +281,8 @@ export default class ImKeyProvider extends EventEmitter {
   changeChain(args: AddEthereumChainParameter) {
     console.log('wallet_addEthereumChain: ', JSON.stringify(args))
     this.chainId = stringToNumber(parseArgsNum(args.chainId))
-
+    this.decimals = args.nativeCurrency.decimals
+    this.symbol = args.nativeCurrency.symbol
     if (args.rpcUrls) {
       let headers = this.headers
       // this.httpProvider = new providers.Web3Provider({
@@ -461,6 +465,7 @@ export default class ImKeyProvider extends EventEmitter {
               chainId,
               path: IMKEY_ETH_PATH,
               symbol: this.symbol,
+              decimal: this.decimals.toString(),
             },
           },
           id: requestId++,

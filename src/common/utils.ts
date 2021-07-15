@@ -1,5 +1,5 @@
 import { ethers } from 'ethers'
-import _, {isNull, isUndefined, isString, isNumber} from 'underscore'
+import {isNull, isUndefined, isString, isNumber} from 'underscore'
 import BN from 'bn.js'
 import utf8 from 'utf8'
 
@@ -53,22 +53,20 @@ function isHexStrict(hex: string): boolean {
 }
 
 export function isHex(value: string | number): boolean {
-  return isString(value) && isHexStrict(value.toString())
+  return ethers.utils.isHexString(value)
 }
 
 export function hexToNumber(value: string): number | string {
-  if (!value) {
-    return value
-  }
 
-  if (isString(value) && !isHexStrict(value)) {
+  if (!value || (isString(value) && !isHexStrict(value))) {
     throw new Error('Given value "' + value + '" is not a valid hex string.')
   }
 
   return toBN(value).toNumber()
 }
 export function stringToNumber(value: string): number {
-  if (!isString(value)) {
+
+  if (!value || !isString(value)) {
     throw new Error('Given value "' + value + '" is not a string.')
   }
 
@@ -86,7 +84,7 @@ export function toChecksumAddress(address: string): string {
   return ethers.utils.getAddress(address)
 }
 
-export function bytesToHex(bytes: []): string {
+export function bytesToHex(bytes: any[]): string {
   const hexs = []
   for (let hex = [], i = 0; i < bytes.length; i++) {
     /* jshint ignore:start */
@@ -139,6 +137,19 @@ export function parseArgsNum(num: string | number | BN): string {
   } else {
     return num.toString()
   }
+}
+// 补齐64位，不够前面用0补齐
+export function addPreZero(num:number|string):string{
+  const t = (num+'').length;
+  let  s = '';
+  for(let i=0; i<64-t; i++){
+    s += '0';
+  }
+  return s+num;
+}
+
+export function deleteZero(str:string):string{
+  return str.replace(/\b(0+)/gi,"");
 }
 export interface JsonRpcPayload {
   jsonrpc: string

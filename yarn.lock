@@ -1340,6 +1340,24 @@
   resolved "https://registry.npmjs.org/@humanwhocodes/object-schema/-/object-schema-1.2.0.tgz#87de7af9c231826fdd68ac7258f77c429e0e5fcf"
   integrity sha512-wdppn25U8z/2yiaT6YGquE6X8sSv7hNMWSXYSSU1jGv/yd6XqjXgTDJ8KP4NgjTXfJ3GbRjeeb8RTV7a/VpM+w==
 
+"@imkey/web3-provider@^1.1.0-alpha":
+  version "1.1.0-alpha"
+  resolved "https://registry.nlark.com/@imkey/web3-provider/download/@imkey/web3-provider-1.1.0-alpha.tgz#2a324ea7f3e49bf0c54bd38723a794bfa98c9787"
+  integrity sha1-KjJOp/Pkm/DFS9OHI6eUv6mMl4c=
+  dependencies:
+    "@types/event-emitter-es6" "^1.1.0"
+    "@types/sha.js" "^2.4.0"
+    bignumber.js "^9.0.1"
+    ethereumjs-util "^5.1.1"
+    ethers "^5.1.3"
+    event-emitter-es6 "^1.1.5"
+    rlp "^2.2.5"
+    secp256k1 "^4.0.2"
+    underscore "^1.13.1"
+    utf8 "^3.0.0"
+    utility-types "^3.10.0"
+    web3-providers-http "^1.3.6"
+
 "@istanbuljs/load-nyc-config@^1.0.0":
   version "1.1.0"
   resolved "https://registry.npmjs.org/@istanbuljs/load-nyc-config/-/load-nyc-config-1.1.0.tgz#fd3db1d59ecf7cf121e80650bb86712f9b55eced"
@@ -1609,6 +1627,11 @@
   integrity sha512-O3MmRAk6ZuAKa9CHgg0Pr0+lUOqoMLpc9AS4R8ano2auvsg7IE8syF3Xh/NPr26TWklxYcqoEEFdzLLs1fV9PQ==
   dependencies:
     source-map "^0.6.1"
+
+"@types/w3c-web-usb@^1.0.5":
+  version "1.0.5"
+  resolved "https://registry.nlark.com/@types/w3c-web-usb/download/@types/w3c-web-usb-1.0.5.tgz#90284d17f35de981670c85d29053ae8b88fa5543"
+  integrity sha1-kChNF/Nd6YFnDIXSkFOui4j6VUM=
 
 "@types/webpack-sources@*":
   version "2.1.1"
