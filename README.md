@@ -6,7 +6,7 @@
 1. 安装依赖包
   ```
   "dependencies": {
-    "@imkey/web3-provider": "^1.1.0-alpha",
+    "@imkey/web3-provider": "^1.1.0-alpha.2",
     "web3": "^1.3.6",
     "web3-providers-http": "^1.3.6"
   }
