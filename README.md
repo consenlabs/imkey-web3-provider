@@ -6,25 +6,27 @@
 1. 安装依赖包
   ```
   "dependencies": {
-    "@imkey/web3-provider": "https://github.com/consenlabs/imkey-web3-provider.git#63cb7f6",
-    "web3": "1.2.9",
-    "web3-utils": "1.0.0-beta.36"
+    "@imkey/web3-provider": "^1.1.0-alpha",
+    "web3": "^1.3.6",
+    "web3-providers-http": "^1.3.6"
   }
   ```
 2. 初始化
 ```
-var ImKeyProvider = require('@imkey/web3-provider').default
-var Web3 = require('web3')
-
-const imkeyProvider = new ImKeyProvider({
+import ImKeyProvider from "@imkey/web3-provider"
+import Web3 from 'web3'
+import Web3HttpProvider from 'web3-providers-http'
+const imKeyProvider = new ImKeyProvider({
   rpcUrl: 'put your infura address here',
   chainId: 1,
   headers: {
     "": ""
   }
 })
-imkeyProvider.enable();
-const web3 = new Web3(imkeyProvider as any);
+imKeyProvider.enable()
+const web3 = new Web3(
+  (imKeyProvider as unknown) as Web3HttpProvider.HttpProvider
+)
 ```
 3. 使用
 

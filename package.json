@@ -58,7 +58,7 @@
     "@babel/preset-typescript": "^7.8.3",
     "@consenlabs-fe/eslint-config-ts": "^0.2.3",
     "@consenlabs-fe/prettier": "^0.1.2",
-    "@imkey/web3-provider": "^1.1.0-alpha",
+    "@imkey/web3-provider": "^1.1.0-alpha.2",
     "@rollup/plugin-commonjs": "^19.0.0",
     "@rollup/plugin-json": "^4.1.0",
     "@rollup/plugin-node-resolve": "^13.0.0",

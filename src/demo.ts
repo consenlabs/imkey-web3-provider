@@ -1,11 +1,11 @@
-import ImKeyProvider from "./index"
+// import ImKeyProvider from "./index"
 
 import Web3 from 'web3'
 import Web3HttpProvider from 'web3-providers-http'
 import TransportWebUSB from './hw-transport-webusb/TransportWebUSB'
 import ETH from './hw-app-eth/Eth'
 import { addPreZero, deleteZero, RLPEncodedTransaction } from "./common/utils";
-// import ImKeyProvider from "@imkey/web3-provider"
+import ImKeyProvider from "@imkey/web3-provider"
 interface ProviderConnectInfo {
   readonly chainId: string
 }

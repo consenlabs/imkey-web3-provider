@@ -1340,10 +1340,10 @@
   resolved "https://registry.npmjs.org/@humanwhocodes/object-schema/-/object-schema-1.2.0.tgz#87de7af9c231826fdd68ac7258f77c429e0e5fcf"
   integrity sha512-wdppn25U8z/2yiaT6YGquE6X8sSv7hNMWSXYSSU1jGv/yd6XqjXgTDJ8KP4NgjTXfJ3GbRjeeb8RTV7a/VpM+w==
 
-"@imkey/web3-provider@^1.1.0-alpha":
-  version "1.1.0-alpha"
-  resolved "https://registry.nlark.com/@imkey/web3-provider/download/@imkey/web3-provider-1.1.0-alpha.tgz#2a324ea7f3e49bf0c54bd38723a794bfa98c9787"
-  integrity sha1-KjJOp/Pkm/DFS9OHI6eUv6mMl4c=
+"@imkey/web3-provider@^1.1.0-alpha.2":
+  version "1.1.0-alpha.2"
+  resolved "https://registry.nlark.com/@imkey/web3-provider/download/@imkey/web3-provider-1.1.0-alpha.2.tgz?cache=0&sync_timestamp=1626347851977&other_urls=https%3A%2F%2Fregistry.nlark.com%2F%40imkey%2Fweb3-provider%2Fdownload%2F%40imkey%2Fweb3-provider-1.1.0-alpha.2.tgz#2ea1a17b7c735add13ea984941ab7960e1bad26e"
+  integrity sha1-LqGhe3xzWt0T6phJQat5YOG60m4=
   dependencies:
     "@types/event-emitter-es6" "^1.1.0"
     "@types/sha.js" "^2.4.0"
