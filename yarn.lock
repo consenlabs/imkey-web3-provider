@@ -1628,11 +1628,6 @@
   dependencies:
     source-map "^0.6.1"
 
-"@types/w3c-web-usb@^1.0.5":
-  version "1.0.5"
-  resolved "https://registry.nlark.com/@types/w3c-web-usb/download/@types/w3c-web-usb-1.0.5.tgz#90284d17f35de981670c85d29053ae8b88fa5543"
-  integrity sha1-kChNF/Nd6YFnDIXSkFOui4j6VUM=
-
 "@types/webpack-sources@*":
   version "2.1.1"
   resolved "https://registry.npmjs.org/@types/webpack-sources/-/webpack-sources-2.1.1.tgz#6af17e3a3ded71eec2b98008d7c12f498a0a4506"
