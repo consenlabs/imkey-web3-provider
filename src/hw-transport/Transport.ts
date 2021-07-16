@@ -83,9 +83,7 @@ export default class Transport<Descriptor> {
   complete: () => {}
   })
    */
-  static readonly listen: (
-    observer: Observer<DescriptorEvent<any>>
-  ) => Subscription
+  static readonly listen: (observer: Observer<DescriptorEvent<any>>) => Subscription
 
   /**
    * attempt to create a Transport instance with potentially a descriptor.
@@ -95,10 +93,7 @@ export default class Transport<Descriptor> {
    * @example
    TransportFoo.open(descriptor).then(transport => ...)
    */
-  static readonly open: (
-    descriptor: any,
-    timeout?: number
-  ) => Promise<Transport<any>>
+  static readonly open: (descriptor: any, timeout?: number) => Promise<Transport<any>>
 
   /**
    * low level api to communicate with the device
@@ -147,7 +142,7 @@ export default class Transport<Descriptor> {
    */
   setDebugMode() {
     console.warn(
-      'setDebugMode is deprecated. use @imkeyhq/logs instead. No logs are emitted in this anymore.'
+      'setDebugMode is deprecated. use @imkeyhq/logs instead. No logs are emitted in this anymore.',
     )
   }
 
@@ -177,19 +172,19 @@ export default class Transport<Descriptor> {
    */
   send = async (
     data: Buffer = Buffer.alloc(0),
-    statusList: Array<number> = [StatusCodes.OK]
+    statusList: Array<number> = [StatusCodes.OK],
   ): Promise<Buffer> => {
     if (data.length >= 256) {
       throw new TransportError(
         'data.length exceed 256 bytes limit. Got: ' + data.length,
-        'DataLengthTooBig'
+        'DataLengthTooBig',
       )
     }
 
     const response = await this.exchange(data)
     const sw = response.readUInt16BE(response.length - 2)
 
-    if (!statusList.some((s) => s === sw)) {
+    if (!statusList.some(s => s === sw)) {
       throw new TransportStatusError(sw)
     }
 
@@ -203,21 +198,18 @@ export default class Transport<Descriptor> {
    * @example
    TransportFoo.create().then(transport => ...)
    */
-  static create(
-    openTimeout?: number,
-    listenTimeout?: number
-  ): Promise<Transport<any>> {
+  static create(openTimeout?: number, listenTimeout?: number): Promise<Transport<any>> {
     return new Promise((resolve, reject) => {
       let found = false
       const sub = this.listen({
-        next: (e) => {
+        next: e => {
           found = true
           if (sub) sub.unsubscribe()
           if (listenTimeoutId) clearTimeout(listenTimeoutId)
           openTimeout = 3000
           this.open(e.descriptor, openTimeout).then(resolve, reject)
         },
-        error: (e) => {
+        error: e => {
           if (listenTimeoutId) clearTimeout(listenTimeoutId)
           reject(e)
         },
@@ -225,24 +217,14 @@ export default class Transport<Descriptor> {
           if (listenTimeoutId) clearTimeout(listenTimeoutId)
 
           if (!found) {
-            reject(
-              new TransportError(
-                this.ErrorMessageNoDeviceFound,
-                'NoDeviceFound'
-              )
-            )
+            reject(new TransportError(this.ErrorMessageNoDeviceFound, 'NoDeviceFound'))
           }
         },
       })
       const listenTimeoutId = listenTimeout
         ? setTimeout(() => {
             sub.unsubscribe()
-            reject(
-              new TransportError(
-                this.ErrorMessageListenTimeout,
-                'ListenTimeout'
-              )
-            )
+            reject(new TransportError(this.ErrorMessageListenTimeout, 'ListenTimeout'))
           }, listenTimeout)
         : null
     })
@@ -250,15 +232,15 @@ export default class Transport<Descriptor> {
 
   exchangeBusyPromise: Promise<void>
   // $FlowFixMe
-  exchangeAtomicImpl = async (f) => {
+  exchangeAtomicImpl = async f => {
     if (this.exchangeBusyPromise) {
       throw new TransportRaceCondition(
-        'An action was already pending on the imkey device. Please deny or reconnect.'
+        'An action was already pending on the imkey device. Please deny or reconnect.',
       )
     }
 
     let resolveBusy
-    const busyPromise = new Promise((r) => {
+    const busyPromise = new Promise(r => {
       resolveBusy = r
     })
     // @ts-ignore

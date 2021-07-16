@@ -1,9 +1,5 @@
 import Transport from '../hw-transport/Transport'
-import {
-  Observer,
-  DescriptorEvent,
-  Subscription,
-} from '../hw-transport/Transport'
+import { Observer, DescriptorEvent, Subscription } from '../hw-transport/Transport'
 import hidFraming from './hid-framing'
 import { identifyUSBProductId } from './webusb'
 import { DeviceModel } from './webusb'
@@ -15,12 +11,7 @@ import {
   DisconnectedDeviceDuringOperation,
   DisconnectedDevice,
 } from '../errors'
-import {
-  getImKeyDevices,
-  getFirstImKeyDevice,
-  requestImKeyDevice,
-  isSupported,
-} from './webusb'
+import { getImKeyDevices, getFirstImKeyDevice, requestImKeyDevice, isSupported } from './webusb'
 
 const configurationValue = 1
 const endpointNumberIn = 5
@@ -65,24 +56,20 @@ export default class TransportWebUSB extends Transport<any> {
   static listen = (observer: Observer<DescriptorEvent<any>>): Subscription => {
     let unsubscribed = false
     getFirstImKeyDevice().then(
-      (device) => {
+      device => {
         if (!unsubscribed) {
           const deviceModel = identifyUSBProductId(device.productId)
           observer.next({ type: 'add', descriptor: device, deviceModel })
           observer.complete()
         }
       },
-      (error) => {
-        if (
-          window.DOMException &&
-          error instanceof window.DOMException &&
-          error.code === 18
-        ) {
+      error => {
+        if (window.DOMException && error instanceof window.DOMException && error.code === 18) {
           observer.error(new TransportWebUSBGestureRequired(error.message))
         } else {
           observer.error(new TransportOpenUserCancelled(error.message))
         }
-      }
+      },
     )
 
     function unsubscribe() {
@@ -123,11 +110,11 @@ export default class TransportWebUSB extends Transport<any> {
     }
     await gracefullyResetDevice(device)
     const iface = device.configurations[0].interfaces.find(({ alternates }) =>
-      alternates.some((a) => a.interfaceClass === 255)
+      alternates.some(a => a.interfaceClass === 255),
     )
     if (!iface) {
       throw new TransportInterfaceNotAvailable(
-        'No WebUSB interface found for your imkey device. Please upgrade firmware or contact techsupport.'
+        'No WebUSB interface found for your imkey device. Please upgrade firmware or contact techsupport.',
       )
     }
     const interfaceNumber = iface.interfaceNumber
@@ -148,7 +135,7 @@ export default class TransportWebUSB extends Transport<any> {
       throw new TransportInterfaceNotAvailable(e.message)
     }
     const transport = new TransportWebUSB(device, interfaceNumber)
-    const onDisconnect = (e) => {
+    const onDisconnect = e => {
       if (device === e.device) {
         // @ts-ignore
         navigator.usb.removeEventListener('disconnect', onDisconnect)
@@ -205,7 +192,7 @@ export default class TransportWebUSB extends Transport<any> {
       }
       // console.log('apdu', '<= ' + result.toString('hex').toUpperCase())
       return result
-    }).catch((e) => {
+    }).catch(e => {
       if (e && e.message && e.message.includes('disconnected')) {
         this._emitDisconnect(e)
         throw new DisconnectedDeviceDuringOperation(e.message)

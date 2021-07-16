@@ -3,26 +3,19 @@ import { $Shape } from "utility-types";
 /**
  * thrown by the RecordStore.fromString parser.
  */
-export function RecordStoreInvalidSynthax( message: string) {
-  // @ts-ignore
+export function RecordStoreInvalidSynthax(this: any, message: string) {
   this.name = "RecordStoreInvalidSynthax";
-  // @ts-ignore
   this.message = message;
-  // @ts-ignore
   this.stack = new Error().stack;
 }
-
 RecordStoreInvalidSynthax.prototype = new Error();
 
 /**
  * thrown by the replayer if the queue is empty
  */
-export function RecordStoreQueueEmpty() {
-  // @ts-ignore
+export function RecordStoreQueueEmpty(this: any) {
   this.name = "RecordStoreQueueEmpty";
-  // @ts-ignore
   this.message = "EOF: no more APDU to replay";
-  // @ts-ignore
   this.stack = new Error().stack;
 }
 
@@ -32,19 +25,15 @@ RecordStoreQueueEmpty.prototype = new Error();
  * thrown by replayer if it meets an unexpected apdu
  */
 export function RecordStoreWrongAPDU(
+  this: any,
   expected: string,
   got: string,
   line: number,
 ) {
-  // @ts-ignore
   this.name = "RecordStoreWrongAPDU";
-  // @ts-ignore
   this.message = `wrong apdu to replay line ${line}. Expected ${expected}, Got ${got}`;
-  // @ts-ignore
   this.expectedAPDU = expected;
-  // @ts-ignore
   this.gotAPDU = got;
-  // @ts-ignore
   this.stack = new Error().stack;
 }
 
@@ -53,12 +42,9 @@ RecordStoreWrongAPDU.prototype = new Error();
 /**
  * thrown by ensureQueueEmpty
  */
-export function RecordStoreRemainingAPDU( expected: string) {
-  // @ts-ignore
+export function RecordStoreRemainingAPDU(this: any, expected: string) {
   this.name = "RecordStoreRemainingAPDU";
-  // @ts-ignore
   this.message = `replay expected more APDUs to come:\n${expected}`;
-  // @ts-ignore
   this.stack = new Error().stack;
 }
 
@@ -74,8 +60,8 @@ export type Queue = [string, string][];
  * allows to override the warning function (defaults to console.warn)
  */
 export type RecordStoreOptions = {
-  autoSkipUnknownApdu: boolean
-  warning: (arg0: string) => void
+  autoSkipUnknownApdu: boolean;
+  warning: (arg0: string) => void;
 };
 const defaultOpts: RecordStoreOptions = {
   autoSkipUnknownApdu: false,

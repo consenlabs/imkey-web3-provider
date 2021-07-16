@@ -27,8 +27,8 @@ export default [
     },
     plugins: [
       json(),
-      resolve(), // so Rollup can find `ms`
-      commonjs(), // so Rollup can convert `ms` to an ES module
+      // resolve(), // so Rollup can find `ms`
+      commonjs(), // so Rollup can csonvert `ms` to an ES module
       typescript(),
     ],
   },
@@ -44,21 +44,17 @@ export default [
     plugins: [
       typescript({ declaration: true, outDir: 'dist' }),
       commonjs(), // so Rollup can convert `ms` to an ES module
-       json()
-      ],
-    output: [
-      { file: pkg.main, format: 'cjs' },
+      json(),
     ],
+    output: [{ file: pkg.main, format: 'cjs' }],
   },
   {
     input: 'src/index.ts',
     plugins: [
       typescript({ declaration: true, outDir: 'dist' }),
       commonjs({ esmExternals: external }), // so Rollup can convert `ms` to an ES module
-       json()
-      ],
-    output: [
-      { file: pkg.module, format: 'es' },
+      json(),
     ],
-  }
+    output: [{ file: pkg.module, format: 'es' }],
+  },
 ]

@@ -28,7 +28,7 @@ interface IProviderOptions {
   chainId?: number
   headers?: Record<string, string>
   symbol?: string
-  decimals?:number
+  decimals?: number
 }
 interface AddEthereumChainParameter {
   chainId: string
@@ -153,18 +153,15 @@ export default class ImKeyProvider extends EventEmitter {
     // console.log('req:' + req)
     // console.log(JSON.stringify(req))
     return new Promise((resolve, reject) => {
-      this.httpProvider.send(
-        req,
-        (error: Error | null, result?: JsonRpcResponse) => {
-          if (error) {
-            // console.log(error)
-            reject(createProviderRpcError(4001, error.message))
-          } else {
-            // console.log(result)
-            resolve(result.result)
-          }
+      this.httpProvider.send(req, (error: Error | null, result?: JsonRpcResponse) => {
+        if (error) {
+          // console.log(error)
+          reject(createProviderRpcError(4001, error.message))
+        } else {
+          // console.log(result)
+          resolve(result.result)
         }
-      )
+      })
     })
   }
 
@@ -173,9 +170,7 @@ export default class ImKeyProvider extends EventEmitter {
     transport = await TransportWebUSB.create()
     ETH = new Eth(transport)
     const accounts = await this.imKeyRequestAccounts(requestId++)
-    const chainIdHex = await this.callInnerProviderApi(
-      createJsonRpcRequest('eth_chainId')
-    )
+    const chainIdHex = await this.callInnerProviderApi(createJsonRpcRequest('eth_chainId'))
     const chainId = hexToNumber(chainIdHex)
     if (chainId !== this.chainId) {
       throw new Error("chain id and rpc endpoint don't match")
@@ -207,31 +202,18 @@ export default class ImKeyProvider extends EventEmitter {
         return String(ret[0])
       }
       case 'personal_sign': {
-        return await this.imKeySign(
-          requestId++,
-          args.params![0],
-          args.params![1],
-          true
-        )
+        return await this.imKeySign(requestId++, args.params![0], args.params![1], true)
       }
       case 'eth_signTransaction': {
         return await this.imKeySignTransaction(requestId++, args.params![0])
       }
       case 'eth_sendTransaction': {
-        const ret = await this.imKeySignTransaction(
-          requestId++,
-          args.params![0]
-        )
+        const ret = await this.imKeySignTransaction(requestId++, args.params![0])
         const req = createJsonRpcRequest('eth_sendRawTransaction', [ret.raw])
         return await this.callInnerProviderApi(req)
       }
       case 'eth_sign': {
-        return await this.imKeySign(
-          requestId++,
-          args.params![1],
-          args.params![0],
-          false
-        )
+        return await this.imKeySign(requestId++, args.params![1], args.params![0], false)
       }
       /* eslint-disable no-fallthrough */
       case 'eth_signTypedData':
@@ -242,16 +224,8 @@ export default class ImKeyProvider extends EventEmitter {
         return createProviderRpcError(4200, `${args.method} is not support now`)
       case 'eth_signTypedData_v4': {
         const jsonobj = JSON.parse(args.params![1])
-        const eip712HashHexWithoutSha3 = imTokenEip712Utils.signHashHex(
-          jsonobj,
-          true
-        )
-        return await this.imKeySign(
-          requestId++,
-          eip712HashHexWithoutSha3,
-          args.params![0],
-          false
-        )
+        const eip712HashHexWithoutSha3 = imTokenEip712Utils.signHashHex(jsonobj, true)
+        return await this.imKeySign(requestId++, eip712HashHexWithoutSha3, args.params![0], false)
       }
       case 'eth_getTransactionReceipt': {
         const payload = {
@@ -294,10 +268,7 @@ export default class ImKeyProvider extends EventEmitter {
       })
     }
   }
-  sendAsync(
-    args: JsonRpcPayload,
-    callback: (err: Error | null, ret: any) => void
-  ) {
+  sendAsync(args: JsonRpcPayload, callback: (err: Error | null, ret: any) => void) {
     // console.log('sendAsync:\n' + JSON.stringify(args))
     // if(args.method !== 'eth_call' && args.method !== 'eth_accounts'){
     //   console.log('return ' + args.method)
@@ -307,7 +278,7 @@ export default class ImKeyProvider extends EventEmitter {
     //   callback(null, createJsonRpcResponse(args.id, '0x407d73d8a49eeb85d32cf465507dd71d507100c1'))
     // }else{
     this.request(args)
-      .then((ret) => {
+      .then(ret => {
         // console.log('request ret:' + ret + ' method:' + args.method)
         // console.log(JSON.stringify(ret))
         // if(args.method === 'eth_getTransactionReceipt'){
@@ -319,7 +290,7 @@ export default class ImKeyProvider extends EventEmitter {
         callback(null, createJsonRpcResponse(args.id, ret))
         // }
       })
-      .catch((err) => {
+      .catch(err => {
         // console.log('request err' + err)
         callback(err, null)
       })
@@ -343,7 +314,7 @@ export default class ImKeyProvider extends EventEmitter {
 
   async imKeyRequestAccounts(
     id: string | number | undefined,
-    callback?: (error: Error, ret: any) => void
+    callback?: (error: Error, ret: any) => void,
   ) {
     try {
       const ret = await callImKeyApi(
@@ -355,7 +326,7 @@ export default class ImKeyProvider extends EventEmitter {
           },
           id: requestId++,
         },
-        isNative()
+        isNative(),
       )
       callback?.(null, [ret.result?.address])
       return [ret.result?.address]
@@ -368,7 +339,7 @@ export default class ImKeyProvider extends EventEmitter {
   async imKeySignTransaction(
     id: string | number | undefined,
     transactionConfig: TransactionConfig,
-    callback?: (error: Error, ret: any) => void
+    callback?: (error: Error, ret: any) => void,
   ) {
     if (!transactionConfig.to || !transactionConfig.value) {
       throw createProviderRpcError(-32602, 'expected to,value')
@@ -388,9 +359,7 @@ export default class ImKeyProvider extends EventEmitter {
     if (transactionConfig.gasPrice) {
       gasPriceDec = parseArgsNum(transactionConfig.gasPrice)
     } else {
-      const gasPriceRet = await this.callInnerProviderApi(
-        createJsonRpcRequest('eth_gasPrice', [])
-      )
+      const gasPriceRet = await this.callInnerProviderApi(createJsonRpcRequest('eth_gasPrice', []))
       gasPriceDec = hexToNumberString(gasPriceRet)
     }
 
@@ -400,7 +369,7 @@ export default class ImKeyProvider extends EventEmitter {
       if (transactionConfig.chainId !== this.chainId) {
         throw createProviderRpcError(
           -32602,
-          'expected chainId and connected chainId are mismatched'
+          'expected chainId and connected chainId are mismatched',
         )
       }
       chainId = transactionConfig.chainId
@@ -414,10 +383,7 @@ export default class ImKeyProvider extends EventEmitter {
       nonce = parseArgsNum(transactionConfig.nonce)
     } else {
       nonce = await this.callInnerProviderApi(
-        createJsonRpcRequest('eth_getTransactionCount', [
-          transactionConfig.from,
-          'pending',
-        ])
+        createJsonRpcRequest('eth_getTransactionCount', [transactionConfig.from, 'pending']),
       )
       nonce = hexToNumber(nonce).toString()
     }
@@ -439,7 +405,7 @@ export default class ImKeyProvider extends EventEmitter {
             value: transactionConfig.value,
             data: transactionConfig.data,
           },
-        ])
+        ]),
       )
       // console.log('gasRet:' + gasRet)
       gasLimit = parseArgsNum(gasRet)
@@ -470,7 +436,7 @@ export default class ImKeyProvider extends EventEmitter {
           },
           id: requestId++,
         },
-        isNative()
+        isNative(),
       )
       let signature = ret.result?.signature
       if (!signature.startsWith('0x')) {
@@ -510,19 +476,16 @@ export default class ImKeyProvider extends EventEmitter {
     dataToSign: string,
     address: string | number,
     isPersonalSign: boolean,
-    callback?: (error: Error, ret: any) => void
+    callback?: (error: Error, ret: any) => void,
   ) {
     if (Number.isInteger(address)) {
-      const error = createProviderRpcError(
-        -32602,
-        'Pass the address to sign data with for now'
-      )
+      const error = createProviderRpcError(-32602, 'Pass the address to sign data with for now')
       callback?.(
         {
           name: 'address invalid',
           message: 'Pass the address to sign data with for now',
         },
-        null
+        null,
       )
       throw error
     }
@@ -549,7 +512,7 @@ export default class ImKeyProvider extends EventEmitter {
           },
           id: requestId++,
         },
-        isNative()
+        isNative(),
       )
       let sigRet = ret.result?.signature.toLowerCase()
       if (!sigRet.startsWith('0x')) {
@@ -566,7 +529,7 @@ export default class ImKeyProvider extends EventEmitter {
 }
 
 async function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
+  return new Promise(resolve => setTimeout(resolve, ms))
 }
 
 async function callImKeyApi(arg: Record<string, unknown>, isNative = false) {
@@ -580,12 +543,7 @@ async function callImKeyApi(arg: Record<string, unknown>, isNative = false) {
     if (arg.method === 'eth.signMessage') {
       // console.log('param:')
       // console.log(param)
-      json = await ETH.signMessage(
-        param.path,
-        param.data,
-        param.sender,
-        param.isPersonalSign
-      )
+      json = await ETH.signMessage(param.path, param.data, param.sender, param.isPersonalSign)
     }
     if (arg.method === 'eth.signTransaction') {
       // console.log('param:')
@@ -614,7 +572,7 @@ async function callImKeyApi(arg: Record<string, unknown>, isNative = false) {
 }
 
 function callRpcApi(arg: Record<string, unknown>) {
-  return postData(IMKEY_MANAGER_ENDPOINT, arg).then((json) => {
+  return postData(IMKEY_MANAGER_ENDPOINT, arg).then(json => {
     if (json.error) {
       if (json.error.message.includes('ImkeyUserNotConfirmed')) {
         throw new Error('user not confirmed')
@@ -640,7 +598,7 @@ function postData(url: string, data: Record<string, unknown>) {
     mode: 'cors', // no-cors, cors, *same-origin
     redirect: 'follow', // manual, *follow, error
     referrer: 'no-referrer', // *client, no-referrer
-  }).then((response) => {
+  }).then(response => {
     if (response.status === 200) {
       return response.json()
     } else {
