@@ -60,8 +60,8 @@ export type Queue = [string, string][];
  * allows to override the warning function (defaults to console.warn)
  */
 export type RecordStoreOptions = {
-  autoSkipUnknownApdu: boolean;
-  warning: (arg0: string) => void;
+  autoSkipUnknownApdu: boolean
+  warning: (arg0: string) => void
 };
 const defaultOpts: RecordStoreOptions = {
   autoSkipUnknownApdu: false,
