@@ -86,7 +86,7 @@ export function toChecksumAddress(address: string): string {
 
 export function bytesToHex(bytes: any[]): string {
   const hexs = []
-  for (let hex = [], i = 0; i < bytes.length; i++) {
+  for (let i = 0; i < bytes.length; i++) {
     /* jshint ignore:start */
     hexs.push((bytes[i] >>> 4).toString(16))
     hexs.push((bytes[i] & 0xf).toString(16))

@@ -4,7 +4,7 @@ import Web3 from 'web3'
 import Web3HttpProvider from 'web3-providers-http'
 import TransportWebUSB from './hw-transport-webusb/TransportWebUSB'
 import ETH from './hw-app-eth/Eth'
-import { addPreZero, deleteZero, RLPEncodedTransaction } from "./common/utils";
+import { addPreZero, RLPEncodedTransaction } from "./common/utils";
 import ImKeyProvider from "@imkey/web3-provider"
 interface ProviderConnectInfo {
   readonly chainId: string
@@ -36,7 +36,7 @@ imKeyProvider.on('connect', (connectInfo: ProviderConnectInfo) => {
 
 const webUsbBtn = document.createElement('button')
 webUsbBtn.innerText = 'WebUSB Test'
-webUsbBtn.addEventListener('click', async (e) => {
+webUsbBtn.addEventListener('click', async () => {
   const transport = await TransportWebUSB.create()
   const eth = new ETH(transport)
   await eth.getAddress("m/44'/60'/0'/0/0").then((response) => {
@@ -91,7 +91,7 @@ webUsbBtn.addEventListener('click', async (e) => {
 })
 const btnChangeChain = document.createElement('button')
 btnChangeChain.innerText = 'changeChain'
-btnChangeChain.addEventListener('click', async (e) => {
+btnChangeChain.addEventListener('click', async () => {
   imKeyProvider
     .request({
       method: 'wallet_addEthereumChain',
@@ -117,7 +117,7 @@ btnChangeChain.addEventListener('click', async (e) => {
 
 const btn = document.createElement('button')
 btn.innerText = 'requestAccounts'
-btn.addEventListener('click', async (e) => {
+btn.addEventListener('click', async () => {
   function showResult(error: Error, result: string[]) {
     if (error !== null) {
       console.log('show error: ', error)
@@ -131,7 +131,7 @@ btn.addEventListener('click', async (e) => {
 
 const btnSignTransaction = document.createElement('button')
 btnSignTransaction.innerText = 'Sign Transaction'
-btnSignTransaction.addEventListener('click', (e) => {
+btnSignTransaction.addEventListener('click', () => {
   function showResult(error: Error, result: RLPEncodedTransaction) {
     if (error !== null) {
       console.log('show error: ', error)
@@ -159,15 +159,7 @@ btnSignTransaction.addEventListener('click', (e) => {
 
 const btnSendTransaction = document.createElement('button')
 btnSendTransaction.innerText = 'Send Transaction'
-btnSendTransaction.addEventListener('click', (e) => {
-  function showResult(error: Error, result: RLPEncodedTransaction) {
-    if (error !== null) {
-      console.log('show error: ', error)
-    } else {
-      console.log('show result: ', result)
-    }
-  }
-
+btnSendTransaction.addEventListener('click', () => {
   web3.eth
     .sendTransaction({
       from: '0x6031564e7b2F5cc33737807b2E58DaFF870B590b',
@@ -184,7 +176,7 @@ btnSendTransaction.addEventListener('click', (e) => {
 
 const btnSignPersonalMessage = document.createElement('button')
 btnSignPersonalMessage.innerText = 'Sign Personal Message'
-btnSignPersonalMessage.addEventListener('click', (e) => {
+btnSignPersonalMessage.addEventListener('click', () => {
   function showResult(error: Error, signature: string) {
     if (error !== null) {
       console.log('show error: ', error)
@@ -209,7 +201,7 @@ btnSignPersonalMessage.addEventListener('click', (e) => {
 
 const btnSignMessage = document.createElement('button')
 btnSignMessage.innerText = 'Sign Message'
-btnSignMessage.addEventListener('click', (e) => {
+btnSignMessage.addEventListener('click', () => {
   function showResult(error: Error, signature: string) {
     if (error !== null) {
       console.log('show error: ', error)
@@ -234,7 +226,7 @@ btnSignMessage.addEventListener('click', (e) => {
 
 const btnRequestEthRequestAccounts = document.createElement('button')
 btnRequestEthRequestAccounts.innerText = 'request eth_requestAccounts'
-btnRequestEthRequestAccounts.addEventListener('click', async (e) => {
+btnRequestEthRequestAccounts.addEventListener('click', async () => {
   imKeyProvider
     .request({ method: 'eth_requestAccounts', params: [] })
     .then((ret) => {
@@ -247,13 +239,13 @@ btnRequestEthRequestAccounts.addEventListener('click', async (e) => {
 
 const btnRequestEthSign = document.createElement('button')
 btnRequestEthSign.innerText = 'request eth_sign'
-btnRequestEthSign.addEventListener('click', async (e) => {
+btnRequestEthSign.addEventListener('click', async () => {
   imKeyProvider
     .request({
       method: 'eth_sign',
       params: [
-        '0x3535353535353535353535353535353535353535',
         '0x6031564e7b2F5cc33737807b2E58DaFF870B590b',
+        '0x3535353535353535353535353535353535353535',
       ],
     })
     .then((ret) => {
@@ -266,7 +258,7 @@ btnRequestEthSign.addEventListener('click', async (e) => {
 
 const btnRequestEthSignTransaction = document.createElement('button')
 btnRequestEthSignTransaction.innerText = 'request eth_signTransaction'
-btnRequestEthSignTransaction.addEventListener('click', async (e) => {
+btnRequestEthSignTransaction.addEventListener('click', async () => {
   imKeyProvider
     .request({
       method: 'eth_signTransaction',

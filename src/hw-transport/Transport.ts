@@ -45,7 +45,6 @@ export type Observer<Ev> = $ReadOnly<{
  * A **Descriptor** is a parametric type that is up to be determined for the implementation.
  * it can be for instance an ID, an file path, a URL,...
  */
-type Descriptor = any
 export default class Transport<Descriptor> {
   exchangeTimeout = 30000
   unresponsiveTimeout = 15000
