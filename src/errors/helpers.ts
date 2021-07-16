@@ -7,19 +7,12 @@
 /* eslint-disable no-prototype-builtins */
 const errorClasses = {}
 const deserializers = {}
-export const addCustomErrorDeserializer = (
-  name: string,
-  deserializer: (obj: any) => any
-): void => {
+export const addCustomErrorDeserializer = (name: string, deserializer: (obj: any) => any): void => {
   deserializers[name] = deserializer
 }
 type CustomErrorFunc = (message?: string, fields?: Record<string, any>) => void
 export const createCustomErrorClass = (name: string): CustomErrorFunc => {
-  const C: CustomErrorFunc = function CustomError(
-    this: any,
-    message,
-    fields
-  ): void {
+  const C: CustomErrorFunc = function CustomError(this: any, message, fields): void {
     Object.assign(this, fields)
     this.name = name
     this.message = message || name

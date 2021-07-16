@@ -31,10 +31,10 @@ const devicesList: DeviceModel[] = Object.values(devices)
  *
  */
 export const identifyUSBProductId = (usbProductId: number): DeviceModel => {
-  const legacy = devicesList.find((d) => d.legacyUsbProductId === usbProductId)
+  const legacy = devicesList.find(d => d.legacyUsbProductId === usbProductId)
   if (legacy) return legacy
   const mm = usbProductId >> 8
-  const deviceModel = devicesList.find((d) => d.productIdMM === mm)
+  const deviceModel = devicesList.find(d => d.productIdMM === mm)
   return deviceModel
 }
 
@@ -48,7 +48,7 @@ export async function requestImKeyDevice(): Promise<any> {
 export async function getImKeyDevices(): Promise<any> {
   // @ts-ignore
   const devices = await navigator.usb.getDevices()
-  return devices.filter((d) => d.vendorId === imKeyUSBVendorId)
+  return devices.filter(d => d.vendorId === imKeyUSBVendorId)
 }
 export async function getFirstImKeyDevice(): Promise<any> {
   const existingDevices = await getImKeyDevices()
@@ -60,5 +60,5 @@ export const isSupported = (): Promise<boolean> =>
   Promise.resolve(
     !!navigator && // @ts-ignore
     !!navigator.usb && // @ts-ignore
-      typeof navigator.usb.getDevices === 'function'
+      typeof navigator.usb.getDevices === 'function',
   )

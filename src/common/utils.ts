@@ -1,5 +1,5 @@
 import { ethers } from 'ethers'
-import {isNull, isUndefined, isString, isNumber} from 'underscore'
+import { isNull, isUndefined, isString, isNumber } from 'underscore'
 import BN from 'bn.js'
 import utf8 from 'utf8'
 
@@ -8,12 +8,12 @@ export function addressFromPubkey(pubkey: Buffer): string {
   return ethers.utils.getAddress('0x' + pubkeyHash.substring(26))
 }
 
-export function asUInt16BE(value:number) {
+export function asUInt16BE(value: number) {
   const b = Buffer.alloc(2)
   b.writeUInt16BE(value, 0)
   return b
 }
-export function asUInt8(value:number) {
+export function asUInt8(value: number) {
   const b = Buffer.alloc(1)
   b.writeUInt8(value, 0)
   return b
@@ -30,7 +30,7 @@ export function numberToHex(value: string | number | BN) {
 
   const numberBN = toBN(value)
   const result = numberBN.toString(16)
-  if(numberBN.lt(new BN(0))){
+  if (numberBN.lt(new BN(0))) {
     throw new Error('number "' + result + '" is -0x.')
   }
   return '0x' + result
@@ -41,7 +41,7 @@ export function toBN(x): BN {
   if (x instanceof BN) return x
 
   if (typeof x === 'string') {
-    if (x.indexOf('0x') === 0 ) {
+    if (x.indexOf('0x') === 0) {
       return new BN(x.replace('0x', ''), 16)
     }
   }
@@ -57,7 +57,6 @@ export function isHex(value: string | number): boolean {
 }
 
 export function hexToNumber(value: string): number | string {
-
   if (!value || (isString(value) && !isHexStrict(value))) {
     throw new Error('Given value "' + value + '" is not a valid hex string.')
   }
@@ -65,7 +64,6 @@ export function hexToNumber(value: string): number | string {
   return toBN(value).toNumber()
 }
 export function stringToNumber(value: string): number {
-
   if (!value || !isString(value)) {
     throw new Error('Given value "' + value + '" is not a string.')
   }
@@ -102,8 +100,8 @@ export function fromWei(value: string | number, unit?: string): string {
 export function toUtf8(value: string): string {
   return hexToUtf8(value)
 }
-function hexToUtf8(hexStr:string) {
-  if (!isHexStrict(hexStr)){
+function hexToUtf8(hexStr: string) {
+  if (!isHexStrict(hexStr)) {
     throw new Error('The parameter "' + hexStr + '" must be a valid HEX string.')
   }
   let hex = hexStr
@@ -139,17 +137,17 @@ export function parseArgsNum(num: string | number | BN): string {
   }
 }
 // 补齐64位，不够前面用0补齐
-export function addPreZero(num:number|string):string{
-  const t = (num+'').length;
-  let  s = '';
-  for(let i=0; i<64-t; i++){
-    s += '0';
+export function addPreZero(num: number | string): string {
+  const t = (num + '').length
+  let s = ''
+  for (let i = 0; i < 64 - t; i++) {
+    s += '0'
   }
-  return s+num;
+  return s + num
 }
 
-export function deleteZero(str:string):string{
-  return str.replace(/\b(0+)/gi,"");
+export function deleteZero(str: string): string {
+  return str.replace(/\b(0+)/gi, '')
 }
 export interface JsonRpcPayload {
   jsonrpc: string

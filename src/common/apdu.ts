@@ -1,13 +1,7 @@
 import { constants } from './constants'
 export class ETHApdu {
   selectApplet(): Buffer {
-    return genApdu(
-      0x00,
-      0xa4,
-      0x04,
-      0x00,
-      Buffer.from(constants.ETH_AID, 'hex')
-    )
+    return genApdu(0x00, 0xa4, 0x04, 0x00, Buffer.from(constants.ETH_AID, 'hex'))
   }
   getXPub(path: string, isVerify: boolean): Buffer {
     return getPubkey(path, 0x53, isVerify)
@@ -33,7 +27,7 @@ function genApdu(
   ins: number,
   p1: number,
   p2: number,
-  data: Buffer = Buffer.alloc(0)
+  data: Buffer = Buffer.alloc(0),
 ): Buffer {
   const response = Buffer.concat([
     Buffer.from([cla, ins, p1, p2]),
@@ -50,12 +44,7 @@ function getPubkey(path: string, ins: number, isVerify: boolean): Buffer {
 function registerAddress(ins: number, data: Buffer = Buffer.alloc(0)): Buffer {
   return genApdu(0x80, ins, 0x00, 0x00, data)
 }
-function signDigest(
-  ins: number,
-  index: number,
-  hashType: number,
-  path: string
-): Buffer {
+function signDigest(ins: number, index: number, hashType: number, path: string): Buffer {
   return genApdu(0x80, ins, index, hashType, Buffer.from(path, 'ascii'))
 }
 function prepareSign(ins: number, data: Buffer): Buffer[] {
@@ -72,13 +61,7 @@ function prepareSign(ins: number, data: Buffer): Buffer[] {
       lc = 0xf5
     }
     apduList.push(
-      genApdu(
-        0x80,
-        ins,
-        p1,
-        p2,
-        data.slice(i * constants.LC_MAX, i * constants.LC_MAX + lc)
-      )
+      genApdu(0x80, ins, p1, p2, data.slice(i * constants.LC_MAX, i * constants.LC_MAX + lc)),
     )
   }
   return apduList

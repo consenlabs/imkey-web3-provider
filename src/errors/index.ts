@@ -5,29 +5,20 @@ import {
   addCustomErrorDeserializer,
 } from './helpers'
 
-export {
-  serializeError,
-  deserializeError,
-  createCustomErrorClass,
-  addCustomErrorDeserializer,
-}
+export { serializeError, deserializeError, createCustomErrorClass, addCustomErrorDeserializer }
 
 export const DisconnectedDevice = createCustomErrorClass('DisconnectedDevice')
 export const DisconnectedDeviceDuringOperation = createCustomErrorClass(
-  'DisconnectedDeviceDuringOperation'
+  'DisconnectedDeviceDuringOperation',
 )
 
-export const TransportOpenUserCancelled = createCustomErrorClass(
-  'TransportOpenUserCancelled'
-)
+export const TransportOpenUserCancelled = createCustomErrorClass('TransportOpenUserCancelled')
 export const TransportInterfaceNotAvailable = createCustomErrorClass(
-  'TransportInterfaceNotAvailable'
+  'TransportInterfaceNotAvailable',
 )
-export const TransportRaceCondition = createCustomErrorClass(
-  'TransportRaceCondition'
-)
+export const TransportRaceCondition = createCustomErrorClass('TransportRaceCondition')
 export const TransportWebUSBGestureRequired = createCustomErrorClass(
-  'TransportWebUSBGestureRequired'
+  'TransportWebUSBGestureRequired',
 )
 
 /**
@@ -42,10 +33,7 @@ export function TransportError(this: any, message: string, id: string): void {
 }
 TransportError.prototype = new Error()
 
-addCustomErrorDeserializer(
-  'TransportError',
-  (e) => new TransportError(e.message, e.id)
-)
+addCustomErrorDeserializer('TransportError', e => new TransportError(e.message, e.id))
 
 export const StatusCodes = {
   OK: 0x9000,
@@ -117,8 +105,7 @@ export function getAltStatusMessage(code: number): string | undefined | null {
 export function TransportStatusError(this: any, statusCode: number): void {
   this.name = 'TransportStatusError'
   const statusText =
-    Object.keys(StatusCodes).find((k) => StatusCodes[k] === statusCode) ||
-    'UNKNOWN_ERROR'
+    Object.keys(StatusCodes).find(k => StatusCodes[k] === statusCode) || 'UNKNOWN_ERROR'
   const smsg = getAltStatusMessage(statusCode) || statusText
   const statusCodeStr = statusCode.toString(16)
   this.message = `imKey device: ${smsg} (0x${statusCodeStr})`
@@ -128,7 +115,4 @@ export function TransportStatusError(this: any, statusCode: number): void {
 }
 TransportStatusError.prototype = new Error()
 
-addCustomErrorDeserializer(
-  'TransportStatusError',
-  (e) => new TransportStatusError(e.statusCode)
-)
+addCustomErrorDeserializer('TransportStatusError', e => new TransportStatusError(e.statusCode))

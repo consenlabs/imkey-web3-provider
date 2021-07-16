@@ -5,14 +5,15 @@ import {
   numberToHex,
   fromWei,
   toChecksumAddress,
-  parseArgsNum, deleteZero
-} from "../common/utils";
+  parseArgsNum,
+  deleteZero,
+} from '../common/utils'
 import type Transport from '../hw-transport/Transport'
 import { encode } from 'rlp'
 import { ETHApdu } from '../common/apdu'
 import { ethers } from 'ethers'
 import secp256k1 from 'secp256k1'
-import { getTokenInfo } from "./erc20Utils";
+import { getTokenInfo } from './erc20Utils'
 
 type Transaction = {
   data: string
@@ -24,7 +25,7 @@ type Transaction = {
   chainId: string
   path: string
   symbol?: string
-  decimal?:string
+  decimal?: string
 }
 type Preview = {
   payment: string
@@ -58,7 +59,7 @@ export default class Eth {
    * eth.getAddress("44'/60'/0'/0/0").then(o => o.address)
    */
   async getAddress(
-    path: string
+    path: string,
   ): Promise<{
     address: string
     pubkey: string
@@ -83,7 +84,7 @@ export default class Eth {
    */
 
   async signTransaction(
-    transaction: Transaction
+    transaction: Transaction,
   ): Promise<{
     signature: string
     txhash: string
@@ -142,7 +143,7 @@ eth.signPersonalMessage("44'/60'/0'/0/0", Buffer.from("test").toString("hex")).t
     path: string,
     message: string,
     sender: string,
-    isPersonalSign: boolean
+    isPersonalSign: boolean,
   ): Promise<{
     signature: string
   }> {
@@ -155,19 +156,12 @@ eth.signPersonalMessage("44'/60'/0'/0/0", Buffer.from("test").toString("hex")).t
     }
     let data
     if (isPersonalSign) {
-      const header = Buffer.from(
-        'Ethereum Signed Message:\n' + messageToSign.length,
-        'ascii'
-      )
+      const header = Buffer.from('Ethereum Signed Message:\n' + messageToSign.length, 'ascii')
       data = Buffer.concat([header, messageToSign])
     } else {
       data = messageToSign
     }
-    const dataToSign = Buffer.concat([
-      asUInt8(1),
-      asUInt16BE(data.length),
-      data,
-    ])
+    const dataToSign = Buffer.concat([asUInt8(1), asUInt16BE(data.length), data])
     const apduPack = Buffer.concat([asUInt8(0), asUInt8(0), dataToSign])
     let toSend = []
     let response
@@ -190,24 +184,19 @@ eth.signPersonalMessage("44'/60'/0'/0/0", Buffer.from("test").toString("hex")).t
     // @ts-ignore
     const s = normalizesSig.slice(32, 32 + 32).toString('hex')
     // return { v, r, s };
-    const signature ='0x' +  r + s + v
+    const signature = '0x' + r + s + v
     return { signature }
   }
 }
-function getRecID(
-  data: Buffer,
-  normalizesSig: Uint8Array,
-  pubkey: string
-): number {
+function getRecID(data: Buffer, normalizesSig: Uint8Array, pubkey: string): number {
   let recId = 0
 
   const dataHash = Buffer.from(ethers.utils.keccak256(data).substring(2), 'hex')
   for (let i = 0; i <= 3; i++) {
     try {
       if (
-        Buffer.from(
-          secp256k1.ecdsaRecover(normalizesSig, i, dataHash, false)
-        ).toString('hex') === pubkey
+        Buffer.from(secp256k1.ecdsaRecover(normalizesSig, i, dataHash, false)).toString('hex') ===
+        pubkey
       ) {
         recId = i
         break
@@ -221,7 +210,7 @@ function getRecID(
 
 function genPreview(transaction: Transaction, address: string): Preview {
   let symbol = !transaction.symbol ? 'ETH' : transaction.symbol
-  let decimal = !transaction.decimal ? '18': transaction.decimal
+  let decimal = !transaction.decimal ? '18' : transaction.decimal
 
   const gasLimit = parseArgsNum(transaction.gasLimit)
   const gasPrice = parseArgsNum(transaction.gasPrice)
@@ -230,27 +219,26 @@ function genPreview(transaction: Transaction, address: string): Preview {
   fee = fromWei(fee, 'gwei') // to Gwei
   const temp = Math.ceil(Number(fee))
   fee = (BigInt(temp) * BigInt(1000000000)).toString() // to ether
-  fee = fromWei(fee) + ' ' + "ETH"  //fee 默认就是显示ETH
+  fee = fromWei(fee) + ' ' + 'ETH' //fee 默认就是显示ETH
   let to = toChecksumAddress(transaction.to)
   let value = parseArgsNum(transaction.value)
-  let valueInWei = fromWei(value,decimal)
-  if(transaction.value==="0"||transaction.value==="0x00"){
+  let valueInWei = fromWei(value, decimal)
+  if (transaction.value === '0' || transaction.value === '0x00') {
     //代币转账
     //通过transaction.to 合约地址 查询代币的代币名称和decimal
-    const zrxInfo = getTokenInfo(transaction.to);
+    const zrxInfo = getTokenInfo(transaction.to)
     decimal = zrxInfo.decimals.toString()
     symbol = zrxInfo.ticker.toString()
     //解析data数据获取要转账的地址和金额
     //  data: '0x' + 'a9059cbb' + addPreZero('3b11f5CAB8362807273e1680890A802c5F1B15a8') + addPreZero(web3.utils.toHex(1000000000000000000).substr(2)),
-    if(transaction.data.startsWith("0xa9059cbb")){
-      to = "0x"+deleteZero(transaction.data.substring(10,10+64))
-      value = "0x"+deleteZero(transaction.data.substring(10+64,10+64+64))
-      valueInWei =  fromWei(parseArgsNum(value),decimal)
-    }else{
+    if (transaction.data.startsWith('0xa9059cbb')) {
+      to = '0x' + deleteZero(transaction.data.substring(10, 10 + 64))
+      value = '0x' + deleteZero(transaction.data.substring(10 + 64, 10 + 64 + 64))
+      valueInWei = fromWei(parseArgsNum(value), decimal)
+    } else {
       //如果不是转账交易，就后续当signMessage处理
       return null
     }
-
   }
 
   const preview = {
@@ -287,13 +275,10 @@ function genRawTransaction(transaction: Transaction): Buffer {
   }
   return rawTransaction
 }
-function genApdu(
-  rawTransaction: Buffer,
-  preview: Preview,
-  transaction: Transaction
-): any[] {
+function genApdu(rawTransaction: Buffer, preview: Preview, transaction: Transaction): any[] {
   let apduList = []
-  if(preview == null){//说明是合约交易的非转账交易，不显示签名信息，直接显示确认签名，调用signMessage接口
+  if (preview == null) {
+    //说明是合约交易的非转账交易，不显示签名信息，直接显示确认签名，调用signMessage接口
     const dataToSign = Buffer.concat([
       asUInt8(1),
       asUInt16BE(rawTransaction.length),
@@ -302,7 +287,7 @@ function genApdu(
     const apduPack = Buffer.concat([asUInt8(0), asUInt8(0), dataToSign])
     apduList = ethApdu.preparePersonalSign(apduPack)
     apduList.push(ethApdu.personalSign(transaction.path))
-  }else{
+  } else {
     const data = Buffer.concat([
       asUInt8(1),
       asUInt16BE(rawTransaction.length),
