@@ -259,7 +259,6 @@ function genPreview(transaction: Transaction, address: string): Preview {
     sender: address,
     fee: fee,
   }
-console.log(preview)
   return preview
 }
 function genRawTransaction(transaction: Transaction): Buffer {
@@ -304,7 +303,6 @@ function genApdu(
     apduList = ethApdu.preparePersonalSign(apduPack)
     apduList.push(ethApdu.personalSign(transaction.path))
   }else{
-    console.log(rawTransaction.toString("hex"))
     const data = Buffer.concat([
       asUInt8(1),
       asUInt16BE(rawTransaction.length),
@@ -319,8 +317,6 @@ function genApdu(
       asUInt8(preview.fee.length),
       Buffer.from(preview.fee, 'ascii'),
     ])
-    console.log(data.toString("hex"))
-    console.log(transaction.path)
     const apduPack = Buffer.concat([asUInt8(0), asUInt8(1), asUInt8(0), data])
     apduList = ethApdu.prepareSign(apduPack)
     apduList.push(ethApdu.signDigest(transaction.path))

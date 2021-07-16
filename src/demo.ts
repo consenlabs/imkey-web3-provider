@@ -37,11 +37,6 @@ imKeyProvider.on('connect', (connectInfo: ProviderConnectInfo) => {
 const webUsbBtn = document.createElement('button')
 webUsbBtn.innerText = 'WebUSB Test'
 webUsbBtn.addEventListener('click', async (e) => {
-  // 0xa9059cbb
-  const address = "0000000000000000000000003b11f5CAB8362807273e1680890A802c5F1B15a8"
-  const amount = "0000000000000000000000000000000000000000000000000de0b6b3a7640000"
-  console.log("address:"+deleteZero(address))
-  console.log("amount:"+deleteZero(amount))
   const transport = await TransportWebUSB.create()
   const eth = new ETH(transport)
   await eth.getAddress("m/44'/60'/0'/0/0").then((response) => {

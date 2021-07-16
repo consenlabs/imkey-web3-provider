@@ -146,21 +146,21 @@ export default class ImKeyProvider extends EventEmitter {
     })
     this.symbol = !config.symbol ? 'ETH' : config.symbol
     this.decimals = !config.decimals ? 18 : config.decimals
-    console.log(this)
+    // console.log(this)
   }
 
   async callInnerProviderApi(req: JsonRpcPayload): Promise<any> {
-    console.log('req:' + req)
-    console.log(JSON.stringify(req))
+    // console.log('req:' + req)
+    // console.log(JSON.stringify(req))
     return new Promise((resolve, reject) => {
       this.httpProvider.send(
         req,
         (error: Error | null, result?: JsonRpcResponse) => {
           if (error) {
-            console.log(error)
+            // console.log(error)
             reject(createProviderRpcError(4001, error.message))
           } else {
-            console.log(result)
+            // console.log(result)
             resolve(result.result)
           }
         }
@@ -169,7 +169,7 @@ export default class ImKeyProvider extends EventEmitter {
   }
 
   async enable() {
-    console.log('enable')
+    // console.log('enable')
     transport = await TransportWebUSB.create()
     ETH = new Eth(transport)
     const accounts = await this.imKeyRequestAccounts(requestId++)
@@ -189,7 +189,7 @@ export default class ImKeyProvider extends EventEmitter {
   }
 
   request = async (args: RequestArguments): Promise<any> => {
-    console.log('request:\n' + JSON.stringify(args))
+    // console.log('request:\n' + JSON.stringify(args))
     switch (args.method) {
       case 'eth_getChainId': {
         return this.chainId
@@ -267,7 +267,7 @@ export default class ImKeyProvider extends EventEmitter {
         return null
       }
       default: {
-        console.log('request default')
+        // console.log('request default')
         const payload = {
           jsonrpc: '2.0',
           method: args.method,
@@ -279,7 +279,7 @@ export default class ImKeyProvider extends EventEmitter {
     }
   }
   changeChain(args: AddEthereumChainParameter) {
-    console.log('wallet_addEthereumChain: ', JSON.stringify(args))
+    // console.log('wallet_addEthereumChain: ', JSON.stringify(args))
     this.chainId = stringToNumber(parseArgsNum(args.chainId))
     this.decimals = args.nativeCurrency.decimals
     this.symbol = args.nativeCurrency.symbol
@@ -298,7 +298,7 @@ export default class ImKeyProvider extends EventEmitter {
     args: JsonRpcPayload,
     callback: (err: Error | null, ret: any) => void
   ) {
-    console.log('sendAsync:\n' + JSON.stringify(args))
+    // console.log('sendAsync:\n' + JSON.stringify(args))
     // if(args.method !== 'eth_call' && args.method !== 'eth_accounts'){
     //   console.log('return ' + args.method)
     //   return
@@ -308,8 +308,8 @@ export default class ImKeyProvider extends EventEmitter {
     // }else{
     this.request(args)
       .then((ret) => {
-        console.log('request ret:' + ret + ' method:' + args.method)
-        console.log(JSON.stringify(ret))
+        // console.log('request ret:' + ret + ' method:' + args.method)
+        // console.log(JSON.stringify(ret))
         // if(args.method === 'eth_getTransactionReceipt'){
         //   console.log('diff ret:' + typeof ret)
 
@@ -320,7 +320,7 @@ export default class ImKeyProvider extends EventEmitter {
         // }
       })
       .catch((err) => {
-        console.log('request err' + err)
+        // console.log('request err' + err)
         callback(err, null)
       })
     // }
@@ -333,7 +333,7 @@ export default class ImKeyProvider extends EventEmitter {
   async requestTransactionReceipt(paload: JsonRpcPayload) {
     for (let i = 0; i < 10; i++) {
       await sleep(1000)
-      console.log('requestTransactionReceipt ' + i)
+      // console.log('requestTransactionReceipt ' + i)
       let ret = await this.callInnerProviderApi(paload)
       if (ret) {
         return ret
@@ -428,7 +428,7 @@ export default class ImKeyProvider extends EventEmitter {
     if (transactionConfig.gas) {
       gasLimit = parseArgsNum(transactionConfig.gas)
     } else {
-      console.log('transactionConfig.gas:' + transactionConfig.gas)
+      // console.log('transactionConfig.gas:' + transactionConfig.gas)
       const gasRet: string = await this.callInnerProviderApi(
         createJsonRpcRequest('eth_estimateGas', [
           {
@@ -441,7 +441,7 @@ export default class ImKeyProvider extends EventEmitter {
           },
         ])
       )
-      console.log('gasRet:' + gasRet)
+      // console.log('gasRet:' + gasRet)
       gasLimit = parseArgsNum(gasRet)
     }
 
@@ -571,15 +571,15 @@ async function sleep(ms) {
 
 async function callImKeyApi(arg: Record<string, unknown>, isNative = false) {
   if (isNative) {
-    console.log('native222')
-    console.log(JSON.stringify(arg))
+    // console.log('native222')
+    // console.log(JSON.stringify(arg))
     transport = await TransportWebUSB.create()
     ETH = new Eth(transport)
     let param = JSON.parse(JSON.stringify(arg)).params
     let json
     if (arg.method === 'eth.signMessage') {
-      console.log('param:')
-      console.log(param)
+      // console.log('param:')
+      // console.log(param)
       json = await ETH.signMessage(
         param.path,
         param.data,
@@ -588,16 +588,16 @@ async function callImKeyApi(arg: Record<string, unknown>, isNative = false) {
       )
     }
     if (arg.method === 'eth.signTransaction') {
-      console.log('param:')
-      console.log(param)
+      // console.log('param:')
+      // console.log(param)
       json = await ETH.signTransaction(param.transaction)
     }
     if (arg.method === 'eth.getAddress') {
       json = await ETH.getAddress(param.path)
     }
     await transport.close()
-    console.log('返回的数据：')
-    console.log(json)
+    // console.log('返回的数据：')
+    // console.log(json)
     if (json.error) {
       if (json.error.message.includes('ImkeyUserNotConfirmed')) {
         throw new Error('user not confirmed')
@@ -608,7 +608,7 @@ async function callImKeyApi(arg: Record<string, unknown>, isNative = false) {
       return { result: json }
     }
   } else {
-    console.log('rpc')
+    // console.log('rpc')
     return callRpcApi(arg)
   }
 }

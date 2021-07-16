@@ -35,14 +35,14 @@ export const createTransportReplayer = (
     }
 
     exchange(apdu: Buffer): Promise<Buffer> {
-      console.log("apdu", apdu.toString("hex"));
+      // console.log("apdu", apdu.toString("hex"));
 
       try {
         const buffer = recordStore.replayExchange(apdu);
-        console.log("apdu", buffer.toString("hex"));
+        // console.log("apdu", buffer.toString("hex"));
         return Promise.resolve(buffer);
       } catch (e) {
-        console.log("apdu-error", String(e));
+        // console.log("apdu-error", String(e));
         return Promise.reject(e);
       }
     }
