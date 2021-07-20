@@ -102,17 +102,6 @@ function parseArgsNum(num: string | number | BN) {
   }
 }
 
-function isNative() {
-  return true
-  // if(apirouter&&dialog){
-  //   console.log('isNative true')
-  //   return true
-  // }else{
-  //   console.log('isNative false')
-  //   return false
-  // }
-}
-
 export default class ImKeyProvider extends EventEmitter {
   // @ts-ignore
   private httpProvider: Web3HttpProvider.HttpProvider
@@ -317,17 +306,14 @@ export default class ImKeyProvider extends EventEmitter {
     callback?: (error: Error, ret: any) => void,
   ) {
     try {
-      const ret = await callImKeyApi(
-        {
-          jsonrpc: '2.0',
-          method: 'eth.getAddress',
-          params: {
-            path: IMKEY_ETH_PATH,
-          },
-          id: requestId++,
+      const ret = await callImKeyApi({
+        jsonrpc: '2.0',
+        method: 'eth.getAddress',
+        params: {
+          path: IMKEY_ETH_PATH,
         },
-        isNative(),
-      )
+        id: requestId++,
+      })
       callback?.(null, [ret.result?.address])
       return [ret.result?.address]
     } catch (error) {
@@ -419,28 +405,25 @@ export default class ImKeyProvider extends EventEmitter {
     const valueInWei = fromWei(value)
 
     try {
-      const ret = await callImKeyApi(
-        {
-          jsonrpc: '2.0',
-          method: 'eth.signTransaction',
-          params: {
-            transaction: {
-              data: transactionConfig.data,
-              gasLimit,
-              gasPrice: gasPriceDec,
-              nonce,
-              to,
-              value,
-              chainId,
-              path: IMKEY_ETH_PATH,
-              symbol: this.symbol,
-              decimal: this.decimals.toString(),
-            },
+      const ret = await callImKeyApi({
+        jsonrpc: '2.0',
+        method: 'eth.signTransaction',
+        params: {
+          transaction: {
+            data: transactionConfig.data,
+            gasLimit,
+            gasPrice: gasPriceDec,
+            nonce,
+            to,
+            value,
+            chainId,
+            path: IMKEY_ETH_PATH,
+            symbol: this.symbol,
+            decimal: this.decimals.toString(),
           },
-          id: requestId++,
         },
-        isNative(),
-      )
+        id: requestId++,
+      })
       let signature = ret.result?.signature
       if (!signature.startsWith('0x')) {
         signature = '0x' + signature
@@ -503,20 +486,17 @@ export default class ImKeyProvider extends EventEmitter {
     const checksumAddress = toChecksumAddress(address as string)
 
     try {
-      const ret = await callImKeyApi(
-        {
-          jsonrpc: '2.0',
-          method: 'eth.signMessage',
-          params: {
-            data: data,
-            isPersonalSign,
-            sender: checksumAddress,
-            path: IMKEY_ETH_PATH,
-          },
-          id: requestId++,
+      const ret = await callImKeyApi({
+        jsonrpc: '2.0',
+        method: 'eth.signMessage',
+        params: {
+          data: data,
+          isPersonalSign,
+          sender: checksumAddress,
+          path: IMKEY_ETH_PATH,
         },
-        isNative(),
-      )
+        id: requestId++,
+      })
       let sigRet = ret.result?.signature.toLowerCase()
       if (!sigRet.startsWith('0x')) {
         sigRet = '0x' + sigRet
@@ -535,57 +515,38 @@ async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
-async function callImKeyApi(arg: Record<string, unknown>, isNative = false) {
-  if (isNative) {
-    // console.log('native222')
-    // console.log(JSON.stringify(arg))
-    transport = await TransportWebUSB.create()
-    ETH = new Eth(transport)
-    let param = JSON.parse(JSON.stringify(arg)).params
-    let json
-    if (arg.method === 'eth.signMessage') {
-      // console.log('param:')
-      // console.log(param)
-      json = await ETH.signMessage(param.path, param.data, param.sender, param.isPersonalSign)
-    }
-    if (arg.method === 'eth.signTransaction') {
-      // console.log('param:')
-      // console.log(param)
-      json = await ETH.signTransaction(param.transaction)
-    }
-    if (arg.method === 'eth.getAddress') {
-      json = await ETH.getAddress(param.path)
-    }
-    await transport.close()
-    // console.log('返回的数据：')
-    // console.log(json)
-    if (json.error) {
-      if (json.error.message.includes('ImkeyUserNotConfirmed')) {
-        throw new Error('user not confirmed')
-      } else {
-        throw new Error(json.error.message)
-      }
+async function callImKeyApi(arg: Record<string, unknown>) {
+  // console.log('native222')
+  // console.log(JSON.stringify(arg))
+  transport = await TransportWebUSB.create()
+  ETH = new Eth(transport)
+  let param = JSON.parse(JSON.stringify(arg)).params
+  let json
+  if (arg.method === 'eth.signMessage') {
+    // console.log('param:')
+    // console.log(param)
+    json = await ETH.signMessage(param.path, param.data, param.sender, param.isPersonalSign)
+  }
+  if (arg.method === 'eth.signTransaction') {
+    // console.log('param:')
+    // console.log(param)
+    json = await ETH.signTransaction(param.transaction)
+  }
+  if (arg.method === 'eth.getAddress') {
+    json = await ETH.getAddress(param.path)
+  }
+  await transport.close()
+  // console.log('返回的数据：')
+  // console.log(json)
+  if (json.error) {
+    if (json.error.message.includes('ImkeyUserNotConfirmed')) {
+      throw new Error('user not confirmed')
     } else {
-      return { result: json }
+      throw new Error(json.error.message)
     }
   } else {
-    // console.log('rpc')
-    return callRpcApi(arg)
+    return { result: json }
   }
-}
-
-function callRpcApi(arg: Record<string, unknown>) {
-  return postData(IMKEY_MANAGER_ENDPOINT, arg).then(json => {
-    if (json.error) {
-      if (json.error.message.includes('ImkeyUserNotConfirmed')) {
-        throw new Error('user not confirmed')
-      } else {
-        throw new Error(json.error.message)
-      }
-    } else {
-      return json
-    }
-  })
 }
 
 function postData(url: string, data: Record<string, unknown>) {
