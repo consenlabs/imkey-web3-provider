@@ -135,19 +135,14 @@ export default class ImKeyProvider extends EventEmitter {
     })
     this.symbol = !config.symbol ? 'ETH' : config.symbol
     this.decimals = !config.decimals ? 18 : config.decimals
-    // console.log(this)
   }
 
   async callInnerProviderApi(req: JsonRpcPayload): Promise<any> {
-    // console.log('req:' + req)
-    // console.log(JSON.stringify(req))
     return new Promise((resolve, reject) => {
       this.httpProvider.send(req, (error: Error | null, result?: JsonRpcResponse) => {
         if (error) {
-          // console.log(error)
           reject(createProviderRpcError(4001, error.message))
         } else {
-          // console.log(result)
           resolve(result.result)
         }
       })
@@ -155,7 +150,6 @@ export default class ImKeyProvider extends EventEmitter {
   }
 
   async enable() {
-    // console.log('enable')
     transport = await TransportWebUSB.create()
     ETH = new Eth(transport)
     const accounts = await this.imKeyRequestAccounts(requestId++)
@@ -168,12 +162,12 @@ export default class ImKeyProvider extends EventEmitter {
       return accounts
     }
   }
+  
   stop() {
     transport.close()
   }
 
   request = async (args: RequestArguments): Promise<any> => {
-    // console.log('request:\n' + JSON.stringify(args))
     switch (args.method) {
       case 'eth_getChainId': {
         return this.chainId
@@ -230,7 +224,6 @@ export default class ImKeyProvider extends EventEmitter {
         return null
       }
       default: {
-        // console.log('request default')
         const payload = {
           jsonrpc: '2.0',
           method: args.method,
@@ -242,7 +235,6 @@ export default class ImKeyProvider extends EventEmitter {
     }
   }
   changeChain(args: AddEthereumChainParameter) {
-    // console.log('wallet_addEthereumChain: ', JSON.stringify(args))
     this.chainId = stringToNumber(parseArgsNum(args.chainId))
     this.decimals = args.nativeCurrency.decimals
     this.symbol = args.nativeCurrency.symbol
@@ -258,42 +250,18 @@ export default class ImKeyProvider extends EventEmitter {
     }
   }
   sendAsync(args: JsonRpcPayload, callback: (err: Error | null, ret: any) => void) {
-    // console.log('sendAsync:\n' + JSON.stringify(args))
-    // if(args.method !== 'eth_call' && args.method !== 'eth_accounts'){
-    //   console.log('return ' + args.method)
-    //   return
-    // }
-    // if(args.method === 'eth_coinbase'){
-    //   callback(null, createJsonRpcResponse(args.id, '0x407d73d8a49eeb85d32cf465507dd71d507100c1'))
-    // }else{
     this.request(args)
       .then(ret => {
-        // console.log('request ret:' + ret + ' method:' + args.method)
-        // console.log(JSON.stringify(ret))
-        // if(args.method === 'eth_getTransactionReceipt'){
-        //   console.log('diff ret:' + typeof ret)
-
-        //   callback(null, createJsonRpcResponse(args.id, {"blockHash":"0x09e5d45158e71a6c07ac10142c3abfb24078de838bf8d3b5b6641fac67f42684","blockNumber":"0x15f56e4","contractAddress":null,"cumulativeGasUsed":"0xb64b5","from":"0x6031564e7b2f5cc33737807b2e58daff870b590b","gasUsed":"0x5208","logs":[],"logsBloom":"0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000","status":"0x2","to":"0xd6a6bc087d12ae864491240bf457856c71d48eb8","transactionHash":"0xbc86e19ae2856061b4fa38bba6aa0e60d02e7d54be738de088241df820c6ee24","transactionIndex":"0x2"}))
-        //   // callback(null, createJsonRpcResponse(args.id, ret + ''))
-        // }else{
         callback(null, createJsonRpcResponse(args.id, ret))
-        // }
       })
       .catch(err => {
-        // console.log('request err' + err)
         callback(err, null)
       })
-    // }
-
-    // this.request(args)
-    // .then((ret) => callback(null, createJsonRpcResponse(args.id, ret)))
-    // .catch((err) => callback(err, null));
   }
 
   async requestTransactionReceipt(paload: JsonRpcPayload) {
     for (let i = 0; i < 10; i++) {
       await sleep(1000)
-      // console.log('requestTransactionReceipt ' + i)
       let ret = await this.callInnerProviderApi(paload)
       if (ret) {
         return ret
