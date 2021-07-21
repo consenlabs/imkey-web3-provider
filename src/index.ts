@@ -45,10 +45,9 @@ interface AddEthereumChainParameter {
 
 interface RequestArguments {
   method: string
-  params: any[]
+  params?: any[]  | undefined
 }
 
-const IMKEY_MANAGER_ENDPOINT = 'http://localhost:8081/api/imkey'
 const IMKEY_ETH_PATH = "m/44'/60'/0'/0/0"
 let requestId = 0
 let ETH

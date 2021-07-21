@@ -150,9 +150,9 @@ export function deleteZero(str: string): string {
   return str.replace(/\b(0+)/gi, '')
 }
 export interface JsonRpcPayload {
-  jsonrpc: string
+  jsonrpc?: string
   method: string
-  params: any[]
+  params?: any[] | undefined
   id?: string | number
 }
 
