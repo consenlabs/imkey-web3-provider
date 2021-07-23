@@ -45,10 +45,9 @@ interface AddEthereumChainParameter {
 
 interface RequestArguments {
   method: string
-  params: any[]
+  params?: any[]  | undefined
 }
 
-const IMKEY_MANAGER_ENDPOINT = 'http://localhost:8081/api/imkey'
 const IMKEY_ETH_PATH = "m/44'/60'/0'/0/0"
 let requestId = 0
 let ETH
@@ -102,17 +101,6 @@ function parseArgsNum(num: string | number | BN) {
   }
 }
 
-function isNative() {
-  return true
-  // if(apirouter&&dialog){
-  //   console.log('isNative true')
-  //   return true
-  // }else{
-  //   console.log('isNative false')
-  //   return false
-  // }
-}
-
 export default class ImKeyProvider extends EventEmitter {
   // @ts-ignore
   private httpProvider: Web3HttpProvider.HttpProvider
@@ -146,19 +134,14 @@ export default class ImKeyProvider extends EventEmitter {
     })
     this.symbol = !config.symbol ? 'ETH' : config.symbol
     this.decimals = !config.decimals ? 18 : config.decimals
-    // console.log(this)
   }
 
   async callInnerProviderApi(req: JsonRpcPayload): Promise<any> {
-    // console.log('req:' + req)
-    // console.log(JSON.stringify(req))
     return new Promise((resolve, reject) => {
       this.httpProvider.send(req, (error: Error | null, result?: JsonRpcResponse) => {
         if (error) {
-          // console.log(error)
           reject(createProviderRpcError(4001, error.message))
         } else {
-          // console.log(result)
           resolve(result.result)
         }
       })
@@ -166,7 +149,6 @@ export default class ImKeyProvider extends EventEmitter {
   }
 
   async enable() {
-    // console.log('enable')
     transport = await TransportWebUSB.create()
     ETH = new Eth(transport)
     const accounts = await this.imKeyRequestAccounts(requestId++)
@@ -179,12 +161,12 @@ export default class ImKeyProvider extends EventEmitter {
       return accounts
     }
   }
+  
   stop() {
     transport.close()
   }
 
   request = async (args: RequestArguments): Promise<any> => {
-    // console.log('request:\n' + JSON.stringify(args))
     switch (args.method) {
       case 'eth_getChainId': {
         return this.chainId
@@ -241,7 +223,6 @@ export default class ImKeyProvider extends EventEmitter {
         return null
       }
       default: {
-        // console.log('request default')
         const payload = {
           jsonrpc: '2.0',
           method: args.method,
@@ -253,7 +234,6 @@ export default class ImKeyProvider extends EventEmitter {
     }
   }
   changeChain(args: AddEthereumChainParameter) {
-    // console.log('wallet_addEthereumChain: ', JSON.stringify(args))
     this.chainId = stringToNumber(parseArgsNum(args.chainId))
     this.decimals = args.nativeCurrency.decimals
     this.symbol = args.nativeCurrency.symbol
@@ -269,42 +249,18 @@ export default class ImKeyProvider extends EventEmitter {
     }
   }
   sendAsync(args: JsonRpcPayload, callback: (err: Error | null, ret: any) => void) {
-    // console.log('sendAsync:\n' + JSON.stringify(args))
-    // if(args.method !== 'eth_call' && args.method !== 'eth_accounts'){
-    //   console.log('return ' + args.method)
-    //   return
-    // }
-    // if(args.method === 'eth_coinbase'){
-    //   callback(null, createJsonRpcResponse(args.id, '0x407d73d8a49eeb85d32cf465507dd71d507100c1'))
-    // }else{
     this.request(args)
       .then(ret => {
-        // console.log('request ret:' + ret + ' method:' + args.method)
-        // console.log(JSON.stringify(ret))
-        // if(args.method === 'eth_getTransactionReceipt'){
-        //   console.log('diff ret:' + typeof ret)
-
-        //   callback(null, createJsonRpcResponse(args.id, {"blockHash":"0x09e5d45158e71a6c07ac10142c3abfb24078de838bf8d3b5b6641fac67f42684","blockNumber":"0x15f56e4","contractAddress":null,"cumulativeGasUsed":"0xb64b5","from":"0x6031564e7b2f5cc33737807b2e58daff870b590b","gasUsed":"0x5208","logs":[],"logsBloom":"0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000","status":"0x2","to":"0xd6a6bc087d12ae864491240bf457856c71d48eb8","transactionHash":"0xbc86e19ae2856061b4fa38bba6aa0e60d02e7d54be738de088241df820c6ee24","transactionIndex":"0x2"}))
-        //   // callback(null, createJsonRpcResponse(args.id, ret + ''))
-        // }else{
         callback(null, createJsonRpcResponse(args.id, ret))
-        // }
       })
       .catch(err => {
-        // console.log('request err' + err)
         callback(err, null)
       })
-    // }
-
-    // this.request(args)
-    // .then((ret) => callback(null, createJsonRpcResponse(args.id, ret)))
-    // .catch((err) => callback(err, null));
   }
 
   async requestTransactionReceipt(paload: JsonRpcPayload) {
     for (let i = 0; i < 10; i++) {
       await sleep(1000)
-      // console.log('requestTransactionReceipt ' + i)
       let ret = await this.callInnerProviderApi(paload)
       if (ret) {
         return ret
@@ -317,17 +273,14 @@ export default class ImKeyProvider extends EventEmitter {
     callback?: (error: Error, ret: any) => void,
   ) {
     try {
-      const ret = await callImKeyApi(
-        {
-          jsonrpc: '2.0',
-          method: 'eth.getAddress',
-          params: {
-            path: IMKEY_ETH_PATH,
-          },
-          id: requestId++,
+      const ret = await callImKeyApi({
+        jsonrpc: '2.0',
+        method: 'eth.getAddress',
+        params: {
+          path: IMKEY_ETH_PATH,
         },
-        isNative(),
-      )
+        id: requestId++,
+      })
       callback?.(null, [ret.result?.address])
       return [ret.result?.address]
     } catch (error) {
@@ -341,8 +294,8 @@ export default class ImKeyProvider extends EventEmitter {
     transactionConfig: TransactionConfig,
     callback?: (error: Error, ret: any) => void,
   ) {
-    if(!transactionConfig.value){
-      transactionConfig.value = "0x0"
+    if (!transactionConfig.value) {
+      transactionConfig.value = '0x0'
     }
     if (!transactionConfig.to || !transactionConfig.value) {
       throw createProviderRpcError(-32602, 'expected to,value')
@@ -419,28 +372,25 @@ export default class ImKeyProvider extends EventEmitter {
     const valueInWei = fromWei(value)
 
     try {
-      const ret = await callImKeyApi(
-        {
-          jsonrpc: '2.0',
-          method: 'eth.signTransaction',
-          params: {
-            transaction: {
-              data: transactionConfig.data,
-              gasLimit,
-              gasPrice: gasPriceDec,
-              nonce,
-              to,
-              value,
-              chainId,
-              path: IMKEY_ETH_PATH,
-              symbol: this.symbol,
-              decimal: this.decimals.toString(),
-            },
+      const ret = await callImKeyApi({
+        jsonrpc: '2.0',
+        method: 'eth.signTransaction',
+        params: {
+          transaction: {
+            data: transactionConfig.data,
+            gasLimit,
+            gasPrice: gasPriceDec,
+            nonce,
+            to,
+            value,
+            chainId,
+            path: IMKEY_ETH_PATH,
+            symbol: this.symbol,
+            decimal: this.decimals.toString(),
           },
-          id: requestId++,
         },
-        isNative(),
-      )
+        id: requestId++,
+      })
       let signature = ret.result?.signature
       if (!signature.startsWith('0x')) {
         signature = '0x' + signature
@@ -503,20 +453,17 @@ export default class ImKeyProvider extends EventEmitter {
     const checksumAddress = toChecksumAddress(address as string)
 
     try {
-      const ret = await callImKeyApi(
-        {
-          jsonrpc: '2.0',
-          method: 'eth.signMessage',
-          params: {
-            data: data,
-            isPersonalSign,
-            sender: checksumAddress,
-            path: IMKEY_ETH_PATH,
-          },
-          id: requestId++,
+      const ret = await callImKeyApi({
+        jsonrpc: '2.0',
+        method: 'eth.signMessage',
+        params: {
+          data: data,
+          isPersonalSign,
+          sender: checksumAddress,
+          path: IMKEY_ETH_PATH,
         },
-        isNative(),
-      )
+        id: requestId++,
+      })
       let sigRet = ret.result?.signature.toLowerCase()
       if (!sigRet.startsWith('0x')) {
         sigRet = '0x' + sigRet
@@ -535,57 +482,38 @@ async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
-async function callImKeyApi(arg: Record<string, unknown>, isNative = false) {
-  if (isNative) {
-    // console.log('native222')
-    // console.log(JSON.stringify(arg))
-    transport = await TransportWebUSB.create()
-    ETH = new Eth(transport)
-    let param = JSON.parse(JSON.stringify(arg)).params
-    let json
-    if (arg.method === 'eth.signMessage') {
-      // console.log('param:')
-      // console.log(param)
-      json = await ETH.signMessage(param.path, param.data, param.sender, param.isPersonalSign)
-    }
-    if (arg.method === 'eth.signTransaction') {
-      // console.log('param:')
-      // console.log(param)
-      json = await ETH.signTransaction(param.transaction)
-    }
-    if (arg.method === 'eth.getAddress') {
-      json = await ETH.getAddress(param.path)
-    }
-    await transport.close()
-    // console.log('返回的数据：')
-    // console.log(json)
-    if (json.error) {
-      if (json.error.message.includes('ImkeyUserNotConfirmed')) {
-        throw new Error('user not confirmed')
-      } else {
-        throw new Error(json.error.message)
-      }
+async function callImKeyApi(arg: Record<string, unknown>) {
+  // console.log('native222')
+  // console.log(JSON.stringify(arg))
+  transport = await TransportWebUSB.create()
+  ETH = new Eth(transport)
+  let param = JSON.parse(JSON.stringify(arg)).params
+  let json
+  if (arg.method === 'eth.signMessage') {
+    // console.log('param:')
+    // console.log(param)
+    json = await ETH.signMessage(param.path, param.data, param.sender, param.isPersonalSign)
+  }
+  if (arg.method === 'eth.signTransaction') {
+    // console.log('param:')
+    // console.log(param)
+    json = await ETH.signTransaction(param.transaction)
+  }
+  if (arg.method === 'eth.getAddress') {
+    json = await ETH.getAddress(param.path)
+  }
+  await transport.close()
+  // console.log('返回的数据：')
+  // console.log(json)
+  if (json.error) {
+    if (json.error.message.includes('ImkeyUserNotConfirmed')) {
+      throw new Error('user not confirmed')
     } else {
-      return { result: json }
+      throw new Error(json.error.message)
     }
   } else {
-    // console.log('rpc')
-    return callRpcApi(arg)
+    return { result: json }
   }
-}
-
-function callRpcApi(arg: Record<string, unknown>) {
-  return postData(IMKEY_MANAGER_ENDPOINT, arg).then(json => {
-    if (json.error) {
-      if (json.error.message.includes('ImkeyUserNotConfirmed')) {
-        throw new Error('user not confirmed')
-      } else {
-        throw new Error(json.error.message)
-      }
-    } else {
-      return json
-    }
-  })
 }
 
 function postData(url: string, data: Record<string, unknown>) {

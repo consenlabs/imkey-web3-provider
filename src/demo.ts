@@ -1,10 +1,10 @@
-import ImKeyProvider from "./index"
+import ImKeyProvider from './index'
 
 import Web3 from 'web3'
 import Web3HttpProvider from 'web3-providers-http'
 import TransportWebUSB from './hw-transport-webusb/TransportWebUSB'
 import ETH from './hw-app-eth/Eth'
-import { addPreZero, RLPEncodedTransaction } from "./common/utils";
+import { addPreZero, RLPEncodedTransaction } from './common/utils'
 // import ImKeyProvider from "@imkey/web3-provider"
 interface ProviderConnectInfo {
   readonly chainId: string
@@ -19,9 +19,7 @@ const imKeyProvider = new ImKeyProvider({
   // },
 })
 imKeyProvider.enable()
-const web3 = new Web3(
-  (imKeyProvider as unknown) as Web3HttpProvider.HttpProvider
-)
+const web3 = new Web3((imKeyProvider as unknown) as Web3HttpProvider.HttpProvider)
 
 // allowanceTest();
 imKeyProvider.on('disconnect', (code: any, reason: any) => {
@@ -29,9 +27,7 @@ imKeyProvider.on('disconnect', (code: any, reason: any) => {
 })
 
 imKeyProvider.on('connect', (connectInfo: ProviderConnectInfo) => {
-  console.log(
-    `Ethereum Provider connected success, chainId: ${connectInfo.chainId}`
-  )
+  console.log(`Ethereum Provider connected success, chainId: ${connectInfo.chainId}`)
 })
 
 const webUsbBtn = document.createElement('button')
@@ -39,7 +35,7 @@ webUsbBtn.innerText = 'WebUSB Test'
 webUsbBtn.addEventListener('click', async () => {
   const transport = await TransportWebUSB.create()
   const eth = new ETH(transport)
-  await eth.getAddress("m/44'/60'/0'/0/0").then((response) => {
+  await eth.getAddress("m/44'/60'/0'/0/0").then(response => {
     console.log('response.getAddress:' + response.address)
     console.log('response.pubkey:' + response.pubkey)
   })
@@ -48,18 +44,22 @@ webUsbBtn.addEventListener('click', async () => {
       "m/44'/60'/0'/0/0",
       'Hello imKey',
       '0x6031564e7b2F5cc33737807b2E58DaFF870B590b',
-      false
+      false,
     )
-    .then((response) => {
+    .then(response => {
       console.log('response.signature:' + response.signature)
     })
 
   const transaction = {
-        to: "0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE",
-        // 调用合约转账value这里留空
-        value: '0x00',
-        // data的组成，由：0x + 要调用的合约方法的function signature + 要传递的方法参数，每个参数都为64位(对transfer来说，第一个是接收人的地址去掉0x，第二个是代币数量的16进制表示，去掉前面0x，然后补齐为64位)
-        data: '0x' + 'b9059cbb' + addPreZero('3b11f5CAB8362807273e1680890A802c5F1B15a8') + addPreZero(web3.utils.toHex(1000000000000000000).substr(2)),
+    to: '0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE',
+    // 调用合约转账value这里留空
+    value: '0x00',
+    // data的组成，由：0x + 要调用的合约方法的function signature + 要传递的方法参数，每个参数都为64位(对transfer来说，第一个是接收人的地址去掉0x，第二个是代币数量的16进制表示，去掉前面0x，然后补齐为64位)
+    data:
+      '0x' +
+      'b9059cbb' +
+      addPreZero('3b11f5CAB8362807273e1680890A802c5F1B15a8') +
+      addPreZero(web3.utils.toHex(1000000000000000000).substr(2)),
     gasLimit: '21000',
     gasPrice: '6000000000',
     nonce: '8',
@@ -67,13 +67,13 @@ webUsbBtn.addEventListener('click', async () => {
     path: "m/44'/60'/0'/0/0",
     symbol: 'ETH',
   }
-  await eth.signTransaction(transaction).then((response) => {
+  await eth.signTransaction(transaction).then(response => {
     console.log('response.signature:' + response.signature)
     console.log('response.txhash:' + response.txhash)
     console.log(response)
   })
   const transaction1 = {
-    to: "0x3535353535353535353535353535353535353535",
+    to: '0x3535353535353535353535353535353535353535',
     value: '1000000000000000000',
     data: '',
     gasLimit: '21000',
@@ -83,7 +83,7 @@ webUsbBtn.addEventListener('click', async () => {
     path: "m/44'/60'/0'/0/0",
     symbol: 'ETH',
   }
-  await eth.signTransaction(transaction1).then((response) => {
+  await eth.signTransaction(transaction1).then(response => {
     console.log('response.signature:' + response.signature)
     console.log('response.txhash:' + response.txhash)
     console.log(response)
@@ -99,18 +99,18 @@ btnChangeChain.addEventListener('click', async () => {
         {
           chainId: 42,
           nativeCurrency: {
-            name: "BSC",
-            symbol: "BNB",
-            decimals: 18
+            name: 'BSC',
+            symbol: 'BNB',
+            decimals: 18,
           },
-          rpcUrls: "https://kovan.infura.io/v3/2012498d93094f5f939f580516a92236"
+          rpcUrls: 'https://kovan.infura.io/v3/2012498d93094f5f939f580516a92236',
         },
       ],
     })
-    .then((ret) => {
+    .then(ret => {
       console.log(ret)
     })
-    .catch((error) => {
+    .catch(error => {
       console.log(error)
     })
 })
@@ -152,7 +152,7 @@ btnSignTransaction.addEventListener('click', () => {
         // chainId: 3,
         // data: "",
       },
-      showResult
+      showResult,
     )
     .then(console.log)
 })
@@ -186,15 +186,10 @@ btnSignPersonalMessage.addEventListener('click', () => {
   }
 
   web3.eth.personal
-    .sign(
-      'Hello imKey',
-      '0x6031564e7b2F5cc33737807b2E58DaFF870B590b',
-      '',
-      showResult
-    )
+    .sign('Hello imKey', '0x6031564e7b2F5cc33737807b2E58DaFF870B590b', '', showResult)
     .then(console.log)
     // @ts-ignore
-    .catch((error) => {
+    .catch(error => {
       console.log('error message: ', error.message)
     })
 })
@@ -211,17 +206,12 @@ btnSignMessage.addEventListener('click', () => {
   }
 
   web3.eth
-    .sign(
-      '😊',
-      '0x6031564e7b2F5cc33737807b2E58DaFF870B590b',
-      showResult
-    )
+    .sign('😊', '0x6031564e7b2F5cc33737807b2E58DaFF870B590b', showResult)
     .then(console.log)
     // @ts-ignore
-    .catch((error) => {
+    .catch(error => {
       console.log('error message: ', error.message)
     })
-
 })
 
 const btnRequestEthRequestAccounts = document.createElement('button')
@@ -229,10 +219,10 @@ btnRequestEthRequestAccounts.innerText = 'request eth_requestAccounts'
 btnRequestEthRequestAccounts.addEventListener('click', async () => {
   imKeyProvider
     .request({ method: 'eth_requestAccounts', params: [] })
-    .then((ret) => {
+    .then(ret => {
       console.log(ret)
     })
-    .catch((error) => {
+    .catch(error => {
       console.log(error)
     })
 })
@@ -245,13 +235,13 @@ btnRequestEthSign.addEventListener('click', async () => {
       method: 'eth_sign',
       params: [
         '0x6031564e7b2F5cc33737807b2E58DaFF870B590b',
-        '0x3535353535353535353535353535353535353535'
+        '0x3535353535353535353535353535353535353535',
       ],
     })
-    .then((ret) => {
+    .then(ret => {
       console.log(ret)
     })
-    .catch((error) => {
+    .catch(error => {
       console.log(error)
     })
 })
@@ -275,10 +265,10 @@ btnRequestEthSignTransaction.addEventListener('click', async () => {
         },
       ],
     })
-    .then((ret) => {
+    .then(ret => {
       console.log(ret)
     })
-    .catch((error) => {
+    .catch(error => {
       console.log(error)
     })
 })

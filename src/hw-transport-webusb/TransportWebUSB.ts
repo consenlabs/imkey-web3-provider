@@ -118,17 +118,8 @@ export default class TransportWebUSB extends Transport<any> {
       )
     }
     const interfaceNumber = iface.interfaceNumber
-    // console.log(iface.alternates[0].endpoints)
-    // iface.alternates[0].endpoints.forEach(elementendpoint => {
-    //   if (elementendpoint.direction === "out") {
-    //     endpointNumber_out = elementendpoint;
-    //   }
-    //   if (elementendpoint.direction === "in" ) {
-    //     endpointNumber_in = elementendpoint;
-    //   }
-    // })
+
     try {
-      // console.log("interfaceNumber:" + interfaceNumber)
       await device.claimInterface(interfaceNumber)
     } catch (e) {
       await device.close()
@@ -170,7 +161,6 @@ export default class TransportWebUSB extends Transport<any> {
    * @returns a promise of apdu response
    */
   exchange = async (apdu: Buffer): Promise<Buffer> => {
-    // console.log("apdu", "=> " + apdu.toString("hex").toUpperCase());
     return this.exchangeAtomicImpl(async () => {
       const { channel, packetSize } = this
       const framing = hidFraming(channel, packetSize)
@@ -178,7 +168,6 @@ export default class TransportWebUSB extends Transport<any> {
       // Write...
       const blocks = framing.makeBlocks(apdu)
       for (let i = 0; i < blocks.length; i++) {
-        // console.log('apdu', '=> ' + blocks[i].toString('hex').toUpperCase())
         await this.device.transferOut(endpointNumberOut, blocks[i])
       }
 
@@ -190,7 +179,6 @@ export default class TransportWebUSB extends Transport<any> {
         const buffer = Buffer.from(r.data.buffer)
         acc = framing.reduceResponse(acc, buffer)
       }
-      // console.log('apdu', '<= ' + result.toString('hex').toUpperCase())
       return result
     }).catch(e => {
       if (e && e.message && e.message.includes('disconnected')) {
