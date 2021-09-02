@@ -149,6 +149,15 @@ export function addPreZero(num: number | string): string {
 export function deleteZero(str: string): string {
   return str.replace(/\b(0+)/gi, '')
 }
+
+export function arrayEquals(a, b) {
+  return (
+    Array.isArray(a) &&
+    Array.isArray(b) &&
+    a.length === b.length &&
+    a.every((val, index) => val === b[index])
+  )
+}
 export interface JsonRpcPayload {
   jsonrpc?: string
   method: string

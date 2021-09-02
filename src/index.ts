@@ -9,6 +9,7 @@ import {
   toUtf8,
   stringToNumber,
   bytesToHex,
+  arrayEquals,
 } from './common/utils'
 import { JsonRpcPayload, JsonRpcResponse } from './common/utils'
 import { RLPEncodedTransaction, TransactionConfig } from './common/utils'
@@ -45,7 +46,7 @@ interface AddEthereumChainParameter {
 
 interface RequestArguments {
   method: string
-  params?: any[]  | undefined
+  params?: any[] | undefined
 }
 
 const IMKEY_ETH_PATH = "m/44'/60'/0'/0/0"
@@ -108,6 +109,7 @@ export default class ImKeyProvider extends EventEmitter {
   private headers: []
   private symbol: string
   private decimals: number
+  private accounts: string[]
   constructor(config: IProviderOptions) {
     super()
     let rpcUrl = config.rpcUrl
@@ -149,19 +151,17 @@ export default class ImKeyProvider extends EventEmitter {
   }
 
   async enable() {
-    transport = await TransportWebUSB.create()
-    ETH = new Eth(transport)
-    const accounts = await this.imKeyRequestAccounts(requestId++)
+    this.accounts = await this.imKeyRequestAccounts(requestId++)
     const chainIdHex = await this.callInnerProviderApi(createJsonRpcRequest('eth_chainId'))
     const chainId = hexToNumber(chainIdHex)
     if (chainId !== this.chainId) {
       throw new Error("chain id and rpc endpoint don't match")
     } else {
       this.emit('connect', { chainId })
-      return accounts
+      return this.accounts
     }
   }
-  
+
   stop() {
     transport.close()
   }
@@ -247,6 +247,7 @@ export default class ImKeyProvider extends EventEmitter {
         headers,
       })
     }
+    this.emit('chainChanged', { chainId: parseArgsNum(args.chainId) })
   }
   sendAsync(args: JsonRpcPayload, callback: (err: Error | null, ret: any) => void) {
     this.request(args)
@@ -268,6 +269,8 @@ export default class ImKeyProvider extends EventEmitter {
     }
   }
 
+  
+
   async imKeyRequestAccounts(
     id: string | number | undefined,
     callback?: (error: Error, ret: any) => void,
@@ -281,8 +284,12 @@ export default class ImKeyProvider extends EventEmitter {
         },
         id: requestId++,
       })
-      callback?.(null, [ret.result?.address])
-      return [ret.result?.address]
+      let accounts = [ret.result?.address as string]
+      if (!arrayEquals(this.accounts, accounts)) {
+        this.emit('accountsChanged', { accounts: accounts})
+      }
+      callback?.(null, accounts)
+      return accounts
     } catch (error) {
       callback?.(error, null)
       throw createProviderRpcError(4001, error)
