@@ -18,7 +18,7 @@ export type Subscription = {
 
 /**
  */
-export type Device = Record<string, any>
+export type Device = any // Should be a union type of all possible Device object's shape
 
 /**
  * type: add or remove event
@@ -26,7 +26,7 @@ export type Device = Record<string, any>
  * deviceModel: device info on the model (is it a nano s, nano x, ...)
  * device: transport specific device info
  */
-export type DescriptorEvent<Descriptor> = {
+export interface DescriptorEvent<Descriptor> {
   type: 'add' | 'remove'
   descriptor: Descriptor
   deviceModel?: DeviceModel | null | undefined
@@ -35,7 +35,7 @@ export type DescriptorEvent<Descriptor> = {
 
 /**
  */
-export type Observer<Ev> = $ReadOnly<{
+export type Observer<Ev> = Readonly<{
   next: (event: Ev) => unknown
   error: (e: any) => unknown
   complete: () => unknown
@@ -45,7 +45,8 @@ export type Observer<Ev> = $ReadOnly<{
  * A **Descriptor** is a parametric type that is up to be determined for the implementation.
  * it can be for instance an ID, an file path, a URL,...
  */
-export default class Transport<Descriptor> {
+
+export default class Transport {
   exchangeTimeout = 30000
   unresponsiveTimeout = 15000
   deviceModel: DeviceModel | null | undefined = null
@@ -93,7 +94,7 @@ export default class Transport<Descriptor> {
    * @example
    TransportFoo.open(descriptor).then(transport => ...)
    */
-  static readonly open: (descriptor: any, timeout?: number) => Promise<Transport<any>>
+  static readonly open: (descriptor?: any, timeout?: number) => Promise<Transport>
 
   /**
    * low level api to communicate with the device
@@ -107,6 +108,13 @@ export default class Transport<Descriptor> {
   }
 
   /**
+   * set the "scramble key" for the next exchanges with the device.
+   * Each App can have a different scramble key and they internally will set it at instanciation.
+   * @param key the scramble key
+   */
+  setScrambleKey(_key: string) {}
+
+  /**
    * close the exchange with the device.
    * @return a Promise that ends when the transport is closed.
    */
@@ -114,7 +122,6 @@ export default class Transport<Descriptor> {
     return Promise.resolve()
   }
 
-  // @ts-ignore
   _events = new EventEmitter()
 
   /**
@@ -122,18 +129,18 @@ export default class Transport<Descriptor> {
    * Transport implementation can have specific events. Here is the common events:
    * * `"disconnect"` : triggered if Transport is disconnected
    */
-  on(eventName: string, cb: (...args: Array<any>) => any) {
+  on(eventName: string, cb: (...args: Array<any>) => any): void {
     this._events.on(eventName, cb)
   }
 
   /**
    * Stop listening to an event on an instance of transport.
    */
-  off(eventName: string, cb: (...args: Array<any>) => any) {
+  off(eventName: string, cb: (...args: Array<any>) => any): void {
     this._events.removeListener(eventName, cb)
   }
 
-  emit(event: string, ...args) {
+  emit(event: string, ...args: any): void {
     this._events.emit(event, ...args)
   }
 
@@ -142,24 +149,23 @@ export default class Transport<Descriptor> {
    */
   setDebugMode() {
     console.warn(
-      'setDebugMode is deprecated. use @imkeyhq/logs instead. No logs are emitted in this anymore.',
+      'setDebugMode is deprecated. use @imKeyhq/logs instead. No logs are emitted in this anymore.',
     )
   }
 
   /**
    * Set a timeout (in milliseconds) for the exchange call. Only some transport might implement it. (e.g. U2F)
    */
-  setExchangeTimeout(exchangeTimeout: number) {
+  setExchangeTimeout(exchangeTimeout: number): void {
     this.exchangeTimeout = exchangeTimeout
   }
 
   /**
    * Define the delay before emitting "unresponsive" on an exchange that does not respond
    */
-  setExchangeUnresponsiveTimeout(unresponsiveTimeout: number) {
+  setExchangeUnresponsiveTimeout(unresponsiveTimeout: number): void {
     this.unresponsiveTimeout = unresponsiveTimeout
   }
-
   /**
    * wrapper on top of exchange to simplify work of the implementation.
    * @param cla
@@ -180,10 +186,8 @@ export default class Transport<Descriptor> {
         'DataLengthTooBig',
       )
     }
-
     const response = await this.exchange(data)
     const sw = response.readUInt16BE(response.length - 2)
-
     if (!statusList.some(s => s === sw)) {
       throw new TransportStatusError(sw)
     }
@@ -198,7 +202,7 @@ export default class Transport<Descriptor> {
    * @example
    TransportFoo.create().then(transport => ...)
    */
-  static create(openTimeout?: number, listenTimeout?: number): Promise<Transport<any>> {
+  static create(openTimeout = 3000, listenTimeout?: number): Promise<Transport> {
     return new Promise((resolve, reject) => {
       let found = false
       const sub = this.listen({
@@ -206,7 +210,6 @@ export default class Transport<Descriptor> {
           found = true
           if (sub) sub.unsubscribe()
           if (listenTimeoutId) clearTimeout(listenTimeoutId)
-          openTimeout = 3000
           this.open(e.descriptor, openTimeout).then(resolve, reject)
         },
         error: e => {
@@ -217,33 +220,31 @@ export default class Transport<Descriptor> {
           if (listenTimeoutId) clearTimeout(listenTimeoutId)
 
           if (!found) {
-            reject(new TransportError(this.ErrorMessageNoDeviceFound, 'NoDeviceFound'))
+            reject(new TransportError(this.ErrorMessage_NoDeviceFound, 'NoDeviceFound'))
           }
         },
       })
       const listenTimeoutId = listenTimeout
         ? setTimeout(() => {
             sub.unsubscribe()
-            reject(new TransportError(this.ErrorMessageListenTimeout, 'ListenTimeout'))
+            reject(new TransportError(this.ErrorMessage_ListenTimeout, 'ListenTimeout'))
           }, listenTimeout)
         : null
     })
   }
 
-  exchangeBusyPromise: Promise<void>
-  // $FlowFixMe
-  exchangeAtomicImpl = async f => {
+  exchangeBusyPromise: Promise<void> | null | undefined
+  exchangeAtomicImpl = async (f: () => Promise<Buffer | void>): Promise<Buffer | void> => {
     if (this.exchangeBusyPromise) {
       throw new TransportRaceCondition(
-        'An action was already pending on the imkey device. Please deny or reconnect.',
+        'An action was already pending on the imKey device. Please deny or reconnect.',
       )
     }
 
     let resolveBusy
-    const busyPromise = new Promise(r => {
+    const busyPromise: Promise<void> = new Promise(r => {
       resolveBusy = r
     })
-    // @ts-ignore
     this.exchangeBusyPromise = busyPromise
     let unresponsiveReached = false
     const timeout = setTimeout(() => {
@@ -266,6 +267,37 @@ export default class Transport<Descriptor> {
     }
   }
 
-  static ErrorMessageListenTimeout = 'No imKey device found (timeout)'
-  static ErrorMessageNoDeviceFound = 'No imKey device found'
+  decorateAppAPIMethods(self: Record<string, any>, methods: Array<string>) {
+    for (const methodName of methods) {
+      self[methodName] = this.decorateAppAPIMethod(methodName, self[methodName], self)
+    }
+  }
+
+  _appAPIlock: string | null = null
+
+  decorateAppAPIMethod<R, A extends any[]>(
+    methodName: string,
+    f: (...args: A) => Promise<R>,
+    ctx: any,
+  ): (...args: A) => Promise<R> {
+    return async (...args) => {
+      const { _appAPIlock } = this
+
+      if (_appAPIlock) {
+        return Promise.reject(
+          new TransportError('imKey Device is busy (lock ' + _appAPIlock + ')', 'TransportLocked'),
+        )
+      }
+
+      try {
+        this._appAPIlock = methodName
+        return await f.apply(ctx, args)
+      } finally {
+        this._appAPIlock = null
+      }
+    }
+  }
+
+  static ErrorMessage_ListenTimeout = 'No imKey device found (timeout)'
+  static ErrorMessage_NoDeviceFound = 'No imKey device found'
 }

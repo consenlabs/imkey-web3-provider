@@ -6,8 +6,8 @@ import { RecordStore } from './RecordStore'
  * create a transport replayer with a record store.
  * @param recordStore
  */
-export const createTransportReplayer = (recordStore: RecordStore): Class<Transport<any>> => {
-  class TransportReplayer extends Transport<any> {
+export const createTransportReplayer = (recordStore: RecordStore): Class<Transport> => {
+  class TransportReplayer extends Transport {
     static isSupported = () => Promise.resolve(true)
     static list = () => Promise.resolve([null])
     static listen = o => {

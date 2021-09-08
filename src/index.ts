@@ -23,6 +23,7 @@ import TransportWebUSB from './hw-transport-webusb/TransportWebUSB'
 
 // @ts-ignore
 import Web3HttpProvider from 'web3-providers-http'
+import { ETHSingleton } from './hw-app-eth/EHTSingleton'
 interface IProviderOptions {
   rpcUrl?: string
   infuraId?: string
@@ -269,8 +270,6 @@ export default class ImKeyProvider extends EventEmitter {
     }
   }
 
-  
-
   async imKeyRequestAccounts(
     id: string | number | undefined,
     callback?: (error: Error, ret: any) => void,
@@ -286,7 +285,7 @@ export default class ImKeyProvider extends EventEmitter {
       })
       let accounts = [ret.result?.address as string]
       if (!arrayEquals(this.accounts, accounts)) {
-        this.emit('accountsChanged', { accounts: accounts})
+        this.emit('accountsChanged', { accounts: accounts })
       }
       callback?.(null, accounts)
       return accounts
@@ -492,8 +491,9 @@ async function sleep(ms) {
 async function callImKeyApi(arg: Record<string, unknown>) {
   // console.log('native222')
   // console.log(JSON.stringify(arg))
-  transport = await TransportWebUSB.create()
-  ETH = new Eth(transport)
+  // transport = await TransportWebUSB.create()
+  const ETH = await ETHSingleton.getInstance()
+  await ETH.init()
   let param = JSON.parse(JSON.stringify(arg)).params
   let json
   if (arg.method === 'eth.signMessage') {
@@ -509,7 +509,7 @@ async function callImKeyApi(arg: Record<string, unknown>) {
   if (arg.method === 'eth.getAddress') {
     json = await ETH.getAddress(param.path)
   }
-  await transport.close()
+  await ETH.close()
   // console.log('返回的数据：')
   // console.log(json)
   if (json.error) {

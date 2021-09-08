@@ -15,7 +15,7 @@ import { ethers } from 'ethers'
 import secp256k1 from 'secp256k1'
 import { getTokenInfo } from './erc20Utils'
 
-type Transaction = {
+export type Transaction = {
   data: string
   gasLimit: string
   gasPrice: string
@@ -43,10 +43,11 @@ const ethApdu = new ETHApdu()
  * const eth = new Eth(transport)
  */
 export default class Eth {
-  transport: Transport<any>
+  transport: Transport
   // @ts-ignore
   constructor(transport: Transport<any>) {
     this.transport = transport
+    transport.decorateAppAPIMethods(this, ['signTransaction', 'signMessage', 'getAddress'])
   }
 
   /**
@@ -64,17 +65,7 @@ export default class Eth {
     address: string
     pubkey: string
   }> {
-    const toSend = []
-    let response
-    toSend.push(ethApdu.selectApplet())
-    toSend.push(ethApdu.getXPub(path, false))
-    for (let i of toSend) {
-      response = await this.transport.send(i)
-    }
-    return {
-      address: addressFromPubkey(response),
-      pubkey: response.slice(0, 65).toString('hex'),
-    }
+    return await getWalletAddress(path, this.transport)
   }
 
   /**
@@ -89,7 +80,7 @@ export default class Eth {
     signature: string
     txhash: string
   }> {
-    const getAddress = await this.getAddress(transaction.path)
+    const getAddress = await getWalletAddress(transaction.path, this.transport)
     const preview = genPreview(transaction, getAddress.address)
     const rawTransaction = genRawTransaction(transaction)
     const toSend = genApdu(rawTransaction, preview, transaction)
@@ -165,7 +156,7 @@ eth.signPersonalMessage("44'/60'/0'/0/0", Buffer.from("test").toString("hex")).t
     const apduPack = Buffer.concat([asUInt8(0), asUInt8(0), dataToSign])
     let toSend = []
     let response
-    const getAddress = await this.getAddress(path)
+    const getAddress = await getWalletAddress(path, this.transport)
     if (getAddress.address !== sender) {
       throw 'address not match'
     }
@@ -186,6 +177,25 @@ eth.signPersonalMessage("44'/60'/0'/0/0", Buffer.from("test").toString("hex")).t
     // return { v, r, s };
     const signature = '0x' + r + s + v
     return { signature }
+  }
+}
+async function getWalletAddress(
+  path: string,
+  transport: Transport,
+): Promise<{
+  address: string
+  pubkey: string
+}> {
+  const toSend = []
+  let response
+  toSend.push(ethApdu.selectApplet())
+  toSend.push(ethApdu.getXPub(path, false))
+  for (let i of toSend) {
+    response = await transport.send(i)
+  }
+  return {
+    address: addressFromPubkey(response),
+    pubkey: response.slice(0, 65).toString('hex'),
   }
 }
 function getRecID(data: Buffer, normalizesSig: Uint8Array, pubkey: string): number {

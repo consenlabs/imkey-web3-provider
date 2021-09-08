@@ -1,9 +1,13 @@
 import { TransportError } from '../errors'
 
-export type ResponseAcc = {
-  data: Buffer
-  dataLength: number
-}
+export type ResponseAcc =
+  | {
+      data: Buffer
+      dataLength: number
+      sequence: number
+    }
+  | null
+  | undefined
 
 const Tag = 0x4654
 
@@ -16,6 +20,7 @@ function asUInt16BE(value) {
 const initialAcc = {
   data: Buffer.alloc(0),
   dataLength: 0,
+  sequence: 0,
 }
 /**
  *
@@ -43,7 +48,7 @@ const createHIDframing = (channel: number, packetSize: number) => {
           chunk = data.slice(dataIndex, dataIndex + (blockSize + 2))
           dataIndex += blockSize + 2
         }
-        blocks.push(Buffer.concat([head, chunk]))
+        blocks.push(Buffer.concat([head, chunk], 64))
         if (dataIndex >= data.length) {
           break
         }
@@ -52,13 +57,14 @@ const createHIDframing = (channel: number, packetSize: number) => {
     },
 
     reduceResponse(acc: ResponseAcc, chunk: Buffer): ResponseAcc {
-      let { data, dataLength } = acc || initialAcc
+      let { data, dataLength, sequence } = acc || initialAcc
       if (chunk.readUInt8(0) !== channel) {
         throw new TransportError('Invalid channel', 'InvalidChannel')
       }
       if (!acc) {
         dataLength = chunk.readUInt16BE(3)
       }
+      sequence++
       const chunkData = chunk.slice(acc ? 1 : 5)
       data = Buffer.concat([data, chunkData])
       if (data.length > dataLength) {
@@ -67,6 +73,7 @@ const createHIDframing = (channel: number, packetSize: number) => {
       return {
         data,
         dataLength,
+        sequence,
       }
     },
 
