@@ -163,8 +163,9 @@ export default class ImKeyProvider extends EventEmitter {
     }
   }
 
-  stop() {
-    transport.close()
+  async stop() {
+    let eth = await ETHSingleton.getInstance()
+    await eth.close();
   }
 
   request = async (args: RequestArguments): Promise<any> => {
