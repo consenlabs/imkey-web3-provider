@@ -357,7 +357,6 @@ export default class ImKeyProvider extends EventEmitter {
     if (transactionConfig.gas) {
       gasLimit = parseArgsNum(transactionConfig.gas)
     } else {
-      // console.log('transactionConfig.gas:' + transactionConfig.gas)
       const gasRet: string = await this.callInnerProviderApi(
         createJsonRpcRequest('eth_estimateGas', [
           {
@@ -370,7 +369,6 @@ export default class ImKeyProvider extends EventEmitter {
           },
         ]),
       )
-      // console.log('gasRet:' + gasRet)
       gasLimit = parseArgsNum(gasRet)
     }
 
@@ -490,29 +488,20 @@ async function sleep(ms) {
 }
 
 async function callImKeyApi(arg: Record<string, unknown>) {
-  // console.log('native222')
-  // console.log(JSON.stringify(arg))
-  // transport = await TransportWebUSB.create()
-  const ETH =  ETHSingleton.getInstance()
+  const ETH = await ETHSingleton.getInstance()
   await ETH.init()
   let param = JSON.parse(JSON.stringify(arg)).params
   let json
   if (arg.method === 'eth.signMessage') {
-    // console.log('param:')
-    // console.log(param)
     json = await ETH.signMessage(param.path, param.data, param.sender, param.isPersonalSign)
   }
   if (arg.method === 'eth.signTransaction') {
-    // console.log('param:')
-    // console.log(param)
     json = await ETH.signTransaction(param.transaction)
   }
   if (arg.method === 'eth.getAddress') {
     json = await ETH.getAddress(param.path)
   }
   await ETH.close()
-  // console.log('返回的数据：')
-  // console.log(json)
   if (json.error) {
     if (json.error.message.includes('ImkeyUserNotConfirmed')) {
       throw new Error('user not confirmed')
