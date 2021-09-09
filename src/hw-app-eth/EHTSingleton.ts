@@ -9,7 +9,7 @@ export class ETHSingleton {
   private static instance: ETHSingleton
   private transport: Transport
   private eth: ETH
-  private isClose: boolean = false
+  private isClose: boolean = true
   /**
    * The ETHSingleton's constructor should always be private to prevent direct
    * construction calls with the `new` operator.
@@ -22,11 +22,9 @@ export class ETHSingleton {
    * This implementation let you subclass the ETHSingleton class while keeping
    * just one instance of each subclass around.
    */
-  public static async getInstance(): Promise<ETHSingleton> {
+  public static  getInstance(): ETHSingleton{
     if (!ETHSingleton.instance) {
       ETHSingleton.instance = new ETHSingleton()
-      ETHSingleton.instance.transport = await TransportWebUSB.create()
-      ETHSingleton.instance.eth = new ETH(ETHSingleton.instance.transport)
     }
 
     return ETHSingleton.instance
@@ -44,8 +42,8 @@ export class ETHSingleton {
     }
   }
   public async close() {
-    this.isClose = true
     await this.transport.close()
+    this.isClose = true
   }
   public async getAddress(
     path: string,

@@ -178,14 +178,11 @@ export default class TransportWebUSB extends Transport {
       while (!(result = framing.getReducedResult(acc))) {
         const r = await this.device.transferIn(endpointNumberIn, packetSize)
         const buffer = Buffer.from(r.data.buffer)
-        console.log('apdu111', '<= ' + buffer.toString('hex').toUpperCase())
         acc = framing.reduceResponse(acc, buffer)
       }
       console.log('apdu', '<= ' + result.toString('hex').toUpperCase())
       return result
     }).catch(async e => {
-      // await gracefullyResetDevice(this.device)
-      await this.device.close()
       if (e && e.message && e.message.includes('disconnected')) {
         this._emitDisconnect(e)
         throw new DisconnectedDeviceDuringOperation(e.message)

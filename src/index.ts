@@ -492,7 +492,7 @@ async function callImKeyApi(arg: Record<string, unknown>) {
   // console.log('native222')
   // console.log(JSON.stringify(arg))
   // transport = await TransportWebUSB.create()
-  const ETH = await ETHSingleton.getInstance()
+  const ETH =  ETHSingleton.getInstance()
   await ETH.init()
   let param = JSON.parse(JSON.stringify(arg)).params
   let json
