@@ -108,7 +108,8 @@ export default class TransportWebUSB extends Transport {
     if (device.configuration === null) {
       await device.selectConfiguration(configurationValue)
     }
-    await gracefullyResetDevice(device)
+    console.log(device)
+    // await gracefullyResetDevice(device)
     const iface = device.configurations[0].interfaces.find(({ alternates }) =>
       alternates.some(a => a.interfaceClass === 255),
     )
@@ -122,7 +123,7 @@ export default class TransportWebUSB extends Transport {
     try {
       await device.claimInterface(interfaceNumber)
     } catch (e) {
-      await device.close()
+      // await device.close()
       throw new TransportInterfaceNotAvailable(e.message)
     }
     const transport = new TransportWebUSB(device, interfaceNumber)

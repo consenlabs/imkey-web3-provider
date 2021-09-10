@@ -43,18 +43,15 @@ export async function requestImKeyDevice(): Promise<any> {
   const device = await navigator.usb.requestDevice({
     filters: imKeyDevices,
   })
-  console.log(device)
   return device
 }
 export async function getImKeyDevices(): Promise<any> {
   // @ts-ignore
   const devices = await navigator.usb.getDevices()
-  console.log(devices)
   return devices.filter(d => d.vendorId === imKeyUSBVendorId)
 }
 export async function getFirstImKeyDevice(): Promise<any> {
   const existingDevices = await getImKeyDevices()
-  console.log(existingDevices)
   if (existingDevices.length > 0) return existingDevices[0]
   return requestImKeyDevice()
 }
