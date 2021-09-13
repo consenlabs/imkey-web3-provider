@@ -189,7 +189,9 @@ export default class Transport {
     const response = await this.exchange(data)
     const sw = response.readUInt16BE(response.length - 2)
     if (!statusList.some(s => s === sw)) {
-      throw new TransportStatusError(sw)
+      let err = new TransportStatusError(sw)
+      console.error('imKey Transport Error: ', err)
+      throw err
     }
 
     return response
