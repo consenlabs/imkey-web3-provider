@@ -11,7 +11,12 @@ import {
   DisconnectedDeviceDuringOperation,
   DisconnectedDevice,
 } from '../errors'
-import { getImKeyDevices, getFirstImKeyDevice, requestImKeyDevice, isSupported } from './imKeyDevice'
+import {
+  getImKeyDevices,
+  getFirstImKeyDevice,
+  requestImKeyDevice,
+  isSupported,
+} from './imKeyDevice'
 
 const configurationValue = 1
 const endpointNumberIn = 5

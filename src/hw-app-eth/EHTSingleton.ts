@@ -6,20 +6,18 @@ import EventEmitter from 'event-emitter-es6'
  * The ETHSingleton class defines the `getInstance` method that lets clients access
  * the unique ETHSingleton instance.
  */
- 
-export class  ETHSingleton {
+
+export class ETHSingleton {
   private static instance: ETHSingleton
   transport: Transport
   private eth: ETH
   private isClose: boolean = true
 
-    
   /**
    * The ETHSingleton's constructor should always be private to prevent direct
    * construction calls with the `new` operator.
    */
-  private constructor() {
-  }
+  private constructor() {}
 
   /**
    * The static method that controls the access to the ETHSingleton instance.
@@ -30,7 +28,7 @@ export class  ETHSingleton {
   public static getInstance(): ETHSingleton {
     if (!ETHSingleton.instance) {
       const instance = new ETHSingleton()
-      ETHSingleton.instance = instance;
+      ETHSingleton.instance = instance
     }
 
     return ETHSingleton.instance
@@ -47,7 +45,7 @@ export class  ETHSingleton {
         this.eth = new ETH(this.transport)
         this.isClose = false
       } catch (error) {
-        throw error;
+        throw error
       }
     }
   }
@@ -83,7 +81,4 @@ export class  ETHSingleton {
   }> {
     return await this.eth.signTransaction(transaction)
   }
-
-
-  
 }

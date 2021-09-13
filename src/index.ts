@@ -24,8 +24,7 @@ import Web3HttpProvider from 'web3-providers-http'
 import { ETHSingleton } from './hw-app-eth/EHTSingleton'
 import { TransportStatusError } from './errors'
 
-
-export const EVENT_KEY: string = "deviceStatus";
+export const EVENT_KEY: string = 'deviceStatus'
 
 interface IProviderOptions {
   rpcUrl?: string
