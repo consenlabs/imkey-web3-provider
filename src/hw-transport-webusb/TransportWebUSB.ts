@@ -1,8 +1,8 @@
 import Transport from '../hw-transport/Transport'
 import { Observer, DescriptorEvent, Subscription } from '../hw-transport/Transport'
 import hidFraming from './hid-framing'
-import { identifyUSBProductId } from './webusb'
-import { DeviceModel } from './webusb'
+import { identifyUSBProductId } from './imKeyDevice'
+import { DeviceModel } from './imKeyDevice'
 
 import {
   TransportOpenUserCancelled,
@@ -11,7 +11,7 @@ import {
   DisconnectedDeviceDuringOperation,
   DisconnectedDevice,
 } from '../errors'
-import { getImKeyDevices, getFirstImKeyDevice, requestImKeyDevice, isSupported } from './webusb'
+import { getImKeyDevices, getFirstImKeyDevice, requestImKeyDevice, isSupported } from './imKeyDevice'
 
 const configurationValue = 1
 const endpointNumberIn = 5
@@ -108,7 +108,6 @@ export default class TransportWebUSB extends Transport {
     if (device.configuration === null) {
       await device.selectConfiguration(configurationValue)
     }
-    console.log(device)
     // await gracefullyResetDevice(device)
     const iface = device.configurations[0].interfaces.find(({ alternates }) =>
       alternates.some(a => a.interfaceClass === 255),

@@ -118,18 +118,6 @@ export default class Eth {
     return { signature, txhash }
   }
 
-  /**
-  * You can sign a message according to eth_sign RPC call and retrieve v, r, s given the message and the BIP 32 path of the account to sign.
-  * @example
-eth.signPersonalMessage("44'/60'/0'/0/0", Buffer.from("test").toString("hex")).then(result => {
-  var v = result['v'] - 27;
-  v = v.toString(16);
-  if (v.length < 2) {
-    v = "0" + v;
-  }
-  console.log("Signature 0x" + result['r'] + result['s'] + v);
-})
-   */
   async signMessage(
     path: string,
     message: string,

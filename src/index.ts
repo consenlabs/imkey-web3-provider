@@ -18,12 +18,15 @@ import * as rlp from 'rlp'
 import EventEmitter from 'event-emitter-es6'
 import BN from 'bn.js'
 import imTokenEip712Utils from './eip712'
-import Eth from './hw-app-eth/Eth'
-import TransportWebUSB from './hw-transport-webusb/TransportWebUSB'
 
 // @ts-ignore
 import Web3HttpProvider from 'web3-providers-http'
 import { ETHSingleton } from './hw-app-eth/EHTSingleton'
+import { TransportStatusError } from './errors'
+
+
+export const EVENT_KEY: string = "deviceStatus";
+
 interface IProviderOptions {
   rpcUrl?: string
   infuraId?: string
@@ -276,7 +279,7 @@ export default class ImKeyProvider extends EventEmitter {
     callback?: (error: Error, ret: any) => void,
   ) {
     try {
-      const ret = await callImKeyApi({
+      const ret = await this.callImKeyApi({
         jsonrpc: '2.0',
         method: 'eth.getAddress',
         params: {
@@ -377,7 +380,7 @@ export default class ImKeyProvider extends EventEmitter {
     const valueInWei = fromWei(value)
 
     try {
-      const ret = await callImKeyApi({
+      const ret = await this.callImKeyApi({
         jsonrpc: '2.0',
         method: 'eth.signTransaction',
         params: {
@@ -458,7 +461,7 @@ export default class ImKeyProvider extends EventEmitter {
     const checksumAddress = toChecksumAddress(address as string)
 
     try {
-      const ret = await callImKeyApi({
+      const ret = await this.callImKeyApi({
         jsonrpc: '2.0',
         method: 'eth.signMessage',
         params: {
@@ -481,36 +484,65 @@ export default class ImKeyProvider extends EventEmitter {
       throw createProviderRpcError(4001, error)
     }
   }
+
+  async callImKeyApi(arg: Record<string, unknown>) {
+    let eth: ETHSingleton
+    try {
+      eth = await ETHSingleton.getInstance()
+      this.subscribeTransportEvents(eth)
+      await eth.init()
+      let param = JSON.parse(JSON.stringify(arg)).params
+      let json
+      if (arg.method === 'eth.signMessage') {
+        json = await eth.signMessage(param.path, param.data, param.sender, param.isPersonalSign)
+      }
+      if (arg.method === 'eth.signTransaction') {
+        json = await eth.signTransaction(param.transaction)
+      }
+      if (arg.method === 'eth.getAddress') {
+        json = await eth.getAddress(param.path)
+      }
+      await eth.close()
+      return { result: json }
+    } catch (e) {
+      if (e instanceof TransportStatusError) {
+        this.emit(EVENT_KEY, { status: e.message })
+        throw e.message
+      } else {
+        throw e
+      }
+    } finally {
+      if (eth) {
+        this.unsubscribeTransportEvents(eth)
+      }
+    }
+  }
+
+  private subscribeTransportEvents(eth: ETHSingleton) {
+    if (eth && eth.transport) {
+      eth.transport.on('unresponsive', () => this.imKeyUnresponsiveEmitter)
+      eth.transport.on('responsive', () => this.imKeyResponsiveEmitter)
+    }
+  }
+
+  private unsubscribeTransportEvents(eth) {
+    if (eth && eth.transport) {
+      eth.transport.off('unresponsive', this.imKeyUnresponsiveEmitter)
+      eth.transport.off('responsive', this.imKeyResponsiveEmitter)
+    }
+  }
+
+  imKeyResponsiveEmitter = () => {
+    this.emit(EVENT_KEY, { status: 'ImKeyResponsive' })
+  }
+
+  imKeyUnresponsiveEmitter = () => {
+    this.emit(EVENT_KEY, { status: 'ImKeyUnresponsive' })
+  }
 }
 
 async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
-}
-
-async function callImKeyApi(arg: Record<string, unknown>) {
-  const ETH = await ETHSingleton.getInstance()
-  await ETH.init()
-  let param = JSON.parse(JSON.stringify(arg)).params
-  let json
-  if (arg.method === 'eth.signMessage') {
-    json = await ETH.signMessage(param.path, param.data, param.sender, param.isPersonalSign)
-  }
-  if (arg.method === 'eth.signTransaction') {
-    json = await ETH.signTransaction(param.transaction)
-  }
-  if (arg.method === 'eth.getAddress') {
-    json = await ETH.getAddress(param.path)
-  }
-  await ETH.close()
-  if (json.error) {
-    if (json.error.message.includes('ImkeyUserNotConfirmed')) {
-      throw new Error('user not confirmed')
-    } else {
-      throw new Error(json.error.message)
-    }
-  } else {
-    return { result: json }
-  }
 }
 
 function postData(url: string, data: Record<string, unknown>) {

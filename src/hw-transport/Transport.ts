@@ -1,7 +1,7 @@
 // @ts-ignore
 import { $ReadOnly } from 'utility-types'
 import EventEmitter from 'events'
-import type { DeviceModel } from '../hw-transport-webusb/webusb'
+import type { DeviceModel } from '../hw-transport-webusb/imKeyDevice'
 import {
   TransportRaceCondition,
   TransportError,
