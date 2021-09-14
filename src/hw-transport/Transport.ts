@@ -287,11 +287,11 @@ export default class Transport {
 
       if (_appAPIlock) {
         this.emit('unresponsive')
-        console.error(new TransportError('imKey Device is busy (lock ' + _appAPIlock + ')', 'TransportLocked'),)
-        
-        return Promise.reject(
-          new TransportError('ImKeyUnresponsive', 'TransportLocked'),
+        console.error(
+          new TransportError('imKey Device is busy (lock ' + _appAPIlock + ')', 'TransportLocked'),
         )
+
+        return Promise.reject(new TransportError('ImKeyUnresponsive', 'TransportLocked'))
       }
 
       try {

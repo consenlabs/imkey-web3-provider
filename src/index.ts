@@ -505,7 +505,7 @@ export default class ImKeyProvider extends EventEmitter {
       return { result: json }
     } catch (e) {
       if (e instanceof TransportStatusError) {
-        this.emit(EVENT_KEY, e.message )
+        this.emit(EVENT_KEY, e.message)
         throw e.message
       } else {
         throw e
@@ -536,7 +536,7 @@ export default class ImKeyProvider extends EventEmitter {
   }
 
   imKeyUnresponsiveEmitter = () => {
-    console.log("imkey unresponsive");
+    console.log('imkey unresponsive')
     this.emit(EVENT_KEY, 'ImKeyUnresponsive')
   }
 }
