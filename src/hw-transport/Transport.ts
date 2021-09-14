@@ -48,7 +48,7 @@ export type Observer<Ev> = Readonly<{
 
 export default class Transport {
   exchangeTimeout = 30000
-  unresponsiveTimeout = 15000
+  unresponsiveTimeout = 10000
   deviceModel: DeviceModel | null | undefined = null
 
   /**
@@ -286,8 +286,11 @@ export default class Transport {
       const { _appAPIlock } = this
 
       if (_appAPIlock) {
+        this.emit('unresponsive')
+        console.error(new TransportError('imKey Device is busy (lock ' + _appAPIlock + ')', 'TransportLocked'),)
+        
         return Promise.reject(
-          new TransportError('imKey Device is busy (lock ' + _appAPIlock + ')', 'TransportLocked'),
+          new TransportError('ImKeyUnresponsive', 'TransportLocked'),
         )
       }
 

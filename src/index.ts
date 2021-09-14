@@ -488,8 +488,8 @@ export default class ImKeyProvider extends EventEmitter {
     let eth: ETHSingleton
     try {
       eth = await ETHSingleton.getInstance()
-      this.subscribeTransportEvents(eth)
       await eth.init()
+      this.subscribeTransportEvents(eth)
       let param = JSON.parse(JSON.stringify(arg)).params
       let json
       if (arg.method === 'eth.signMessage') {
@@ -519,8 +519,8 @@ export default class ImKeyProvider extends EventEmitter {
 
   private subscribeTransportEvents(eth: ETHSingleton) {
     if (eth && eth.transport) {
-      eth.transport.on('unresponsive', () => this.imKeyUnresponsiveEmitter)
-      eth.transport.on('responsive', () => this.imKeyResponsiveEmitter)
+      eth.transport.on('unresponsive', this.imKeyUnresponsiveEmitter)
+      eth.transport.on('responsive', this.imKeyResponsiveEmitter)
     }
   }
 
@@ -536,6 +536,7 @@ export default class ImKeyProvider extends EventEmitter {
   }
 
   imKeyUnresponsiveEmitter = () => {
+    console.log("imkey unresponsive");
     this.emit(EVENT_KEY, 'ImKeyUnresponsive')
   }
 }
