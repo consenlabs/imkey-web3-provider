@@ -171,6 +171,24 @@ export interface JsonRpcResponse {
   result?: any
   error?: string
 }
+export interface EIP1559RLPEncodedTransaction {
+  raw: string
+  tx: {
+    chainId: string
+    nonce: string
+    maxPriorityFeePerGas: string
+    maxFeePerGas: string
+    gas: string
+    to: string
+    value: string
+    input: string
+    accessList: AccessListish
+    r: string
+    s: string
+    v: string
+    hash: string
+  }
+}
 export interface RLPEncodedTransaction {
   raw: string
   tx: {
@@ -195,6 +213,15 @@ export interface TransactionConfig {
   data?: string
   nonce?: number
   chainId?: number
+  // Typed-Transaction features
+  type?: string | null
+
+  // EIP-2930; Type 1 & EIP-1559; Type 2
+  accessList?: AccessListish
+
+  // EIP-1559; Type 2
+  maxFeePerGas?: string
+  maxPriorityFeePerGas?: string
   common?: Common
   chain?: string
   hardfork?: string
@@ -223,3 +250,9 @@ export interface CustomChainParams {
   networkId: number
   chainId: number
 }
+export type AccessList = Array<{ address: string; storageKeys: Array<string> }>
+
+export type AccessListish =
+  | AccessList
+  | Array<[string, Array<string>]>
+  | Record<string, Array<string>>
