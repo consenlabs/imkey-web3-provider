@@ -128,6 +128,7 @@ export default class TransportWebUSB extends Transport {
       await device.claimInterface(interfaceNumber)
     } catch (e) {
       // await device.close()
+      // @ts-ignore
       throw new TransportInterfaceNotAvailable(e.message)
     }
     const transport = new TransportWebUSB(device, interfaceNumber)
