@@ -110,7 +110,7 @@ export default class Eth {
       if (transaction.chainId === '' || transaction.chainId === 'undefined') {
         v = numberToHex(27)
       } else {
-        v = "0x"+(recId + 35 + Number(transaction.chainId) * 2).toString(16)
+        v = '0x' + (recId + 35 + Number(transaction.chainId) * 2).toString(16)
       }
     }
     // @ts-ignore

@@ -35,9 +35,4 @@ export const constants = {
   DEVICE_MODEL_NAME: 'imKey Pro',
 
   TRANSACTION_TYPE_EIP1559: '0x02',
-  // GET_FEE_GEARS_URL: 'https://biz.token.im/v1/ethereum',
-  GET_FEE_GEARS_URL: 'https://api.staging.tokenlon.im/v1/ethereum',
-  // GET_FEE_GEARS_URL: 'https://api.dev.tokenlon.im/v1/ethereum',
-
-  REQUEST_TIMEOUT: 100000,
 }

@@ -25,7 +25,6 @@ import Web3HttpProvider from 'web3-providers-http'
 import { ETHSingleton } from './hw-app-eth/EHTSingleton'
 import { TransportStatusError } from './errors'
 import { constants } from './common/constants'
-import { jsonrpc } from './common/_request'
 import { ethers } from 'ethers'
 export const EVENT_KEY: string = 'deviceStatus'
 
@@ -327,11 +326,19 @@ export default class ImKeyProvider extends EventEmitter {
     let maxFeePerGas: string
     let maxPriorityFeePerGas: string
     if (numberToHex(transactionConfig.type) === numberToHex(constants.TRANSACTION_TYPE_EIP1559)) {
-      // 获取
-      const { gears } = await getFeeGears()
-      const fastestGear = gears.find(gear => gear.speed === 'FASTEST')
-      maxFeePerGas = fastestGear.maxFeePerGas
-      maxPriorityFeePerGas = fastestGear.maxPriorityFeePerGas
+      if (transactionConfig.maxFeePerGas && transactionConfig.maxPriorityFeePerGas) {
+        maxFeePerGas = parseArgsNum(transactionConfig.maxFeePerGas)
+        maxPriorityFeePerGas = parseArgsNum(transactionConfig.maxPriorityFeePerGas)
+      } else {
+        const maxFeePerGasRet = await this.callInnerProviderApi(
+          createJsonRpcRequest('eth_gasPrice', []),
+        )
+        maxFeePerGas = hexToNumberString(maxFeePerGasRet)
+        const maxPriorityFeePerGasRet = await this.callInnerProviderApi(
+          createJsonRpcRequest('eth_maxPriorityFeePerGas', []),
+        )
+        maxPriorityFeePerGas = hexToNumberString(maxPriorityFeePerGasRet)
+      }
     } else {
       if (transactionConfig.gasPrice) {
         gasPriceDec = parseArgsNum(transactionConfig.gasPrice)
@@ -634,19 +641,4 @@ function postData(url: string, data: Record<string, unknown>) {
       throw new Error('HttpError')
     }
   })
-}
-async function getFeeGears() {
-  const feeGears = await jsonrpc.get(constants.GET_FEE_GEARS_URL, {}, 'wallet.getFeeGears', [])
-  const gears = feeGears.gears.map(gear => {
-    const feePrice = gear.gasPrice ?? gear.feePrice
-    return {
-      ...gear,
-      gasPrice: feePrice,
-      feePrice,
-    }
-  })
-  return {
-    ...feeGears,
-    gears,
-  }
 }

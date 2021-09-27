@@ -33,6 +33,9 @@ export function numberToHex(value: string | number | BN) {
   if (numberBN.lt(new BN(0))) {
     throw new Error('number "' + result + '" is -0x.')
   }
+  if (numberBN.isZero()) {
+    return '0x'
+  }
   return '0x' + result
 }
 

@@ -12,8 +12,9 @@ interface ProviderConnectInfo {
 }
 
 const imKeyProvider = new ImKeyProvider({
-  rpcUrl: 'https://kovan.infura.io/v3/2012498d93094f5f939f580516a92236',
-  chainId: 42,
+  // rpcUrl: 'https://kovan.infura.io/v3/2012498d93094f5f939f580516a92236',
+  rpcUrl: 'https://eth-goerli.alchemyapi.io/v2/ZnE2yvX8X2kxvjF040aj5cWcimA3QxwA',
+  chainId: 5,
   symbol: 'ETH',
   // headers: {
   //   agent: "ios:2.4.2:2",
@@ -251,6 +252,8 @@ btnSendTransactionEip1559.addEventListener('click', () => {
         // gasPrice: "20000000008",
         // nonce: 8,
         // gas: "21000",
+        // maxPriorityFeePerGas:'0x87ffb644',
+        // maxFeePerGas:'0x88ffb64b',
         to: '0x63bF955208Ae6A8dae3d9516eDe7D38040db7356',
         value: '200000000000000',
         accessList: [],
