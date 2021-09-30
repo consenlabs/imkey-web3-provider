@@ -79,7 +79,7 @@ export class ETHSingleton {
     transaction: Transaction,
   ): Promise<{
     signature: string
-    txhash: string
+    txHash: string
   }> {
     return await this.eth.signTransaction(transaction)
   }
