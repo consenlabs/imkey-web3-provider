@@ -1,18 +1,18 @@
-# imKey-web3-provider    
-English | [简体中文](./README.zh.md)    
+# imKey-web3-provider
+[English](./README.md) | 简体中文    
 
 ------   
 
-imkey-web3-provider (aka imKey ConnectJS) is a library for easy integration of imKey Pro into dApps. It follows the [EIP-1193](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1193.md), so you can use it as a `Web3 Provider` or `ethers Provider`.
+imkey-web3-provider (imKey ConnectJS) 是一个用来让 dApp 快速集成 imKey Pro 的开源项目。 imkey-web3-provider 遵从 [EIP-1193](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1193.md) 实现。你可以将其作为 `Web3 Provider` 或者 `Ethers Provider` 使用。
 
-## Getting Started
+## 快速开始
 
-1. Installing 
+1. 添加依赖
 ```shell
 yarn add @imkey/web3-provider
 ```
 
-2. Importing and Creating `imKeyProvider`
+2. 导入及创建 `imKeyProvider`
 ```js
 import ImKeyProvider from "@imkey/web3-provider"
 
@@ -27,7 +27,7 @@ const imKeyProvider = new ImKeyProvider({
 imKeyProvider.enable()
 
 ```
-3. Using with Web3
+3. 配合 `Web3` 中使用
 ```js
 import Web3 from 'web3'
 
@@ -56,7 +56,7 @@ web3.eth
   .then(console.log)
 ```
 
-4. Or using it with ethers
+4. 配合 `Ethers` 使用
 ```js
 import { ethers } from 'ethers'
 
