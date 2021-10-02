@@ -6,8 +6,8 @@ import { RecordStore } from './RecordStore'
  * create a transport replayer with a record store.
  * @param recordStore
  */
-export const createTransportReplayer = (recordStore: RecordStore): Class<Transport<any>> => {
-  class TransportReplayer extends Transport<any> {
+export const createTransportReplayer = (recordStore: RecordStore): Class<Transport> => {
+  class TransportReplayer extends Transport {
     static isSupported = () => Promise.resolve(true)
     static list = () => Promise.resolve([null])
     static listen = o => {
@@ -33,14 +33,10 @@ export const createTransportReplayer = (recordStore: RecordStore): Class<Transpo
     }
 
     exchange(apdu: Buffer): Promise<Buffer> {
-      // console.log("apdu", apdu.toString("hex"));
-
       try {
         const buffer = recordStore.replayExchange(apdu)
-        // console.log("apdu", buffer.toString("hex"));
         return Promise.resolve(buffer)
       } catch (e) {
-        // console.log("apdu-error", String(e));
         return Promise.reject(e)
       }
     }

@@ -9,6 +9,8 @@ import {
   toUtf8,
   stringToNumber,
   bytesToHex,
+  arrayEquals,
+  EIP1559RLPEncodedTransaction,
 } from './common/utils'
 import { JsonRpcPayload, JsonRpcResponse } from './common/utils'
 import { RLPEncodedTransaction, TransactionConfig } from './common/utils'
@@ -17,11 +19,15 @@ import * as rlp from 'rlp'
 import EventEmitter from 'event-emitter-es6'
 import BN from 'bn.js'
 import imTokenEip712Utils from './eip712'
-import Eth from './hw-app-eth/Eth'
-import TransportWebUSB from './hw-transport-webusb/TransportWebUSB'
 
 // @ts-ignore
 import Web3HttpProvider from 'web3-providers-http'
+import { ETHSingleton } from './hw-app-eth/EHTSingleton'
+import { TransportStatusError } from './errors'
+import { constants } from './common/constants'
+import { ethers } from 'ethers'
+export const EVENT_KEY: string = 'deviceStatus'
+
 interface IProviderOptions {
   rpcUrl?: string
   infuraId?: string
@@ -45,7 +51,7 @@ interface AddEthereumChainParameter {
 
 interface RequestArguments {
   method: string
-  params?: any[]  | undefined
+  params?: any[] | undefined
 }
 
 const IMKEY_ETH_PATH = "m/44'/60'/0'/0/0"
@@ -69,7 +75,7 @@ function createJsonRpcResponse(id: string | number, result: any) {
   }
 }
 
-function createProviderRpcError(code: number, message: string) {
+function createProviderRpcError(code: number | unknown, message: string | unknown) {
   return {
     message,
     code,
@@ -108,6 +114,7 @@ export default class ImKeyProvider extends EventEmitter {
   private headers: []
   private symbol: string
   private decimals: number
+  private accounts: string[]
   constructor(config: IProviderOptions) {
     super()
     let rpcUrl = config.rpcUrl
@@ -149,21 +156,20 @@ export default class ImKeyProvider extends EventEmitter {
   }
 
   async enable() {
-    transport = await TransportWebUSB.create()
-    ETH = new Eth(transport)
-    const accounts = await this.imKeyRequestAccounts(requestId++)
+    this.accounts = await this.imKeyRequestAccounts(requestId++)
     const chainIdHex = await this.callInnerProviderApi(createJsonRpcRequest('eth_chainId'))
     const chainId = hexToNumber(chainIdHex)
     if (chainId !== this.chainId) {
       throw new Error("chain id and rpc endpoint don't match")
     } else {
       this.emit('connect', { chainId })
-      return accounts
+      return this.accounts
     }
   }
-  
-  stop() {
-    transport.close()
+
+  async stop() {
+    let eth = await ETHSingleton.getInstance()
+    await eth.close()
   }
 
   request = async (args: RequestArguments): Promise<any> => {
@@ -247,6 +253,7 @@ export default class ImKeyProvider extends EventEmitter {
         headers,
       })
     }
+    this.emit('chainChanged', { chainId: parseArgsNum(args.chainId) })
   }
   sendAsync(args: JsonRpcPayload, callback: (err: Error | null, ret: any) => void) {
     this.request(args)
@@ -270,10 +277,10 @@ export default class ImKeyProvider extends EventEmitter {
 
   async imKeyRequestAccounts(
     id: string | number | undefined,
-    callback?: (error: Error, ret: any) => void,
+    callback?: (error: Error | unknown, ret: any) => void,
   ) {
     try {
-      const ret = await callImKeyApi({
+      const ret = await this.callImKeyApi({
         jsonrpc: '2.0',
         method: 'eth.getAddress',
         params: {
@@ -281,8 +288,12 @@ export default class ImKeyProvider extends EventEmitter {
         },
         id: requestId++,
       })
-      callback?.(null, [ret.result?.address])
-      return [ret.result?.address]
+      let accounts = [ret.result?.address as string]
+      if (!arrayEquals(this.accounts, accounts)) {
+        this.emit('accountsChanged', { accounts: accounts })
+      }
+      callback?.(null, accounts)
+      return accounts
     } catch (error) {
       callback?.(error, null)
       throw createProviderRpcError(4001, error)
@@ -292,7 +303,7 @@ export default class ImKeyProvider extends EventEmitter {
   async imKeySignTransaction(
     id: string | number | undefined,
     transactionConfig: TransactionConfig,
-    callback?: (error: Error, ret: any) => void,
+    callback?: (error: Error | unknown, ret: any) => void,
   ) {
     if (!transactionConfig.value) {
       transactionConfig.value = '0x0'
@@ -312,11 +323,31 @@ export default class ImKeyProvider extends EventEmitter {
 
     // gas price
     let gasPriceDec: string
-    if (transactionConfig.gasPrice) {
-      gasPriceDec = parseArgsNum(transactionConfig.gasPrice)
+    let maxFeePerGas: string
+    let maxPriorityFeePerGas: string
+    if (numberToHex(transactionConfig.type) === numberToHex(constants.TRANSACTION_TYPE_EIP1559)) {
+      if (transactionConfig.maxFeePerGas && transactionConfig.maxPriorityFeePerGas) {
+        maxFeePerGas = parseArgsNum(transactionConfig.maxFeePerGas)
+        maxPriorityFeePerGas = parseArgsNum(transactionConfig.maxPriorityFeePerGas)
+      } else {
+        const maxFeePerGasRet = await this.callInnerProviderApi(
+          createJsonRpcRequest('eth_gasPrice', []),
+        )
+        maxFeePerGas = hexToNumberString(maxFeePerGasRet)
+        const maxPriorityFeePerGasRet = await this.callInnerProviderApi(
+          createJsonRpcRequest('eth_maxPriorityFeePerGas', []),
+        )
+        maxPriorityFeePerGas = hexToNumberString(maxPriorityFeePerGasRet)
+      }
     } else {
-      const gasPriceRet = await this.callInnerProviderApi(createJsonRpcRequest('eth_gasPrice', []))
-      gasPriceDec = hexToNumberString(gasPriceRet)
+      if (transactionConfig.gasPrice) {
+        gasPriceDec = parseArgsNum(transactionConfig.gasPrice)
+      } else {
+        const gasPriceRet = await this.callInnerProviderApi(
+          createJsonRpcRequest('eth_gasPrice', []),
+        )
+        gasPriceDec = hexToNumberString(gasPriceRet)
+      }
     }
 
     // chain id
@@ -350,7 +381,6 @@ export default class ImKeyProvider extends EventEmitter {
     if (transactionConfig.gas) {
       gasLimit = parseArgsNum(transactionConfig.gas)
     } else {
-      // console.log('transactionConfig.gas:' + transactionConfig.gas)
       const gasRet: string = await this.callInnerProviderApi(
         createJsonRpcRequest('eth_estimateGas', [
           {
@@ -358,63 +388,116 @@ export default class ImKeyProvider extends EventEmitter {
             to: transactionConfig.to,
             gas: transactionConfig.gas,
             gasPrice: numberToHex(gasPriceDec),
-            value: transactionConfig.value,
+            value: numberToHex(transactionConfig.value),
             data: transactionConfig.data,
           },
         ]),
       )
-      // console.log('gasRet:' + gasRet)
       gasLimit = parseArgsNum(gasRet)
     }
-
     const to = toChecksumAddress(transactionConfig.to)
     const value = parseArgsNum(transactionConfig.value)
     const valueInWei = fromWei(value)
 
     try {
-      const ret = await callImKeyApi({
-        jsonrpc: '2.0',
-        method: 'eth.signTransaction',
-        params: {
-          transaction: {
-            data: transactionConfig.data,
-            gasLimit,
-            gasPrice: gasPriceDec,
-            nonce,
-            to,
-            value,
-            chainId,
-            path: IMKEY_ETH_PATH,
-            symbol: this.symbol,
-            decimal: this.decimals.toString(),
+      let ret
+      if (numberToHex(transactionConfig.type) === numberToHex(constants.TRANSACTION_TYPE_EIP1559)) {
+        ret = await this.callImKeyApi({
+          jsonrpc: '2.0',
+          method: 'eth.signTransaction',
+          params: {
+            transaction: {
+              data: transactionConfig.data,
+              gasLimit,
+              type: transactionConfig.type,
+              maxFeePerGas: numberToHex(maxFeePerGas),
+              maxPriorityFeePerGas: numberToHex(maxPriorityFeePerGas),
+              accessList: transactionConfig.accessList,
+              nonce,
+              to,
+              value,
+              chainId,
+              path: IMKEY_ETH_PATH,
+              symbol: this.symbol,
+              decimal: this.decimals.toString(),
+            },
           },
-        },
-        id: requestId++,
-      })
+          id: requestId++,
+        })
+      } else {
+        ret = await this.callImKeyApi({
+          jsonrpc: '2.0',
+          method: 'eth.signTransaction',
+          params: {
+            transaction: {
+              data: transactionConfig.data,
+              gasLimit,
+              gasPrice: gasPriceDec,
+              nonce,
+              to,
+              value,
+              chainId,
+              path: IMKEY_ETH_PATH,
+              symbol: this.symbol,
+              decimal: this.decimals.toString(),
+            },
+          },
+          id: requestId++,
+        })
+      }
+
       let signature = ret.result?.signature
       if (!signature.startsWith('0x')) {
         signature = '0x' + signature
       }
-
-      const decoded = rlp.decode(signature, true)
-
-      const rlpTX: RLPEncodedTransaction = {
-        raw: signature,
-        tx: {
-          nonce: nonce,
-          gasPrice: gasPriceDec,
-          gas: gasLimit,
-          to: to,
-          value: valueInWei,
-          input: transactionConfig.data,
-          // @ts-ignore
-          r: bytesToHex(decoded.data[7]),
-          // @ts-ignore
-          s: bytesToHex(decoded.data[8]),
-          // @ts-ignore
-          v: bytesToHex(decoded.data[6]),
-          hash: ret.result?.txHash,
-        },
+      let decoded
+      let rlpTX: RLPEncodedTransaction | EIP1559RLPEncodedTransaction
+      if (numberToHex(transactionConfig.type) === numberToHex(constants.TRANSACTION_TYPE_EIP1559)) {
+        decoded = rlp.decode('0x' + signature.substring(4), true)
+        rlpTX = {
+          raw: signature,
+          tx: {
+            chainId: parseArgsNum(chainId),
+            nonce: parseArgsNum(nonce),
+            maxPriorityFeePerGas: parseArgsNum(maxPriorityFeePerGas),
+            maxFeePerGas: parseArgsNum(maxFeePerGas),
+            gas: gasLimit,
+            to: to,
+            value: valueInWei,
+            input: transactionConfig.data,
+            accessList:
+              transactionConfig.accessList !== undefined
+                ? ethers.utils.accessListify(transactionConfig.accessList)
+                : [],
+            // @ts-ignore
+            r: bytesToHex(decoded.data[10]),
+            // @ts-ignore
+            s: bytesToHex(decoded.data[11]),
+            // @ts-ignore
+            v: bytesToHex(decoded.data[9]),
+            hash: ret.result?.txHash,
+          },
+        }
+      } else {
+        decoded = rlp.decode(signature, true)
+        rlpTX = {
+          raw: signature,
+          tx: {
+            nonce: nonce,
+            gasPrice: gasPriceDec,
+            gas: gasLimit,
+            to: to,
+            value: valueInWei,
+            input: transactionConfig.data,
+            // @ts-ignore
+            r: bytesToHex(decoded.data[7]),
+            // @ts-ignore
+            s: bytesToHex(decoded.data[8]),
+            // @ts-ignore
+            v: bytesToHex(decoded.data[6]),
+            hash: ret.result?.txHash,
+          },
+        }
       }
       callback?.(null, rlpTX)
       return rlpTX
@@ -429,7 +512,7 @@ export default class ImKeyProvider extends EventEmitter {
     dataToSign: string,
     address: string | number,
     isPersonalSign: boolean,
-    callback?: (error: Error, ret: any) => void,
+    callback?: (error: Error | unknown, ret: any) => void,
   ) {
     if (Number.isInteger(address)) {
       const error = createProviderRpcError(-32602, 'Pass the address to sign data with for now')
@@ -453,7 +536,7 @@ export default class ImKeyProvider extends EventEmitter {
     const checksumAddress = toChecksumAddress(address as string)
 
     try {
-      const ret = await callImKeyApi({
+      const ret = await this.callImKeyApi({
         jsonrpc: '2.0',
         method: 'eth.signMessage',
         params: {
@@ -476,44 +559,66 @@ export default class ImKeyProvider extends EventEmitter {
       throw createProviderRpcError(4001, error)
     }
   }
+
+  async callImKeyApi(arg: Record<string, unknown>) {
+    let eth: ETHSingleton
+    try {
+      eth = await ETHSingleton.getInstance()
+      await eth.init()
+      this.subscribeTransportEvents(eth)
+      let param = JSON.parse(JSON.stringify(arg)).params
+      let json
+      if (arg.method === 'eth.signMessage') {
+        json = await eth.signMessage(param.path, param.data, param.sender, param.isPersonalSign)
+      }
+      if (arg.method === 'eth.signTransaction') {
+        json = await eth.signTransaction(param.transaction)
+      }
+      if (arg.method === 'eth.getAddress') {
+        json = await eth.getAddress(param.path)
+      }
+      await eth.close()
+      return { result: json }
+    } catch (e) {
+      if (e instanceof TransportStatusError) {
+        this.emit(EVENT_KEY, e.message)
+        throw e.message
+      } else {
+        throw e
+      }
+    } finally {
+      if (eth) {
+        this.unsubscribeTransportEvents(eth)
+      }
+    }
+  }
+
+  private subscribeTransportEvents(eth: ETHSingleton) {
+    if (eth && eth.transport) {
+      eth.transport.on('unresponsive', this.imKeyUnresponsiveEmitter)
+      eth.transport.on('responsive', this.imKeyResponsiveEmitter)
+    }
+  }
+
+  private unsubscribeTransportEvents(eth) {
+    if (eth && eth.transport) {
+      eth.transport.off('unresponsive', this.imKeyUnresponsiveEmitter)
+      eth.transport.off('responsive', this.imKeyResponsiveEmitter)
+    }
+  }
+
+  imKeyResponsiveEmitter = () => {
+    this.emit(EVENT_KEY, 'ImKeyResponsive')
+  }
+
+  imKeyUnresponsiveEmitter = () => {
+    console.log('imkey unresponsive')
+    this.emit(EVENT_KEY, 'ImKeyUnresponsive')
+  }
 }
 
 async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
-}
-
-async function callImKeyApi(arg: Record<string, unknown>) {
-  // console.log('native222')
-  // console.log(JSON.stringify(arg))
-  transport = await TransportWebUSB.create()
-  ETH = new Eth(transport)
-  let param = JSON.parse(JSON.stringify(arg)).params
-  let json
-  if (arg.method === 'eth.signMessage') {
-    // console.log('param:')
-    // console.log(param)
-    json = await ETH.signMessage(param.path, param.data, param.sender, param.isPersonalSign)
-  }
-  if (arg.method === 'eth.signTransaction') {
-    // console.log('param:')
-    // console.log(param)
-    json = await ETH.signTransaction(param.transaction)
-  }
-  if (arg.method === 'eth.getAddress') {
-    json = await ETH.getAddress(param.path)
-  }
-  await transport.close()
-  // console.log('返回的数据：')
-  // console.log(json)
-  if (json.error) {
-    if (json.error.message.includes('ImkeyUserNotConfirmed')) {
-      throw new Error('user not confirmed')
-    } else {
-      throw new Error(json.error.message)
-    }
-  } else {
-    return { result: json }
-  }
 }
 
 function postData(url: string, data: Record<string, unknown>) {

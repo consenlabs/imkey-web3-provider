@@ -33,4 +33,6 @@ export const constants = {
   APDU_RSP_SWITCH_BL_STATUS_SUCCESS: '905A',
 
   DEVICE_MODEL_NAME: 'imKey Pro',
+
+  TRANSACTION_TYPE_EIP1559: '0x02',
 }

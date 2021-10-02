@@ -60,37 +60,37 @@ export function getAltStatusMessage(code: number): string | undefined | null {
     case 0x9000:
       return 'Success'
     case 0x6700:
-      return 'Incorrect length'
+      return 'IncorrectLength'
     case 0x6940:
-      return 'User not confirmed'
+      return 'UserNotConfirmed'
     case 0x6941:
-      return 'Exceeded max UTXO number'
+      return 'ExceededMaxUTXONumber'
     case 0x6942:
-      return 'Signature verify failed'
+      return 'SignatureVerifyFailed'
     case 0x6982:
       return 'Security not satisfied (dongle locked or have invalid access rights)'
     case 0x6985:
       return 'Condition of use not satisfied (denied by the user?)'
     case 0x6a80:
-      return 'Invalid data received'
+      return 'InvalidDataReceived'
     case 0x6a82:
-      return 'Applet not exist'
+      return 'AppletNotExist'
     case 0x6a86:
-      return 'Incorrect p1 or p2'
+      return 'IncorrectP1OrP2'
     case 0x6d00:
-      return 'Function not support'
+      return 'FunctionNotSupport'
     case 0x6e00:
-      return 'CLA not support'
+      return 'CLANotSupport'
     case 0x6f01:
-      return 'Bluetooth channel error'
+      return 'BluetoothChannelError'
     case 0xf000:
-      return 'Wallet  not create'
+      return 'WalletNotCreate'
     case 0xf080:
-      return 'ImKey in menu page '
+      return 'ImKeyInMenuPage '
     case 0xf081:
-      return 'PIN not verify'
+      return 'PINNotVerify'
     case 0x905a:
-      return 'Switch BL status success'
+      return 'SwitchBLStatusSuccess'
     default:
       break
   }
@@ -108,10 +108,9 @@ export function TransportStatusError(this: any, statusCode: number): void {
     Object.keys(StatusCodes).find(k => StatusCodes[k] === statusCode) || 'UNKNOWN_ERROR'
   const smsg = getAltStatusMessage(statusCode) || statusText
   const statusCodeStr = statusCode.toString(16)
-  this.message = `imKey device: ${smsg} (0x${statusCodeStr})`
+  this.message = smsg
   this.stack = new Error().stack
-  this.statusCode = statusCode
-  this.statusText = statusText
+  this.statusCode = statusCodeStr
 }
 TransportStatusError.prototype = new Error()
 

@@ -1,8 +1,8 @@
 import Transport from '../hw-transport/Transport'
 import { Observer, DescriptorEvent, Subscription } from '../hw-transport/Transport'
 import hidFraming from './hid-framing'
-import { identifyUSBProductId } from './webusb'
-import { DeviceModel } from './webusb'
+import { identifyUSBProductId } from './imKeyDevice'
+import { DeviceModel } from './imKeyDevice'
 
 import {
   TransportOpenUserCancelled,
@@ -11,7 +11,12 @@ import {
   DisconnectedDeviceDuringOperation,
   DisconnectedDevice,
 } from '../errors'
-import { getImKeyDevices, getFirstImKeyDevice, requestImKeyDevice, isSupported } from './webusb'
+import {
+  getImKeyDevices,
+  getFirstImKeyDevice,
+  requestImKeyDevice,
+  isSupported,
+} from './imKeyDevice'
 
 const configurationValue = 1
 const endpointNumberIn = 5
@@ -23,7 +28,7 @@ const endpointNumberOut = 4
  * ...
  * TransportWebUSB.create().then(transport => ...)
  */
-export default class TransportWebUSB extends Transport<any> {
+export default class TransportWebUSB extends Transport {
   device: any
   deviceModel: DeviceModel
   channel = 0x3f
@@ -108,7 +113,7 @@ export default class TransportWebUSB extends Transport<any> {
     if (device.configuration === null) {
       await device.selectConfiguration(configurationValue)
     }
-    await gracefullyResetDevice(device)
+    // await gracefullyResetDevice(device)
     const iface = device.configurations[0].interfaces.find(({ alternates }) =>
       alternates.some(a => a.interfaceClass === 255),
     )
@@ -122,7 +127,8 @@ export default class TransportWebUSB extends Transport<any> {
     try {
       await device.claimInterface(interfaceNumber)
     } catch (e) {
-      await device.close()
+      // await device.close()
+      // @ts-ignore
       throw new TransportInterfaceNotAvailable(e.message)
     }
     const transport = new TransportWebUSB(device, interfaceNumber)
@@ -161,13 +167,14 @@ export default class TransportWebUSB extends Transport<any> {
    * @returns a promise of apdu response
    */
   exchange = async (apdu: Buffer): Promise<Buffer> => {
-    return this.exchangeAtomicImpl(async () => {
+    const b = await this.exchangeAtomicImpl(async () => {
       const { channel, packetSize } = this
       const framing = hidFraming(channel, packetSize)
 
       // Write...
       const blocks = framing.makeBlocks(apdu)
       for (let i = 0; i < blocks.length; i++) {
+        console.log('apdu', '=> ' + blocks[i].toString('hex').toUpperCase())
         await this.device.transferOut(endpointNumberOut, blocks[i])
       }
 
@@ -179,17 +186,19 @@ export default class TransportWebUSB extends Transport<any> {
         const buffer = Buffer.from(r.data.buffer)
         acc = framing.reduceResponse(acc, buffer)
       }
+      console.log('apdu', '<= ' + result.toString('hex').toUpperCase())
       return result
-    }).catch(e => {
+    }).catch(async e => {
       if (e && e.message && e.message.includes('disconnected')) {
         this._emitDisconnect(e)
         throw new DisconnectedDeviceDuringOperation(e.message)
       }
+
       throw e
     })
+    return b as Buffer
   }
 }
-
 async function gracefullyResetDevice(device: any) {
   try {
     await device.reset()

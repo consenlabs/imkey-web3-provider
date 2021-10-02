@@ -7,6 +7,7 @@ import {
   toChecksumAddress,
   parseArgsNum,
   deleteZero,
+  AccessListish,
 } from '../common/utils'
 import type Transport from '../hw-transport/Transport'
 import { encode } from 'rlp'
@@ -14,15 +15,25 @@ import { ETHApdu } from '../common/apdu'
 import { ethers } from 'ethers'
 import secp256k1 from 'secp256k1'
 import { getTokenInfo } from './erc20Utils'
+import { constants } from '../common/constants'
 
-type Transaction = {
+export type Transaction = {
   data: string
   gasLimit: string
-  gasPrice: string
+  gasPrice?: string
   nonce: string
   to: string
   value: string
   chainId: string
+  // Typed-Transaction features
+  type?: string | null
+
+  // EIP-2930; Type 1 & EIP-1559; Type 2
+  accessList?: AccessListish
+
+  // EIP-1559; Type 2
+  maxFeePerGas?: string
+  maxPriorityFeePerGas?: string
   path: string
   symbol?: string
   decimal?: string
@@ -43,10 +54,11 @@ const ethApdu = new ETHApdu()
  * const eth = new Eth(transport)
  */
 export default class Eth {
-  transport: Transport<any>
+  transport: Transport
   // @ts-ignore
   constructor(transport: Transport<any>) {
     this.transport = transport
+    transport.decorateAppAPIMethods(this, ['signTransaction', 'signMessage', 'getAddress'])
   }
 
   /**
@@ -64,17 +76,7 @@ export default class Eth {
     address: string
     pubkey: string
   }> {
-    const toSend = []
-    let response
-    toSend.push(ethApdu.selectApplet())
-    toSend.push(ethApdu.getXPub(path, false))
-    for (let i of toSend) {
-      response = await this.transport.send(i)
-    }
-    return {
-      address: addressFromPubkey(response),
-      pubkey: response.slice(0, 65).toString('hex'),
-    }
+    return await getWalletAddress(path, this.transport)
   }
 
   /**
@@ -87,9 +89,9 @@ export default class Eth {
     transaction: Transaction,
   ): Promise<{
     signature: string
-    txhash: string
+    txHash: string
   }> {
-    const getAddress = await this.getAddress(transaction.path)
+    const getAddress = await getWalletAddress(transaction.path, this.transport)
     const preview = genPreview(transaction, getAddress.address)
     const rawTransaction = genRawTransaction(transaction)
     const toSend = genApdu(rawTransaction, preview, transaction)
@@ -102,43 +104,62 @@ export default class Eth {
     const normalizesSig = secp256k1.signatureNormalize(signCompact)
     const recId = getRecID(rawTransaction, normalizesSig, pubkey)
     let v
-    if (transaction.chainId === '' || transaction.chainId === 'undefined') {
-      v = numberToHex(27)
+    if (numberToHex(transaction.type) === numberToHex(constants.TRANSACTION_TYPE_EIP1559)) {
+      v = recId
     } else {
-      v = (recId + 35 + Number(transaction.chainId) * 2).toString(16)
+      if (transaction.chainId === '' || transaction.chainId === 'undefined') {
+        v = numberToHex(27)
+      } else {
+        v = '0x' + (recId + 35 + Number(transaction.chainId) * 2).toString(16)
+      }
     }
     // @ts-ignore
     const r = normalizesSig.slice(0, 32).toString('hex')
     // @ts-ignore
     const s = normalizesSig.slice(32, 32 + 32).toString('hex')
-    const signedTransaction = encode([
-      numberToHex(transaction.nonce),
-      numberToHex(transaction.gasPrice),
-      numberToHex(transaction.gasLimit),
-      transaction.to,
-      numberToHex(transaction.value),
-      transaction.data,
-      Buffer.from(v, 'hex'),
-      Buffer.from(r, 'hex'),
-      Buffer.from(s, 'hex'),
-    ])
-    const signature = '0x' + signedTransaction.toString('hex')
-    const txhash = ethers.utils.keccak256(signedTransaction)
-    return { signature, txhash }
+    let signedTransaction
+    if (numberToHex(transaction.type) === numberToHex(constants.TRANSACTION_TYPE_EIP1559)) {
+      signedTransaction = encode([
+        numberToHex(transaction.chainId),
+        numberToHex(transaction.nonce),
+        numberToHex(transaction.maxPriorityFeePerGas),
+        numberToHex(transaction.maxFeePerGas),
+        numberToHex(transaction.gasLimit),
+        transaction.to,
+        numberToHex(transaction.value),
+        transaction.data,
+        transaction.accessList !== undefined
+          ? ethers.utils
+              .accessListify(transaction.accessList)
+              .map(set => [set.address, set.storageKeys])
+          : [],
+        v,
+        Buffer.from(r, 'hex'),
+        Buffer.from(s, 'hex'),
+      ])
+    } else {
+      signedTransaction = encode([
+        numberToHex(transaction.nonce),
+        numberToHex(transaction.gasPrice),
+        numberToHex(transaction.gasLimit),
+        transaction.to,
+        numberToHex(transaction.value),
+        transaction.data,
+        v,
+        Buffer.from(r, 'hex'),
+        Buffer.from(s, 'hex'),
+      ])
+    }
+    let signature
+    if (numberToHex(transaction.type) === numberToHex(constants.TRANSACTION_TYPE_EIP1559)) {
+      signature = '0x02' + signedTransaction.toString('hex')
+    } else {
+      signature = '0x' + signedTransaction.toString('hex')
+    }
+    const txHash = ethers.utils.keccak256(signedTransaction)
+    return { signature, txHash }
   }
 
-  /**
-  * You can sign a message according to eth_sign RPC call and retrieve v, r, s given the message and the BIP 32 path of the account to sign.
-  * @example
-eth.signPersonalMessage("44'/60'/0'/0/0", Buffer.from("test").toString("hex")).then(result => {
-  var v = result['v'] - 27;
-  v = v.toString(16);
-  if (v.length < 2) {
-    v = "0" + v;
-  }
-  console.log("Signature 0x" + result['r'] + result['s'] + v);
-})
-   */
   async signMessage(
     path: string,
     message: string,
@@ -165,7 +186,7 @@ eth.signPersonalMessage("44'/60'/0'/0/0", Buffer.from("test").toString("hex")).t
     const apduPack = Buffer.concat([asUInt8(0), asUInt8(0), dataToSign])
     let toSend = []
     let response
-    const getAddress = await this.getAddress(path)
+    const getAddress = await getWalletAddress(path, this.transport)
     if (getAddress.address !== sender) {
       throw 'address not match'
     }
@@ -186,6 +207,25 @@ eth.signPersonalMessage("44'/60'/0'/0/0", Buffer.from("test").toString("hex")).t
     // return { v, r, s };
     const signature = '0x' + r + s + v
     return { signature }
+  }
+}
+async function getWalletAddress(
+  path: string,
+  transport: Transport,
+): Promise<{
+  address: string
+  pubkey: string
+}> {
+  const toSend = []
+  let response
+  toSend.push(ethApdu.selectApplet())
+  toSend.push(ethApdu.getXPub(path, false))
+  for (let i of toSend) {
+    response = await transport.send(i)
+  }
+  return {
+    address: addressFromPubkey(response),
+    pubkey: response.slice(0, 65).toString('hex'),
   }
 }
 function getRecID(data: Buffer, normalizesSig: Uint8Array, pubkey: string): number {
@@ -213,13 +253,27 @@ function genPreview(transaction: Transaction, address: string): Preview {
   let decimal = !transaction.decimal ? '18' : transaction.decimal
 
   const gasLimit = parseArgsNum(transaction.gasLimit)
-  const gasPrice = parseArgsNum(transaction.gasPrice)
-  // fee
-  let fee = (BigInt(gasLimit) * BigInt(gasPrice)).toString() // wei
-  fee = fromWei(fee, 'gwei') // to Gwei
-  const temp = Math.ceil(Number(fee))
-  fee = (BigInt(temp) * BigInt(1000000000)).toString() // to ether
-  fee = fromWei(fee) + ' ' + 'ETH' //fee 默认就是显示ETH
+  let fee
+  if (
+    numberToHex(transaction.type) === numberToHex(numberToHex(constants.TRANSACTION_TYPE_EIP1559))
+  ) {
+    // EIP1559 fee
+    const maxFeePerGas = parseArgsNum(transaction.maxFeePerGas)
+    fee = (BigInt(gasLimit) * BigInt(maxFeePerGas)).toString() // wei
+    fee = fromWei(fee, 'gwei') // to Gwei
+    const temp = Math.ceil(Number(fee))
+    fee = (BigInt(temp) * BigInt(1000000000)).toString() // to ether
+    fee = fromWei(fee) + ' ' + 'ETH' //fee 默认就是显示ETH
+  } else {
+    // fee
+    const gasPrice = parseArgsNum(transaction.gasPrice)
+    fee = (BigInt(gasLimit) * BigInt(gasPrice)).toString() // wei
+    fee = fromWei(fee, 'gwei') // to Gwei
+    const temp = Math.ceil(Number(fee))
+    fee = (BigInt(temp) * BigInt(1000000000)).toString() // to ether
+    fee = fromWei(fee) + ' ' + 'ETH' //fee 默认就是显示ETH
+  }
+
   let to = toChecksumAddress(transaction.to)
   let value = parseArgsNum(transaction.value)
   let valueInWei = fromWei(value, decimal)
@@ -252,26 +306,68 @@ function genPreview(transaction: Transaction, address: string): Preview {
 function genRawTransaction(transaction: Transaction): Buffer {
   let rawTransaction
   if (transaction.chainId === '' || transaction.chainId === 'undefined') {
-    rawTransaction = encode([
-      numberToHex(transaction.nonce),
-      numberToHex(transaction.gasPrice),
-      numberToHex(transaction.gasLimit),
-      transaction.to,
-      numberToHex(transaction.value),
-      transaction.data,
-    ])
+    if (numberToHex(transaction.type) === numberToHex(constants.TRANSACTION_TYPE_EIP1559)) {
+      rawTransaction = Buffer.concat([
+        asUInt8(2),
+        encode([
+          numberToHex(transaction.chainId),
+          numberToHex(transaction.nonce),
+          numberToHex(transaction.maxPriorityFeePerGas),
+          numberToHex(transaction.maxFeePerGas),
+          numberToHex(transaction.gasLimit),
+          transaction.to,
+          numberToHex(transaction.value),
+          transaction.data,
+          transaction.accessList !== undefined
+            ? ethers.utils
+                .accessListify(transaction.accessList)
+                .map(set => [set.address, set.storageKeys])
+            : [],
+        ]),
+      ])
+    } else {
+      rawTransaction = encode([
+        numberToHex(transaction.nonce),
+        numberToHex(transaction.gasPrice),
+        numberToHex(transaction.gasLimit),
+        transaction.to,
+        numberToHex(transaction.value),
+        transaction.data,
+      ])
+    }
   } else {
-    rawTransaction = encode([
-      numberToHex(transaction.nonce),
-      numberToHex(transaction.gasPrice),
-      numberToHex(transaction.gasLimit),
-      transaction.to,
-      numberToHex(transaction.value),
-      transaction.data,
-      numberToHex(transaction.chainId),
-      0x00,
-      0x00,
-    ])
+    if (numberToHex(transaction.type) === numberToHex(constants.TRANSACTION_TYPE_EIP1559)) {
+      rawTransaction = Buffer.concat([
+        asUInt8(2),
+        encode([
+          numberToHex(transaction.chainId),
+          numberToHex(transaction.nonce),
+          numberToHex(transaction.maxPriorityFeePerGas),
+          numberToHex(transaction.maxFeePerGas),
+          numberToHex(transaction.gasLimit),
+          transaction.to,
+          numberToHex(transaction.value),
+          transaction.data,
+          transaction.accessList !== undefined
+            ? ethers.utils
+                .accessListify(transaction.accessList)
+                .map(set => [set.address, set.storageKeys])
+            : [],
+        ]),
+      ])
+    } else {
+      rawTransaction = encode([
+        numberToHex(transaction.nonce),
+        numberToHex(transaction.gasPrice),
+        numberToHex(transaction.gasLimit),
+        transaction.to,
+        numberToHex(transaction.value),
+        transaction.data,
+        numberToHex(transaction.chainId),
+        0x00,
+        0x00,
+      ])
+    }
   }
   return rawTransaction
 }
