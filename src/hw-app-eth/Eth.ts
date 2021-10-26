@@ -209,6 +209,19 @@ export default class Eth {
     return { signature }
   }
 }
+async function selectApplet(
+  transport: Transport
+): Promise<{
+  response: string
+}> {
+  let response = await transport.send(ethApdu.selectApplet())
+  if(response.slice(0, 8).toString("hex") !=="312e342e30309000"){
+    throw 'address read error, Please replug imkey'
+  }
+  return {
+    response: response.slice(0, 8).toString('hex')
+  }
+}
 async function getWalletAddress(
   path: string,
   transport: Transport,
@@ -216,13 +229,8 @@ async function getWalletAddress(
   address: string
   pubkey: string
 }> {
-  const toSend = []
-  let response
-  toSend.push(ethApdu.selectApplet())
-  toSend.push(ethApdu.getXPub(path, false))
-  for (let i of toSend) {
-    response = await transport.send(i)
-  }
+  await selectApplet(transport)
+  let response = await transport.send(ethApdu.getXPub(path, false))
   if(response.slice(0, 8).toString("hex") ==="312e342e30309000"){
     throw 'address read error, Please replug imkey'
   }
