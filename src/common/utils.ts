@@ -172,7 +172,7 @@ export interface JsonRpcResponse {
   jsonrpc: string
   id: number
   result?: any
-  error?: string
+  error?: any
 }
 export interface EIP1559RLPEncodedTransaction {
   raw: string

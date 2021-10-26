@@ -148,6 +148,8 @@ export default class ImKeyProvider extends EventEmitter {
       this.httpProvider.send(req, (error: Error | null, result?: JsonRpcResponse) => {
         if (error) {
           reject(createProviderRpcError(4001, error.message))
+        } else if (result.error) {
+          reject(createProviderRpcError(4001, result.error.message))
         } else {
           resolve(result.result)
         }
@@ -381,6 +383,9 @@ export default class ImKeyProvider extends EventEmitter {
     if (transactionConfig.gas) {
       gasLimit = parseArgsNum(transactionConfig.gas)
     } else {
+      let valueInHex = numberToHex(transactionConfig.value);
+      // infura cannot accept 0x value
+      const value = valueInHex === '0x' ? '0x0' : valueInHex;
       const gasRet: string = await this.callInnerProviderApi(
         createJsonRpcRequest('eth_estimateGas', [
           {
@@ -388,7 +393,7 @@ export default class ImKeyProvider extends EventEmitter {
             to: transactionConfig.to,
             gas: transactionConfig.gas,
             gasPrice: numberToHex(gasPriceDec),
-            value: numberToHex(transactionConfig.value),
+            value,
             data: transactionConfig.data,
           },
         ]),
