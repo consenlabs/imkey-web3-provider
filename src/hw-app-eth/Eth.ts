@@ -223,6 +223,9 @@ async function getWalletAddress(
   for (let i of toSend) {
     response = await transport.send(i)
   }
+  if(response.slice(0, 8).toString("hex") ==="312e342e30309000"){
+    throw 'address read error, Please replug imkey'
+  }
   return {
     address: addressFromPubkey(response),
     pubkey: response.slice(0, 65).toString('hex'),
