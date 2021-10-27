@@ -217,6 +217,10 @@ async function selectApplet(
   response: string
 }> {
   let response = await transport.send(ethApdu.selectApplet())
+  // 判断selectApplet返回的指令长度大于130字符，说明webusb读取的指令出现错误
+  if(response.toString("hex").length > 130){
+    throw new TransportStatusError(0xf001)
+  }
   return {
     response: response.slice(0, 8).toString('hex')
   }
