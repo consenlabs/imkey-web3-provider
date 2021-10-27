@@ -23,7 +23,7 @@ import imTokenEip712Utils from './eip712'
 // @ts-ignore
 import Web3HttpProvider from 'web3-providers-http'
 import { ETHSingleton } from './hw-app-eth/EHTSingleton'
-import { TransportStatusError } from './errors'
+import { TransportError, TransportStatusError } from './errors'
 import { constants } from './common/constants'
 import { ethers } from 'ethers'
 export const EVENT_KEY: string = 'deviceStatus'
@@ -36,6 +36,7 @@ interface IProviderOptions {
   symbol?: string
   decimals?: number
   msgAlert?: (msg: string) => void
+  language?: string
 }
 interface AddEthereumChainParameter {
   chainId: string
@@ -116,7 +117,8 @@ export default class ImKeyProvider extends EventEmitter {
   private symbol: string
   private decimals: number
   private accounts: string[]
-  private msgAlert: (msg: string) => void
+  private msgAlert: (message?: any) => void;
+  private language: string
   constructor(config: IProviderOptions) {
     super()
     let rpcUrl = config.rpcUrl
@@ -144,10 +146,12 @@ export default class ImKeyProvider extends EventEmitter {
     this.symbol = !config.symbol ? 'ETH' : config.symbol
     this.decimals = !config.decimals ? 18 : config.decimals
 
-    if (config.msgAlert) {
-      this.msgAlert = config.msgAlert
+    this.msgAlert = config.msgAlert
+    
+    if (config.language) {
+      this.language = config.language.includes("zh") ? "zh" : "en"
     } else {
-      this.msgAlert = window.alert
+      this.language = this.getLang().includes("zh") ? "zh" : "en"
     }
   }
 
@@ -598,15 +602,54 @@ export default class ImKeyProvider extends EventEmitter {
     } catch (e) {
       if (e instanceof TransportStatusError) {
         this.emit(EVENT_KEY, e.message)
-        this.msgAlert(e.message)
+        this.replugWarning();
+        console.error("imkey transport error: ", e)
+        // window.alert("请重新打开项目")
         throw e.message
-      } else {
+      } else if (e instanceof TransportError) {
+        this.usbChannelOccupyWarning()
+        console.error("imkey transport error: ", e)
         throw e
       }
     } finally {
       if (eth) {
         this.unsubscribeTransportEvents(eth)
       }
+    }
+  }
+
+  private getLang() {
+    if (navigator.languages != undefined) 
+      return navigator.languages[0]; 
+    return navigator.language;
+  }
+
+  private replugWarning() {
+    let msg: string
+    if (this.language === "zh") {
+      msg = "imKey 通讯出错，请拔掉 imKey 重新插入"
+    } else {
+      msg = "Some errors occur, please replug imKey"
+    }
+    this.warningAlert(msg)
+  }
+
+  private usbChannelOccupyWarning() {
+    let msg: string
+    if (this.language === "zh") {
+      msg = "imKey 有未完成操作，请检查其他网页是否因为未完成的操作"
+    } else {
+      msg = "There are incomplete operations on imKey, please check if other pages are using imKey."
+    }
+
+    this.warningAlert(msg)
+  }
+
+  private warningAlert(msg: string) {
+    if (this.msgAlert) {
+      this.msgAlert(msg);
+    } else {
+      window.alert(msg)
     }
   }
 
@@ -633,6 +676,8 @@ export default class ImKeyProvider extends EventEmitter {
     this.emit(EVENT_KEY, 'ImKeyUnresponsive')
   }
 }
+
+
 
 async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
