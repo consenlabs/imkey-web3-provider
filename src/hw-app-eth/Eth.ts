@@ -230,7 +230,7 @@ async function getWalletAddress(
 }> {
   await selectApplet(transport)
   let response = await transport.send(ethApdu.getXPub(path, false))
-  // 判断getXPub的指令长度小于130字符，才可以计算address，如果大于说明读取到的返回结果有误
+  // 判断getXPub的指令长度大于130字符，才可以计算address，如果小于说明读取到的返回结果有误
   if(response.toString("hex").length < 130){
     throw new TransportStatusError(0xf001)
   }
