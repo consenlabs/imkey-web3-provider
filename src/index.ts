@@ -609,10 +609,8 @@ export default class ImKeyProvider extends EventEmitter {
         this.usbChannelOccupyWarning()
         console.error("imkey transport error: ", e)
         throw e
-      } else {
-        this.replugWarning();
-        console.error("imkey error: ", e)
-        throw e
+      } else if (e instanceof DOMException) {
+        console.log("imkey is busy: ", e)
       }
     } finally {
       if (eth) {
