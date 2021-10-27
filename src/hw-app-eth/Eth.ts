@@ -231,7 +231,7 @@ async function getWalletAddress(
 }> {
   await selectApplet(transport)
   let response = await transport.send(ethApdu.getXPub(path, false))
-  if(response.slice(0, 8).toString("hex") !== "312e342e30309000"){
+  if(response.slice(0, 8).toString("hex") === "312e342e30309000"){
     throw 'address read error, Please replug imkey'
   }
   return {
