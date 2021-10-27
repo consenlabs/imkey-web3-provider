@@ -9,6 +9,7 @@ import {
   deleteZero,
   AccessListish,
 } from '../common/utils'
+
 import type Transport from '../hw-transport/Transport'
 import { encode } from 'rlp'
 import { ETHApdu } from '../common/apdu'
@@ -16,6 +17,7 @@ import { ethers } from 'ethers'
 import secp256k1 from 'secp256k1'
 import { getTokenInfo } from './erc20Utils'
 import { constants } from '../common/constants'
+import { TransportStatusError } from "../errors/index";
 
 export type Transaction = {
   data: string
@@ -216,7 +218,7 @@ async function selectApplet(
 }> {
   let response = await transport.send(ethApdu.selectApplet())
   if(response.slice(0, 8).toString("hex") !=="312e342e30309000"){
-    throw 'address read error, Please replug imkey'
+    throw new TransportStatusError(0xf001)
   }
   return {
     response: response.slice(0, 8).toString('hex')
@@ -232,7 +234,7 @@ async function getWalletAddress(
   await selectApplet(transport)
   let response = await transport.send(ethApdu.getXPub(path, false))
   if(response.slice(0, 8).toString("hex") === "312e342e30309000"){
-    throw 'address read error, Please replug imkey'
+    throw new TransportStatusError(0xf001)
   }
   return {
     address: addressFromPubkey(response),

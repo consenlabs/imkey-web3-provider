@@ -91,6 +91,8 @@ export function getAltStatusMessage(code: number): string | undefined | null {
       return 'PINNotVerify'
     case 0x905a:
       return 'SwitchBLStatusSuccess'
+    case 0xf001:
+      return 'address read error, Please replug imkey.'
     default:
       break
   }
