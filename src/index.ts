@@ -35,6 +35,7 @@ interface IProviderOptions {
   headers?: Record<string, string>
   symbol?: string
   decimals?: number
+  msgAlert?: (msg: string) => void
 }
 interface AddEthereumChainParameter {
   chainId: string
@@ -115,6 +116,7 @@ export default class ImKeyProvider extends EventEmitter {
   private symbol: string
   private decimals: number
   private accounts: string[]
+  private msgAlert: (msg: string) => void
   constructor(config: IProviderOptions) {
     super()
     let rpcUrl = config.rpcUrl
@@ -141,6 +143,12 @@ export default class ImKeyProvider extends EventEmitter {
     })
     this.symbol = !config.symbol ? 'ETH' : config.symbol
     this.decimals = !config.decimals ? 18 : config.decimals
+
+    if (config.msgAlert) {
+      this.msgAlert = config.msgAlert
+    } else {
+      this.msgAlert = window.alert
+    }
   }
 
   async callInnerProviderApi(req: JsonRpcPayload): Promise<any> {
@@ -162,7 +170,9 @@ export default class ImKeyProvider extends EventEmitter {
     const chainIdHex = await this.callInnerProviderApi(createJsonRpcRequest('eth_chainId'))
     const chainId = hexToNumber(chainIdHex)
     if (chainId !== this.chainId) {
-      throw new Error("chain id and rpc endpoint don't match")
+      const errMsg = "chain id and rpc endpoint don't match"
+      this.msgAlert(errMsg)
+      throw new Error(errMsg)
     } else {
       this.emit('connect', { chainId })
       return this.accounts
@@ -257,6 +267,7 @@ export default class ImKeyProvider extends EventEmitter {
     }
     this.emit('chainChanged', { chainId: parseArgsNum(args.chainId) })
   }
+
   sendAsync(args: JsonRpcPayload, callback: (err: Error | null, ret: any) => void) {
     this.request(args)
       .then(ret => {
@@ -587,6 +598,7 @@ export default class ImKeyProvider extends EventEmitter {
     } catch (e) {
       if (e instanceof TransportStatusError) {
         this.emit(EVENT_KEY, e.message)
+        this.msgAlert(e.message)
         throw e.message
       } else {
         throw e
