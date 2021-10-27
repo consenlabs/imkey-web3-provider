@@ -604,11 +604,14 @@ export default class ImKeyProvider extends EventEmitter {
         this.emit(EVENT_KEY, e.message)
         this.replugWarning();
         console.error("imkey transport error: ", e)
-        // window.alert("请重新打开项目")
         throw e.message
       } else if (e instanceof TransportError) {
         this.usbChannelOccupyWarning()
         console.error("imkey transport error: ", e)
+        throw e
+      } else {
+        this.replugWarning();
+        console.error("imkey error: ", e)
         throw e
       }
     } finally {
