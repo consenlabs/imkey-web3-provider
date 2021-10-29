@@ -422,6 +422,11 @@ export default class ImKeyProvider extends EventEmitter {
     try {
       let ret
       if (numberToHex(transactionConfig.type) === numberToHex(constants.TRANSACTION_TYPE_EIP1559)) {
+        const mpf = stringToNumber(maxPriorityFeePerGas) 
+        if (mpf > constants.MAX_GAS_FEE) {
+          throw "gas_fee_is_too_high"
+        }
+
         ret = await this.callImKeyApi({
           jsonrpc: '2.0',
           method: 'eth.signTransaction',
@@ -445,6 +450,12 @@ export default class ImKeyProvider extends EventEmitter {
           id: requestId++,
         })
       } else {
+
+        const gasFee = stringToNumber(gasPriceDec) 
+        if (gasFee > constants.MAX_GAS_FEE) {
+          throw "gas_fee_is_too_high"
+        }
+
         ret = await this.callImKeyApi({
           jsonrpc: '2.0',
           method: 'eth.signTransaction',
@@ -646,6 +657,16 @@ export default class ImKeyProvider extends EventEmitter {
     this.warningAlert(msg)
   }
 
+  private imKeyUnresponsiveAlert() {
+    let msg: string
+    if (this.language === "zh") {
+      msg = "请在 imKey 上确认操作"
+    } else {
+      msg = "Please confirm on imKey"
+    }
+    this.warningAlert(msg)
+  }
+
   private warningAlert(msg: string) {
     if (this.msgAlert) {
       this.msgAlert(msg);
@@ -674,6 +695,7 @@ export default class ImKeyProvider extends EventEmitter {
 
   imKeyUnresponsiveEmitter = () => {
     console.log('imkey unresponsive')
+    this.imKeyUnresponsiveAlert()
     this.emit(EVENT_KEY, 'ImKeyUnresponsive')
   }
 }
