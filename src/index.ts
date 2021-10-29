@@ -422,11 +422,6 @@ export default class ImKeyProvider extends EventEmitter {
     try {
       let ret
       if (numberToHex(transactionConfig.type) === numberToHex(constants.TRANSACTION_TYPE_EIP1559)) {
-        const mpf = stringToNumber(maxPriorityFeePerGas) 
-        if (mpf > constants.MAX_GAS_FEE) {
-          throw "gas_fee_is_too_high"
-        }
-
         ret = await this.callImKeyApi({
           jsonrpc: '2.0',
           method: 'eth.signTransaction',
@@ -450,12 +445,6 @@ export default class ImKeyProvider extends EventEmitter {
           id: requestId++,
         })
       } else {
-
-        const gasFee = stringToNumber(gasPriceDec) 
-        if (gasFee > constants.MAX_GAS_FEE) {
-          throw "gas_fee_is_too_high"
-        }
-
         ret = await this.callImKeyApi({
           jsonrpc: '2.0',
           method: 'eth.signTransaction',

@@ -35,5 +35,4 @@ export const constants = {
   DEVICE_MODEL_NAME: 'imKey Pro',
 
   TRANSACTION_TYPE_EIP1559: '0x02',
-  MAX_GAS_FEE: 21000
 }
