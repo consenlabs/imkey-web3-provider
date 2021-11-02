@@ -93,6 +93,10 @@ export function getAltStatusMessage(code: number): string | undefined | null {
       return 'SwitchBLStatusSuccess'
     case 0xf001:
       return 'address read error, Please replug imkey.'
+    case 0xf002:
+      return 'imKey Device is busy.'
+    case 0xf003:
+      return 'imKey not found.'
     default:
       break
   }
@@ -104,16 +108,34 @@ export function getAltStatusMessage(code: number): string | undefined | null {
  * Error thrown when a devices returned a non success status.
  * the error.statusCode is one of the `StatusCodes` exported by this library.
  */
-export function TransportStatusError(this: any, statusCode: number): void {
-  this.name = 'TransportStatusError'
-  const statusText =
-    Object.keys(StatusCodes).find(k => StatusCodes[k] === statusCode) || 'UNKNOWN_ERROR'
-  const smsg = getAltStatusMessage(statusCode) || statusText
-  const statusCodeStr = statusCode.toString(16)
-  this.message = smsg
-  this.stack = new Error().stack
-  this.statusCode = statusCodeStr
+// export function TransportStatusError(this: any, statusCode: number): void {
+//   this.name = 'TransportStatusError'
+//   const statusText =
+//     Object.keys(StatusCodes).find(k => StatusCodes[k] === statusCode) || 'UNKNOWN_ERROR'
+//   const smsg = getAltStatusMessage(statusCode) || statusText
+//   const statusCodeStr = statusCode.toString(16)
+//   this.message = smsg
+//   this.stack = new Error().stack
+//   this.statusCode = statusCodeStr
+// }
+// TransportStatusError.prototype = new Error()
+
+export class TransportStatusError extends Error {
+  public name: string
+  public message: string
+  // stack:
+  public statusCode: string
+  constructor(statusCode: number) {
+    super()
+    this.name = 'TransportStatusError'
+    const statusText =
+      Object.keys(StatusCodes).find(k => StatusCodes[k] === statusCode) || 'UNKNOWN_ERROR'
+    const smsg = getAltStatusMessage(statusCode) || statusText
+    const statusCodeStr = statusCode.toString(16)
+    this.message = smsg
+    this.stack = new Error().stack
+    this.statusCode = statusCodeStr
+  }
 }
-TransportStatusError.prototype = new Error()
 
 addCustomErrorDeserializer('TransportStatusError', e => new TransportStatusError(e.statusCode))

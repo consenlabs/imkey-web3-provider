@@ -602,15 +602,25 @@ export default class ImKeyProvider extends EventEmitter {
     } catch (e) {
       if (e instanceof TransportStatusError) {
         this.emit(EVENT_KEY, e.message)
-        this.replugWarning();
-        console.error("imkey transport error: ", e)
-        throw e.message
-      } else if (e instanceof TransportError) {
-        this.usbChannelOccupyWarning()
+        if(e.statusCode.toString().toLowerCase() === "f001"){
+          this.replugWarning();
+        }
+        if(e.statusCode.toString().toLowerCase() === "f002"){
+          this.usbChannelOccupyWarning();
+        }
+        if(e.statusCode.toString().toLowerCase() === "f003"){
+          this.notFoundImKey();
+        }
+        if(e.statusCode.toString().toLowerCase() === "6940"){
+          this.userNotConfirmed();
+        }
+
         console.error("imkey transport error: ", e)
         throw e
-      } else if (e instanceof DOMException) {
-        console.log("imkey is busy: ", e)
+      } else if (e instanceof TransportError) {
+        // this.usbChannelOccupyWarning()
+        console.error("imkey transport error: ", e)
+        throw e
       }
     } finally {
       if (eth) {
@@ -638,9 +648,19 @@ export default class ImKeyProvider extends EventEmitter {
   private usbChannelOccupyWarning() {
     let msg: string
     if (this.language === "zh") {
-      msg = "imKey 有未完成操作，请检查其他网页是否因为未完成的操作"
+      msg = "imKey 有未完成操作，请检查其他网页是否整占用 imKey"
     } else {
       msg = "There are incomplete operations on imKey, please check if other pages are using imKey."
+    }
+
+    this.warningAlert(msg)
+  }
+  private userNotConfirmed() {
+    let msg: string
+    if (this.language === "zh") {
+      msg = "imKey 的操作已取消"
+    } else {
+      msg = "The operation on imKey has cancelled."
     }
 
     this.warningAlert(msg)
@@ -656,6 +676,16 @@ export default class ImKeyProvider extends EventEmitter {
     this.warningAlert(msg)
   }
 
+  private notFoundImKey() {
+    let msg: string
+    if (this.language === "zh") {
+      msg = "未发现 imKey 设备，请使用 USB 连接 imKey "
+    } else {
+      msg = "No imKey device is found, please use USB to connect to imKey."
+    }
+
+    this.warningAlert(msg)
+  }
   private warningAlert(msg: string) {
     if (this.msgAlert) {
       this.msgAlert(msg);
