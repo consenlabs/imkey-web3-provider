@@ -93,6 +93,10 @@ export function getAltStatusMessage(code: number): string | undefined | null {
       return 'SwitchBLStatusSuccess'
     case 0xf001:
       return 'address read error, Please replug imkey.'
+    case 0xf002:
+      return 'imKey Device is busy.'
+    case 0xf003:
+      return 'imKey not found.'
     default:
       break
   }

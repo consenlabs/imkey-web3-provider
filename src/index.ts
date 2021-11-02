@@ -602,12 +602,24 @@ export default class ImKeyProvider extends EventEmitter {
     } catch (e) {
       if (e instanceof TransportStatusError) {
         this.emit(EVENT_KEY, e.message)
-        this.replugWarning();
+        if(e.statusCode.toString().toLowerCase() === "f001"){
+          this.replugWarning();
+        }
+        if(e.statusCode.toString().toLowerCase() === "f002"){
+          this.usbChannelOccupyWarning();
+        }
+        if(e.statusCode.toString().toLowerCase() === "f003"){
+          this.notFoundImKey();
+        }
+        if(e.statusCode.toString().toLowerCase() === "6940"){
+          this.userNotConfirmed();
+        }
+
         console.error("imkey transport error: ", e)
         // window.alert("请重新打开项目")
-        throw e.message
+        throw e
       } else if (e instanceof TransportError) {
-        this.usbChannelOccupyWarning()
+        // this.usbChannelOccupyWarning()
         console.error("imkey transport error: ", e)
         throw e
       }
@@ -644,7 +656,26 @@ export default class ImKeyProvider extends EventEmitter {
 
     this.warningAlert(msg)
   }
+  private userNotConfirmed() {
+    let msg: string
+    if (this.language === "zh") {
+      msg = "用户在 imKey 上未确认或已取消操作"
+    } else {
+      msg = "The user has not confirmed or cancelled the operation on imKey."
+    }
 
+    this.warningAlert(msg)
+  }
+  private notFoundImKey() {
+    let msg: string
+    if (this.language === "zh") {
+      msg = "未发现 imKey 设备，请使用 USB 连接 imKey "
+    } else {
+      msg = "No imKey device is found, please use USB to connect to imKey."
+    }
+
+    this.warningAlert(msg)
+  }
   private warningAlert(msg: string) {
     if (this.msgAlert) {
       this.msgAlert(msg);

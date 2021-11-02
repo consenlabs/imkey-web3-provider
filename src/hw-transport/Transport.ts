@@ -222,7 +222,7 @@ export default class Transport {
           if (listenTimeoutId) clearTimeout(listenTimeoutId)
 
           if (!found) {
-            reject(new TransportError(this.ErrorMessage_NoDeviceFound, 'NoDeviceFound'))
+            reject(new TransportStatusError(0xf003))
           }
         },
       })
@@ -288,10 +288,11 @@ export default class Transport {
       if (_appAPIlock) {
         this.emit('unresponsive')
         console.error(
-          new TransportError('imKey Device is busy (lock ' + _appAPIlock + ')', 'TransportLocked'),
+          new TransportStatusError(0xf002)
+          // new TransportError('imKey Device is busy (lock ' + _appAPIlock + ')', 'TransportLocked'),
         )
 
-        return Promise.reject(new TransportError('ImKeyUnresponsive', 'TransportLocked'))
+        return Promise.reject(new TransportStatusError(0xf002))
       }
 
       try {
