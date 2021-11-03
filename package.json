@@ -1,6 +1,6 @@
 {
   "name": "@imkey/web3-provider",
-  "version": "1.2.10",
+  "version": "1.2.13",
   "description": "A web3 provider connects to imKey",
   "main": "dist/imkey-web3-provider.cjs.js",
   "module": "dist/imkey-web3-provider.esm.js",
@@ -104,6 +104,7 @@
   "dependencies": {
     "@types/event-emitter-es6": "^1.1.0",
     "@types/sha.js": "^2.4.0",
+    "async-mutex": "^0.3.2",
     "axios": "^0.21.4",
     "bignumber.js": "^9.0.1",
     "ethereumjs-util": "^5.1.1",

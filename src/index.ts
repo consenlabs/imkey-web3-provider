@@ -19,6 +19,7 @@ import * as rlp from 'rlp'
 import EventEmitter from 'event-emitter-es6'
 import BN from 'bn.js'
 import imTokenEip712Utils from './eip712'
+import { Mutex } from 'async-mutex'
 
 // @ts-ignore
 import Web3HttpProvider from 'web3-providers-http'
@@ -117,8 +118,10 @@ export default class ImKeyProvider extends EventEmitter {
   private symbol: string
   private decimals: number
   private accounts: string[]
-  private msgAlert: (message?: any) => void;
+  private msgAlert: (message?: any) => void
   private language: string
+  private debounceTimer: NodeJS.Timeout
+  private mutex: Mutex
   constructor(config: IProviderOptions) {
     super()
     let rpcUrl = config.rpcUrl
@@ -147,12 +150,14 @@ export default class ImKeyProvider extends EventEmitter {
     this.decimals = !config.decimals ? 18 : config.decimals
 
     this.msgAlert = config.msgAlert
-    
+
     if (config.language) {
-      this.language = config.language.includes("zh") ? "zh" : "en"
+      this.language = config.language.includes('zh') ? 'zh' : 'en'
     } else {
-      this.language = this.getLang().includes("zh") ? "zh" : "en"
+      this.language = this.getLang().includes('zh') ? 'zh' : 'en'
     }
+
+    this.mutex = new Mutex()
   }
 
   async callInnerProviderApi(req: JsonRpcPayload): Promise<any> {
@@ -170,16 +175,21 @@ export default class ImKeyProvider extends EventEmitter {
   }
 
   async enable() {
-    this.accounts = await this.imKeyRequestAccounts(requestId++)
-    const chainIdHex = await this.callInnerProviderApi(createJsonRpcRequest('eth_chainId'))
-    const chainId = hexToNumber(chainIdHex)
-    if (chainId !== this.chainId) {
-      const errMsg = "chain id and rpc endpoint don't match"
-      this.msgAlert(errMsg)
-      throw new Error(errMsg)
-    } else {
-      this.emit('connect', { chainId })
-      return this.accounts
+    const release = await this.mutex.acquire()
+    try {
+      this.accounts = await this.imKeyRequestAccounts(requestId++)
+      const chainIdHex = await this.callInnerProviderApi(createJsonRpcRequest('eth_chainId'))
+      const chainId = hexToNumber(chainIdHex)
+      if (chainId !== this.chainId) {
+        const errMsg = "chain id and rpc endpoint don't match"
+        this.msgAlert(errMsg)
+        throw new Error(errMsg)
+      } else {
+        this.emit('connect', { chainId })
+        return this.accounts
+      }
+    } finally {
+      release()
     }
   }
 
@@ -398,9 +408,9 @@ export default class ImKeyProvider extends EventEmitter {
     if (transactionConfig.gas) {
       gasLimit = parseArgsNum(transactionConfig.gas)
     } else {
-      let valueInHex = numberToHex(transactionConfig.value);
+      let valueInHex = numberToHex(transactionConfig.value)
       // infura cannot accept 0x value
-      const value = valueInHex === '0x' ? '0x0' : valueInHex;
+      const value = valueInHex === '0x' ? '0x0' : valueInHex
       const gasRet: string = await this.callInnerProviderApi(
         createJsonRpcRequest('eth_estimateGas', [
           {
@@ -602,24 +612,24 @@ export default class ImKeyProvider extends EventEmitter {
     } catch (e) {
       if (e instanceof TransportStatusError) {
         this.emit(EVENT_KEY, e.message)
-        if(e.statusCode.toString().toLowerCase() === "f001"){
-          this.replugWarning();
+        if (e.statusCode.toString().toLowerCase() === 'f001') {
+          this.replugWarning()
         }
-        if(e.statusCode.toString().toLowerCase() === "f002"){
-          this.usbChannelOccupyWarning();
+        if (e.statusCode.toString().toLowerCase() === 'f002') {
+          // ignore tedious warning
+          // this.usbChannelOccupyWarning();
         }
-        if(e.statusCode.toString().toLowerCase() === "f003"){
-          this.notFoundImKey();
+        if (e.statusCode.toString().toLowerCase() === 'f003') {
+          this.notFoundImKey()
         }
-        if(e.statusCode.toString().toLowerCase() === "6940"){
-          this.userNotConfirmed();
+        if (e.statusCode.toString().toLowerCase() === '6940') {
+          this.userNotConfirmed()
         }
 
-        console.error("imkey transport error: ", e)
+        console.error('imkey transport error: ', e)
         throw e
       } else if (e instanceof TransportError) {
-        // this.usbChannelOccupyWarning()
-        console.error("imkey transport error: ", e)
+        console.error('imkey transport error: ', e)
         throw e
       }
     } finally {
@@ -630,37 +640,36 @@ export default class ImKeyProvider extends EventEmitter {
   }
 
   private getLang() {
-    if (navigator.languages != undefined) 
-      return navigator.languages[0]; 
-    return navigator.language;
+    if (navigator.languages != undefined) return navigator.languages[0]
+    return navigator.language
   }
 
   private replugWarning() {
     let msg: string
-    if (this.language === "zh") {
-      msg = "imKey 通讯出错，请拔掉 imKey 重新插入"
+    if (this.language === 'zh') {
+      msg = 'imKey 通讯出错，请拔掉 imKey 重新插入'
     } else {
-      msg = "Some errors occur, please replug imKey"
+      msg = 'Some errors occur, please replug imKey'
     }
     this.warningAlert(msg)
   }
 
   private usbChannelOccupyWarning() {
     let msg: string
-    if (this.language === "zh") {
-      msg = "imKey 有未完成操作，请检查其他网页是否整占用 imKey"
+    if (this.language === 'zh') {
+      msg = 'imKey 有未完成操作，请检查其他网页是否整占用 imKey'
     } else {
-      msg = "There are incomplete operations on imKey, please check if other pages are using imKey."
+      msg = 'There are incomplete operations on imKey, please check if other pages are using imKey.'
     }
 
     this.warningAlert(msg)
   }
   private userNotConfirmed() {
     let msg: string
-    if (this.language === "zh") {
-      msg = "imKey 的操作已取消"
+    if (this.language === 'zh') {
+      msg = 'imKey 的操作已取消'
     } else {
-      msg = "The operation on imKey has cancelled."
+      msg = 'The operation on imKey has cancelled.'
     }
 
     this.warningAlert(msg)
@@ -668,30 +677,33 @@ export default class ImKeyProvider extends EventEmitter {
 
   private imKeyUnresponsiveAlert() {
     let msg: string
-    if (this.language === "zh") {
-      msg = "请在 imKey 上确认操作"
+    if (this.language === 'zh') {
+      msg = '请在 imKey 上确认操作'
     } else {
-      msg = "Please confirm on imKey"
+      msg = 'Please confirm on imKey'
     }
     this.warningAlert(msg)
   }
 
   private notFoundImKey() {
     let msg: string
-    if (this.language === "zh") {
-      msg = "未发现 imKey 设备，请使用 USB 连接 imKey "
+    if (this.language === 'zh') {
+      msg = '未发现 imKey 设备，请使用 USB 连接 imKey '
     } else {
-      msg = "No imKey device is found, please use USB to connect to imKey."
+      msg = 'No imKey device is found, please use USB to connect to imKey.'
     }
 
     this.warningAlert(msg)
   }
   private warningAlert(msg: string) {
-    if (this.msgAlert) {
-      this.msgAlert(msg);
-    } else {
-      window.alert(msg)
-    }
+    clearTimeout(this.debounceTimer)
+    this.debounceTimer = setTimeout(() => {
+      if (this.msgAlert) {
+        this.msgAlert(msg)
+      } else {
+        window.alert(msg)
+      }
+    }, 500)
   }
 
   private subscribeTransportEvents(eth: ETHSingleton) {
@@ -718,8 +730,6 @@ export default class ImKeyProvider extends EventEmitter {
     this.emit(EVENT_KEY, 'ImKeyUnresponsive')
   }
 }
-
-
 
 async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
