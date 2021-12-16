@@ -59,8 +59,8 @@ const createHIDframing = (channel: number, packetSize: number) => {
         } else {
           head = Buffer.alloc(5)
           head.writeUInt8(i-1, 4)
-          chunk = data.slice(dataIndex, dataIndex + (blockSize + 2))
-          dataIndex += blockSize + 2
+          chunk = data.slice(dataIndex, dataIndex + (blockSize))
+          dataIndex += blockSize
         }
         blocks.push(Buffer.concat([head, chunk], 64))
         if (dataIndex >= data.length) {
