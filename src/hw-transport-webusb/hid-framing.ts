@@ -19,7 +19,8 @@ const ERR_INVALID_LEN = 0x03
 const ERR_INVALID_SEQ = 0x04
 
 const ERR_DEVICE_BUSY = 0x06
-const ERR_OTHER       = 0x7F
+const ERR_DEVICE_CANCEL = 0xFE
+const ERR_OTHER       = 0x07
 function asUInt16BE(value) {
   const b = Buffer.alloc(2)
   b.writeUInt16BE(value, 0)
@@ -78,7 +79,9 @@ const createHIDframing = (channel: number, packetSize: number) => {
       }
       if (chunk.readUInt8(4) === COMMAND_TYPE_ERROR) {
         if(chunk.readUInt8(7) === ERR_INVALID_CMD){
-          throw new TransportError('ERR_INVALID_CMD', 'ERR_INVALID_CMD')
+
+          throw new TransportStatusError(0xf001)
+          // throw new TransportError('ERR_INVALID_CMD', 'ERR_INVALID_CMD')
         }
         if(chunk.readUInt8(7) === ERR_INVALID_PAR){
           throw new TransportError('ERR_INVALID_PAR', 'ERR_INVALID_PAR')
@@ -93,8 +96,15 @@ const createHIDframing = (channel: number, packetSize: number) => {
           throw new TransportStatusError(0xf002)
           // throw new TransportError('ERR_DEVICE_BUSY', 'ERR_DEVICE_BUSY')
         }
+        if(chunk.readUInt8(7) === ERR_DEVICE_CANCEL){
+          throw new TransportStatusError(0xf002)
+          // throw new TransportError('ERR_DEVICE_BUSY', 'ERR_DEVICE_BUSY')
+        }
         if(chunk.readUInt8(7) === ERR_OTHER){
-          throw new TransportError('ERR_OTHER', 'ERR_OTHER')
+          // throw new TransportStatusError(0xf001)
+          console.log('apdu1', '<= ' + chunk.toString('hex').toUpperCase())
+          return
+          // throw new TransportError('ERR_OTHER', 'ERR_OTHER')
         }
       }
       if (chunk.readUInt8(4) === COMMAND_TYPE_MESSAGE) {
@@ -116,7 +126,6 @@ const createHIDframing = (channel: number, packetSize: number) => {
     },
 
     getReducedResult(acc: ResponseAcc): Buffer | null | undefined {
-      // console.log('acc.dataLength:',acc.dataLength)
       if (acc && acc.dataLength === acc.data.length) {
         return acc.data
       }

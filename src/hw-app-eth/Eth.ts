@@ -218,17 +218,42 @@ async function selectApplet(
 }> {
 
   let response
-  try{
-     response = await transport.send(ethApdu.selectApplet())
-  } catch (e) {
-    //如果设备出现BUSY的情况就发送取消的指令然后重新选择
-    if (e instanceof TransportStatusError) {
-      if (e.statusCode.toString().toLowerCase() === 'f002') {
-        await transport.send(Buffer.alloc(2))
-        response = await transport.send(ethApdu.selectApplet())
+  while(true){
+    try{
+      await transport.send(Buffer.alloc(2))
+    } catch (e) {
+      //如果设备出现BUSY的情况就发送取消的指令然后重新选择
+      if (e instanceof TransportStatusError) {
+        if (e.statusCode.toString().toLowerCase() === 'f002') {
+
+          await transport.send(Buffer.alloc(2))
+        }
+
+        if (e.statusCode.toString().toLowerCase() === 'f001') {
+          break;
+        }
       }
-      }
+    }
   }
+  while(true){
+    try{
+      response = await transport.send(ethApdu.selectApplet())
+      const sw = response.readUInt16BE(response.length - 2)
+      if(sw === 0x9000){
+        break;
+      }
+    } catch (e) {
+      //如果设备出现BUSY的情况就发送取消的指令然后重新选择
+      if (e instanceof TransportStatusError) {
+        if (e.statusCode.toString().toLowerCase() === 'f002') {
+        }
+        if (e.statusCode.toString().toLowerCase() === 'f001') {
+          break;
+        }
+      }
+    }
+  }
+
   // 判断selectApplet返回的指令长度大于130字符，说明webusb读取的指令出现错误
   if(response.toString("hex").length > 130){
     throw new TransportStatusError(0xf001)
