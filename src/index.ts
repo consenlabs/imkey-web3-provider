@@ -36,7 +36,6 @@ interface IProviderOptions {
   headers?: Record<string, string>
   symbol?: string
   decimals?: number
-  msgAlert?: (msg: string) => void
   language?: string
 }
 interface AddEthereumChainParameter {
@@ -149,7 +148,6 @@ export default class ImKeyProvider extends EventEmitter {
     this.symbol = !config.symbol ? 'ETH' : config.symbol
     this.decimals = !config.decimals ? 18 : config.decimals
 
-    this.msgAlert = config.msgAlert
 
     if (config.language) {
       this.language = config.language.includes('zh') ? 'zh' : 'en'
@@ -180,6 +178,15 @@ export default class ImKeyProvider extends EventEmitter {
       this.accounts = await this.imKeyRequestAccounts(requestId++)
       const chainIdHex = await this.callInnerProviderApi(createJsonRpcRequest('eth_chainId'))
       const chainId = hexToNumber(chainIdHex)
+
+      // @ts-ignore: usb will in Browser
+      if (window.navigator.usb) {
+        // @ts-ignore: usb will in Browser
+        window.navigator.usb.addEventListener('disconnect', event => {
+          this.emit("disconnect")
+        });
+      }
+      
       if (chainId !== this.chainId) {
         const errMsg = "chain id and rpc endpoint don't match"
         this.msgAlert(errMsg)
@@ -610,28 +617,27 @@ export default class ImKeyProvider extends EventEmitter {
       await eth.close()
       return { result: json }
     } catch (e) {
+      let errorMsg = e.toString()
       if (e instanceof TransportStatusError) {
         this.emit(EVENT_KEY, e.message)
         if (e.statusCode.toString().toLowerCase() === 'f001') {
-          this.replugWarning()
+          errorMsg = this.replugWarning()
         }
         if (e.statusCode.toString().toLowerCase() === 'f002') {
           // ignore tedious warning
           // this.usbChannelOccupyWarning();
         }
         if (e.statusCode.toString().toLowerCase() === 'f003') {
-          this.notFoundImKey()
+          errorMsg = this.notFoundImKey()
         }
         if (e.statusCode.toString().toLowerCase() === '6940') {
-          this.userNotConfirmed()
+          errorMsg = this.userNotConfirmed()
         }
-
-        console.error('imkey transport error: ', e)
-        throw e
       } else if (e instanceof TransportError) {
-        console.error('imkey transport error: ', e)
-        throw e
-      }
+        errorMsg = e.message
+      } 
+      console.error('imkey transport error: ', e)
+      throw errorMsg
     } finally {
       if (eth) {
         this.unsubscribeTransportEvents(eth)
@@ -651,7 +657,7 @@ export default class ImKeyProvider extends EventEmitter {
     } else {
       msg = 'Some errors occur, please replug imKey'
     }
-    this.warningAlert(msg)
+    return msg;
   }
 
   private usbChannelOccupyWarning() {
@@ -662,7 +668,7 @@ export default class ImKeyProvider extends EventEmitter {
       msg = 'There are incomplete operations on imKey, please check if other pages are using imKey.'
     }
 
-    this.warningAlert(msg)
+    return msg;
   }
   private userNotConfirmed() {
     let msg: string
@@ -672,7 +678,7 @@ export default class ImKeyProvider extends EventEmitter {
       msg = 'The operation on imKey has cancelled.'
     }
 
-    this.warningAlert(msg)
+    return msg;
   }
 
   private imKeyUnresponsiveAlert() {
@@ -682,7 +688,7 @@ export default class ImKeyProvider extends EventEmitter {
     } else {
       msg = 'Please confirm on imKey'
     }
-    this.warningAlert(msg)
+    return msg;
   }
 
   private notFoundImKey() {
@@ -693,15 +699,13 @@ export default class ImKeyProvider extends EventEmitter {
       msg = 'No imKey device is found, please use USB to connect to imKey.'
     }
 
-    this.warningAlert(msg)
+    return msg;
   }
   private warningAlert(msg: string) {
     clearTimeout(this.debounceTimer)
     this.debounceTimer = setTimeout(() => {
       if (this.msgAlert) {
         this.msgAlert(msg)
-      } else {
-        window.alert(msg)
       }
     }, 500)
   }
