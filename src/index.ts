@@ -12,7 +12,8 @@ import {
   arrayEquals,
   EIP1559RLPEncodedTransaction,
 } from './common/utils'
-import { JsonRpcPayload, JsonRpcResponse } from './common/utils'
+import { JsonRpcPayload } from './common/utils'
+import { JsonRpcResponse } from 'web3-core-helpers'
 import { RLPEncodedTransaction, TransactionConfig } from './common/utils'
 // @ts-ignore
 import * as rlp from 'rlp'
@@ -26,6 +27,7 @@ import { ETHSingleton } from './hw-app-eth/EHTSingleton'
 import { TransportStatusError } from './errors'
 import { constants } from './common/constants'
 import { ethers } from 'ethers'
+import { errorCodes } from 'eth-rpc-errors'
 export const EVENT_KEY: string = 'deviceStatus'
 
 interface IProviderOptions {
@@ -115,6 +117,9 @@ export default class ImKeyProvider extends EventEmitter {
   private symbol: string
   private decimals: number
   private accounts: string[]
+
+  private chains: Record<number, AddEthereumChainParameter> = {}
+
   constructor(config: IProviderOptions) {
     super()
     let rpcUrl = config.rpcUrl
@@ -224,7 +229,48 @@ export default class ImKeyProvider extends EventEmitter {
         }
         return await this.requestTransactionReceipt(payload)
       }
+      case 'wallet_switchEthereumChain': {
+        const chainId = args.params![0]
+        const chainIdNumeric = parseInt(chainId)
+        if (isNaN(chainIdNumeric)) {
+          return createProviderRpcError(errorCodes.rpc.invalidParams, `Invalid chain ID ${chainId}`)
+        }
+
+        if (chainIdNumeric in this.chains) {
+          this.changeChain(this.chains[chainIdNumeric])
+          return
+        }
+
+        return createProviderRpcError(
+          4902,
+          `Unrecognized chain ID "${chainId}". Try adding the chain using "wallet_addEthereumChain" first.`,
+        )
+      }
       case 'wallet_addEthereumChain': {
+        const chain = args.params![0]
+
+        if (!chain) {
+          return createProviderRpcError(errorCodes.rpc.invalidParams, 'Missing chain parameter')
+        }
+
+        if (!chain.rpcUrls?.length) {
+          return createProviderRpcError(
+            errorCodes.rpc.invalidParams,
+            'Missing rpcUrls defined in chain parameter',
+          )
+        }
+
+        const chainIdNumeric = parseInt(chain.chainId)
+
+        if (isNaN(chainIdNumeric)) {
+          return createProviderRpcError(
+            errorCodes.rpc.invalidParams,
+            `Invalid chain ID ${chain.chainId}`,
+          )
+        }
+
+        this.chains[chainIdNumeric] = chain
+
         this.changeChain(args.params[0])
         return null
       }
@@ -243,13 +289,13 @@ export default class ImKeyProvider extends EventEmitter {
     this.chainId = stringToNumber(parseArgsNum(args.chainId))
     this.decimals = args.nativeCurrency.decimals
     this.symbol = args.nativeCurrency.symbol
-    if (args.rpcUrls) {
+    if (args.rpcUrls && args.rpcUrls.length) {
       let headers = this.headers
       // this.httpProvider = new providers.Web3Provider({
       //   host:args.rpcUrls[0]
       // },{name:chainId2InfuraNetwork(this.chainId),chainId:this.chainId});
       // @ts-ignore
-      this.httpProvider = new Web3HttpProvider(args.rpcUrls, {
+      this.httpProvider = new Web3HttpProvider(args.rpcUrls[0], {
         headers,
       })
     }
