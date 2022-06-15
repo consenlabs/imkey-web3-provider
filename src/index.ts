@@ -13,6 +13,7 @@ import {
   EIP1559RLPEncodedTransaction,
 } from './common/utils'
 import { JsonRpcPayload, JsonRpcResponse } from './common/utils'
+// import {  } from 'web3-core-helpers'
 import { RLPEncodedTransaction, TransactionConfig } from './common/utils'
 // @ts-ignore
 import * as rlp from 'rlp'
@@ -27,7 +28,10 @@ import { ETHSingleton } from './hw-app-eth/EHTSingleton'
 import { TransportError, TransportStatusError } from './errors'
 import { constants } from './common/constants'
 import { ethers } from 'ethers'
+import { errorCodes } from 'eth-rpc-errors'
 export const EVENT_KEY: string = 'deviceStatus'
+
+console.log('imkey web3 provider init')
 
 interface IProviderOptions {
   rpcUrl?: string
@@ -121,6 +125,9 @@ export default class ImKeyProvider extends EventEmitter {
   private language: string
   private debounceTimer: NodeJS.Timeout
   private mutex: Mutex
+
+  private chains: Record<number, AddEthereumChainParameter> = {}
+
   constructor(config: IProviderOptions) {
     super()
     let rpcUrl = config.rpcUrl
@@ -147,7 +154,6 @@ export default class ImKeyProvider extends EventEmitter {
     })
     this.symbol = !config.symbol ? 'ETH' : config.symbol
     this.decimals = !config.decimals ? 18 : config.decimals
-
 
     if (config.language) {
       this.language = config.language.includes('zh') ? 'zh' : 'en'
@@ -183,18 +189,20 @@ export default class ImKeyProvider extends EventEmitter {
       if (window.navigator.usb) {
         // @ts-ignore: usb will in Browser
         window.navigator.usb.addEventListener('disconnect', event => {
-          this.emit("disconnect")
-        });
+          this.emit('disconnect')
+        })
       }
-      
-      if (chainId !== this.chainId) {
-        const errMsg = "chain id and rpc endpoint don't match"
-        this.msgAlert(errMsg)
-        throw new Error(errMsg)
-      } else {
-        this.emit('connect', { chainId })
-        return this.accounts
-      }
+
+      // if (chainId !== this.chainId) {
+      //   const errMsg = "chain id and rpc endpoint don't match"
+      //   if (typeof this.msgAlert === 'function') {
+      //     this.msgAlert(errMsg)
+      //   }
+      //   throw new Error(errMsg)
+      // } else {
+      this.emit('connect', { chainId })
+      return this.accounts
+      // }
     } finally {
       release()
     }
@@ -257,7 +265,48 @@ export default class ImKeyProvider extends EventEmitter {
         }
         return await this.requestTransactionReceipt(payload)
       }
+      case 'wallet_switchEthereumChain': {
+        const chainId = args.params[0]?.chainId
+        const chainIdNumeric = Number(chainId)
+        if (isNaN(chainIdNumeric)) {
+          throw createProviderRpcError(errorCodes.rpc.invalidParams, `Invalid chain ID ${chainId}`)
+        }
+
+        if (chainIdNumeric in this.chains) {
+          this.changeChain(this.chains[chainIdNumeric])
+          return
+        }
+        
+        throw createProviderRpcError(
+          4902,
+          `Unrecognized chain ID "${chainId}". Try adding the chain using "wallet_addEthereumChain" first.`,
+        )
+      }
       case 'wallet_addEthereumChain': {
+        const chain = args.params![0]
+
+        if (!chain) {
+          throw createProviderRpcError(errorCodes.rpc.invalidParams, 'Missing chain parameter')
+        }
+
+        if (!chain.rpcUrls?.length) {
+          throw createProviderRpcError(
+            errorCodes.rpc.invalidParams,
+            'Missing rpcUrls defined in chain parameter',
+          )
+        }
+
+        const chainIdNumeric = Number(chain.chainId)
+
+        if (isNaN(chainIdNumeric)) {
+          throw createProviderRpcError(
+            errorCodes.rpc.invalidParams,
+            `Invalid chain ID ${chain.chainId}`,
+          )
+        }
+
+        this.chains[chainIdNumeric] = chain
+
         this.changeChain(args.params[0])
         return null
       }
@@ -276,17 +325,17 @@ export default class ImKeyProvider extends EventEmitter {
     this.chainId = stringToNumber(parseArgsNum(args.chainId))
     this.decimals = args.nativeCurrency.decimals
     this.symbol = args.nativeCurrency.symbol
-    if (args.rpcUrls) {
+    if (args.rpcUrls && args.rpcUrls.length) {
       let headers = this.headers
       // this.httpProvider = new providers.Web3Provider({
       //   host:args.rpcUrls[0]
       // },{name:chainId2InfuraNetwork(this.chainId),chainId:this.chainId});
       // @ts-ignore
-      this.httpProvider = new Web3HttpProvider(args.rpcUrls, {
+      this.httpProvider = new Web3HttpProvider(args.rpcUrls[0], {
         headers,
       })
     }
-    this.emit('chainChanged', { chainId: parseArgsNum(args.chainId) })
+    this.emit('chainChanged', parseArgsNum(args.chainId))
   }
 
   sendAsync(args: JsonRpcPayload, callback: (err: Error | null, ret: any) => void) {
@@ -635,7 +684,7 @@ export default class ImKeyProvider extends EventEmitter {
         }
       } else if (e instanceof TransportError) {
         errorMsg = e.message
-      } 
+      }
       console.error('imkey transport error: ', e)
       throw errorMsg
     } finally {
@@ -657,7 +706,7 @@ export default class ImKeyProvider extends EventEmitter {
     } else {
       msg = 'Some errors occur, please replug imKey'
     }
-    return msg;
+    return msg
   }
 
   private usbChannelOccupyWarning() {
@@ -668,7 +717,7 @@ export default class ImKeyProvider extends EventEmitter {
       msg = 'There are incomplete operations on imKey, please check if other pages are using imKey.'
     }
 
-    return msg;
+    return msg
   }
   private userNotConfirmed() {
     let msg: string
@@ -678,7 +727,7 @@ export default class ImKeyProvider extends EventEmitter {
       msg = 'The operation on imKey has cancelled.'
     }
 
-    return msg;
+    return msg
   }
 
   private imKeyUnresponsiveAlert() {
@@ -688,7 +737,7 @@ export default class ImKeyProvider extends EventEmitter {
     } else {
       msg = 'Please confirm on imKey'
     }
-    return msg;
+    return msg
   }
 
   private notFoundImKey() {
@@ -699,7 +748,7 @@ export default class ImKeyProvider extends EventEmitter {
       msg = 'No imKey device is found, please use USB to connect to imKey.'
     }
 
-    return msg;
+    return msg
   }
   private warningAlert(msg: string) {
     clearTimeout(this.debounceTimer)

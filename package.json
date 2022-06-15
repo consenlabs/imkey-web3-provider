@@ -107,6 +107,7 @@
     "async-mutex": "^0.3.2",
     "axios": "^0.21.4",
     "bignumber.js": "^9.0.1",
+    "eth-rpc-errors": "^4.0.3",
     "ethereumjs-util": "^5.1.1",
     "ethers": "^5.4.6",
     "event-emitter-es6": "^1.1.5",
