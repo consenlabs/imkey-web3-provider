@@ -11,6 +11,8 @@ import {
   bytesToHex,
   arrayEquals,
   EIP1559RLPEncodedTransaction,
+  isHexStrict,
+  utf8ToHex,
 } from './common/utils'
 import { JsonRpcPayload, JsonRpcResponse } from './common/utils'
 // import {  } from 'web3-core-helpers'
@@ -242,7 +244,7 @@ export default class ImKeyProvider extends EventEmitter {
         return await this.callInnerProviderApi(req)
       }
       case 'eth_sign': {
-        return await this.imKeySign(requestId++, args.params![1], args.params![0], false)
+        return await this.imKeySign(requestId++, args.params![1], args.params![0], true)
       }
       /* eslint-disable no-fallthrough */
       case 'eth_signTypedData':
@@ -612,12 +614,8 @@ export default class ImKeyProvider extends EventEmitter {
       throw error
     }
 
-    let data = ''
-    try {
-      data = toUtf8(dataToSign)
-    } catch (error) {
-      data = dataToSign
-    }
+    let data = isHexStrict(dataToSign) ? dataToSign : utf8ToHex(dataToSign)
+
 
     const checksumAddress = toChecksumAddress(address as string)
 
