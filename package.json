@@ -1,6 +1,6 @@
 {
   "name": "@imkey/web3-provider",
-  "version": "1.3.5",
+  "version": "1.3.6",
   "description": "A web3 provider connects to imKey",
   "main": "dist/imkey-web3-provider.cjs.js",
   "module": "dist/imkey-web3-provider.esm.js",
