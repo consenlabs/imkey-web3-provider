@@ -33,8 +33,6 @@ import { ethers } from 'ethers'
 import { errorCodes } from 'eth-rpc-errors'
 export const EVENT_KEY: string = 'deviceStatus'
 
-console.log('imkey web3 provider init')
-
 interface IProviderOptions {
   rpcUrl?: string
   infuraId?: string
