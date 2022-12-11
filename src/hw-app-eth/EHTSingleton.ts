@@ -50,7 +50,9 @@ export class ETHSingleton {
     }
   }
   public async close() {
-    await this.transport.close()
+    if (this.transport) {
+      await this.transport.close()
+    }
     this.transport = null
     this.eth = null
     this.isClose = true

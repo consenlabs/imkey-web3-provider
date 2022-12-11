@@ -11,21 +11,26 @@ import {
   bytesToHex,
   arrayEquals,
   EIP1559RLPEncodedTransaction,
+  isHexStrict,
+  utf8ToHex,
 } from './common/utils'
 import { JsonRpcPayload, JsonRpcResponse } from './common/utils'
+// import {  } from 'web3-core-helpers'
 import { RLPEncodedTransaction, TransactionConfig } from './common/utils'
 // @ts-ignore
 import * as rlp from 'rlp'
 import EventEmitter from 'event-emitter-es6'
 import BN from 'bn.js'
 import imTokenEip712Utils from './eip712'
+import { Mutex } from 'async-mutex'
 
 // @ts-ignore
 import Web3HttpProvider from 'web3-providers-http'
 import { ETHSingleton } from './hw-app-eth/EHTSingleton'
-import { TransportStatusError } from './errors'
+import { TransportError, TransportStatusError } from './errors'
 import { constants } from './common/constants'
 import { ethers } from 'ethers'
+import { errorCodes } from 'eth-rpc-errors'
 export const EVENT_KEY: string = 'deviceStatus'
 
 interface IProviderOptions {
@@ -35,6 +40,7 @@ interface IProviderOptions {
   headers?: Record<string, string>
   symbol?: string
   decimals?: number
+  language?: string
 }
 interface AddEthereumChainParameter {
   chainId: string
@@ -115,6 +121,13 @@ export default class ImKeyProvider extends EventEmitter {
   private symbol: string
   private decimals: number
   private accounts: string[]
+  private msgAlert: (message?: any) => void
+  private language: string
+  private debounceTimer: NodeJS.Timeout
+  private mutex: Mutex
+
+  private chains: Record<number, AddEthereumChainParameter> = {}
+
   constructor(config: IProviderOptions) {
     super()
     let rpcUrl = config.rpcUrl
@@ -141,6 +154,14 @@ export default class ImKeyProvider extends EventEmitter {
     })
     this.symbol = !config.symbol ? 'ETH' : config.symbol
     this.decimals = !config.decimals ? 18 : config.decimals
+
+    if (config.language) {
+      this.language = config.language.includes('zh') ? 'zh' : 'en'
+    } else {
+      this.language = this.getLang().includes('zh') ? 'zh' : 'en'
+    }
+
+    this.mutex = new Mutex()
   }
 
   async callInnerProviderApi(req: JsonRpcPayload): Promise<any> {
@@ -148,6 +169,8 @@ export default class ImKeyProvider extends EventEmitter {
       this.httpProvider.send(req, (error: Error | null, result?: JsonRpcResponse) => {
         if (error) {
           reject(createProviderRpcError(4001, error.message))
+        } else if (result.error) {
+          reject(createProviderRpcError(4001, result.error.message))
         } else {
           resolve(result.result)
         }
@@ -156,14 +179,32 @@ export default class ImKeyProvider extends EventEmitter {
   }
 
   async enable() {
-    this.accounts = await this.imKeyRequestAccounts(requestId++)
-    const chainIdHex = await this.callInnerProviderApi(createJsonRpcRequest('eth_chainId'))
-    const chainId = hexToNumber(chainIdHex)
-    if (chainId !== this.chainId) {
-      throw new Error("chain id and rpc endpoint don't match")
-    } else {
+    const release = await this.mutex.acquire()
+    try {
+      this.accounts = await this.imKeyRequestAccounts(requestId++)
+      const chainIdHex = await this.callInnerProviderApi(createJsonRpcRequest('eth_chainId'))
+      const chainId = hexToNumber(chainIdHex)
+
+      // @ts-ignore: usb will in Browser
+      if (window.navigator.usb) {
+        // @ts-ignore: usb will in Browser
+        window.navigator.usb.addEventListener('disconnect', event => {
+          this.emit('disconnect')
+        })
+      }
+
+      // if (chainId !== this.chainId) {
+      //   const errMsg = "chain id and rpc endpoint don't match"
+      //   if (typeof this.msgAlert === 'function') {
+      //     this.msgAlert(errMsg)
+      //   }
+      //   throw new Error(errMsg)
+      // } else {
       this.emit('connect', { chainId })
       return this.accounts
+      // }
+    } finally {
+      release()
     }
   }
 
@@ -201,7 +242,7 @@ export default class ImKeyProvider extends EventEmitter {
         return await this.callInnerProviderApi(req)
       }
       case 'eth_sign': {
-        return await this.imKeySign(requestId++, args.params![1], args.params![0], false)
+        return await this.imKeySign(requestId++, args.params![1], args.params![0], true)
       }
       /* eslint-disable no-fallthrough */
       case 'eth_signTypedData':
@@ -224,7 +265,48 @@ export default class ImKeyProvider extends EventEmitter {
         }
         return await this.requestTransactionReceipt(payload)
       }
+      case 'wallet_switchEthereumChain': {
+        const chainId = args.params[0]?.chainId
+        const chainIdNumeric = Number(chainId)
+        if (isNaN(chainIdNumeric)) {
+          throw createProviderRpcError(errorCodes.rpc.invalidParams, `Invalid chain ID ${chainId}`)
+        }
+
+        if (chainIdNumeric in this.chains) {
+          this.changeChain(this.chains[chainIdNumeric])
+          return
+        }
+        
+        throw createProviderRpcError(
+          4902,
+          `Unrecognized chain ID "${chainId}". Try adding the chain using "wallet_addEthereumChain" first.`,
+        )
+      }
       case 'wallet_addEthereumChain': {
+        const chain = args.params![0]
+
+        if (!chain) {
+          throw createProviderRpcError(errorCodes.rpc.invalidParams, 'Missing chain parameter')
+        }
+
+        if (!chain.rpcUrls?.length) {
+          throw createProviderRpcError(
+            errorCodes.rpc.invalidParams,
+            'Missing rpcUrls defined in chain parameter',
+          )
+        }
+
+        const chainIdNumeric = Number(chain.chainId)
+
+        if (isNaN(chainIdNumeric)) {
+          throw createProviderRpcError(
+            errorCodes.rpc.invalidParams,
+            `Invalid chain ID ${chain.chainId}`,
+          )
+        }
+
+        this.chains[chainIdNumeric] = chain
+
         this.changeChain(args.params[0])
         return null
       }
@@ -243,18 +325,19 @@ export default class ImKeyProvider extends EventEmitter {
     this.chainId = stringToNumber(parseArgsNum(args.chainId))
     this.decimals = args.nativeCurrency.decimals
     this.symbol = args.nativeCurrency.symbol
-    if (args.rpcUrls) {
+    if (args.rpcUrls && args.rpcUrls.length) {
       let headers = this.headers
       // this.httpProvider = new providers.Web3Provider({
       //   host:args.rpcUrls[0]
       // },{name:chainId2InfuraNetwork(this.chainId),chainId:this.chainId});
       // @ts-ignore
-      this.httpProvider = new Web3HttpProvider(args.rpcUrls, {
+      this.httpProvider = new Web3HttpProvider(args.rpcUrls[0], {
         headers,
       })
     }
-    this.emit('chainChanged', { chainId: parseArgsNum(args.chainId) })
+    this.emit('chainChanged', parseArgsNum(args.chainId))
   }
+
   sendAsync(args: JsonRpcPayload, callback: (err: Error | null, ret: any) => void) {
     this.request(args)
       .then(ret => {
@@ -381,6 +464,9 @@ export default class ImKeyProvider extends EventEmitter {
     if (transactionConfig.gas) {
       gasLimit = parseArgsNum(transactionConfig.gas)
     } else {
+      let valueInHex = numberToHex(transactionConfig.value)
+      // infura cannot accept 0x value
+      const value = valueInHex === '0x' ? '0x0' : valueInHex
       const gasRet: string = await this.callInnerProviderApi(
         createJsonRpcRequest('eth_estimateGas', [
           {
@@ -388,7 +474,7 @@ export default class ImKeyProvider extends EventEmitter {
             to: transactionConfig.to,
             gas: transactionConfig.gas,
             gasPrice: numberToHex(gasPriceDec),
-            value: numberToHex(transactionConfig.value),
+            value,
             data: transactionConfig.data,
           },
         ]),
@@ -526,12 +612,8 @@ export default class ImKeyProvider extends EventEmitter {
       throw error
     }
 
-    let data = ''
-    try {
-      data = toUtf8(dataToSign)
-    } catch (error) {
-      data = dataToSign
-    }
+    let data = isHexStrict(dataToSign) ? dataToSign : utf8ToHex(dataToSign)
+
 
     const checksumAddress = toChecksumAddress(address as string)
 
@@ -580,17 +662,97 @@ export default class ImKeyProvider extends EventEmitter {
       await eth.close()
       return { result: json }
     } catch (e) {
+      let errorMsg = e.toString()
       if (e instanceof TransportStatusError) {
         this.emit(EVENT_KEY, e.message)
-        throw e.message
-      } else {
-        throw e
+        if (e.statusCode.toString().toLowerCase() === 'f001') {
+          errorMsg = this.replugWarning()
+        }
+        if (e.statusCode.toString().toLowerCase() === 'f002') {
+          // ignore tedious warning
+          // this.usbChannelOccupyWarning();
+        }
+        if (e.statusCode.toString().toLowerCase() === 'f003') {
+          errorMsg = this.notFoundImKey()
+        }
+        if (e.statusCode.toString().toLowerCase() === '6940') {
+          errorMsg = this.userNotConfirmed()
+        }
+      } else if (e instanceof TransportError) {
+        errorMsg = e.message
       }
+      console.error('imkey transport error: ', e)
+      throw errorMsg
     } finally {
       if (eth) {
         this.unsubscribeTransportEvents(eth)
       }
     }
+  }
+
+  private getLang() {
+    if (navigator.languages != undefined) return navigator.languages[0]
+    return navigator.language
+  }
+
+  private replugWarning() {
+    let msg: string
+    if (this.language === 'zh') {
+      msg = 'imKey 通讯出错，请拔掉 imKey 重新插入'
+    } else {
+      msg = 'Some errors occur, please replug imKey'
+    }
+    return msg
+  }
+
+  private usbChannelOccupyWarning() {
+    let msg: string
+    if (this.language === 'zh') {
+      msg = 'imKey 有未完成操作，请检查其他网页是否整占用 imKey'
+    } else {
+      msg = 'There are incomplete operations on imKey, please check if other pages are using imKey.'
+    }
+
+    return msg
+  }
+  private userNotConfirmed() {
+    let msg: string
+    if (this.language === 'zh') {
+      msg = 'imKey 的操作已取消'
+    } else {
+      msg = 'The operation on imKey has cancelled.'
+    }
+
+    return msg
+  }
+
+  private imKeyUnresponsiveAlert() {
+    let msg: string
+    if (this.language === 'zh') {
+      msg = '请在 imKey 上确认操作'
+    } else {
+      msg = 'Please confirm on imKey'
+    }
+    return msg
+  }
+
+  private notFoundImKey() {
+    let msg: string
+    if (this.language === 'zh') {
+      msg = '未发现 imKey 设备，请使用 USB 连接 imKey '
+    } else {
+      msg = 'No imKey device is found, please use USB to connect to imKey.'
+    }
+
+    return msg
+  }
+  private warningAlert(msg: string) {
+    clearTimeout(this.debounceTimer)
+    this.debounceTimer = setTimeout(() => {
+      if (this.msgAlert) {
+        this.msgAlert(msg)
+      }
+    }, 500)
   }
 
   private subscribeTransportEvents(eth: ETHSingleton) {
@@ -613,6 +775,7 @@ export default class ImKeyProvider extends EventEmitter {
 
   imKeyUnresponsiveEmitter = () => {
     console.log('imkey unresponsive')
+    this.imKeyUnresponsiveAlert()
     this.emit(EVENT_KEY, 'ImKeyUnresponsive')
   }
 }

@@ -1,4 +1,4 @@
-import Transport from '../hw-transport/Transport'
+import Transport, { TransportStatusError } from "../hw-transport/Transport";
 import { Observer, DescriptorEvent, Subscription } from '../hw-transport/Transport'
 import hidFraming from './hid-framing'
 import { identifyUSBProductId } from './imKeyDevice'
@@ -70,9 +70,12 @@ export default class TransportWebUSB extends Transport {
       },
       error => {
         if (window.DOMException && error instanceof window.DOMException && error.code === 18) {
-          observer.error(new TransportWebUSBGestureRequired(error.message))
+          // observer.error(new TransportWebUSBGestureRequired(error.message))
+          observer.error(new TransportStatusError(0xf003))
+
         } else {
-          observer.error(new TransportOpenUserCancelled(error.message))
+          // observer.error(new TransportOpenUserCancelled(error.message))
+          observer.error(new TransportStatusError(0xf003))
         }
       },
     )
@@ -118,9 +121,10 @@ export default class TransportWebUSB extends Transport {
       alternates.some(a => a.interfaceClass === 255),
     )
     if (!iface) {
-      throw new TransportInterfaceNotAvailable(
-        'No WebUSB interface found for your imkey device. Please upgrade firmware or contact techsupport.',
-      )
+      throw  new TransportStatusError(0xf002)
+      // throw new TransportInterfaceNotAvailable(
+      //   'No WebUSB interface found for your imkey device. Please upgrade firmware or contact techsupport.',
+      // )
     }
     const interfaceNumber = iface.interfaceNumber
 
@@ -129,7 +133,8 @@ export default class TransportWebUSB extends Transport {
     } catch (e) {
       // await device.close()
       // @ts-ignore
-      throw new TransportInterfaceNotAvailable(e.message)
+      throw  new TransportStatusError(0xf002)
+      // throw new TransportInterfaceNotAvailable(e.message)
     }
     const transport = new TransportWebUSB(device, interfaceNumber)
     const onDisconnect = e => {
@@ -191,7 +196,8 @@ export default class TransportWebUSB extends Transport {
     }).catch(async e => {
       if (e && e.message && e.message.includes('disconnected')) {
         this._emitDisconnect(e)
-        throw new DisconnectedDeviceDuringOperation(e.message)
+        // throw new DisconnectedDeviceDuringOperation(e.message)
+        throw new TransportStatusError(0xf001)
       }
 
       throw e

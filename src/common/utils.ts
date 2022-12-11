@@ -51,10 +51,6 @@ export function toBN(x): BN {
   return new BN(x)
 }
 
-function isHexStrict(hex: string): boolean {
-  return (isString(hex) || isNumber(hex)) && /^(-)?0x[0-9a-f]*$/i.test(hex)
-}
-
 export function isHex(value: string | number): boolean {
   return ethers.utils.isHexString(value)
 }
@@ -99,6 +95,31 @@ export function bytesToHex(bytes: any[]): string {
 export function fromWei(value: string | number, unit?: string): string {
   return ethers.utils.formatUnits(value, unit)
 }
+
+export function isHexStrict(hex: string): boolean  {
+  return ((typeof hex === 'string' || typeof hex === 'number') && /^(-)?0x[0-9a-f]*$/i.test(hex));
+};
+
+export function utf8ToHex(str: string): string {
+  str = utf8.encode(str);
+  var hex = "";
+
+  // remove \u0000 padding from either side
+  str = str.replace(/^(?:\u0000)*/,'');
+  str = str.split("").reverse().join("");
+  str = str.replace(/^(?:\u0000)*/,'');
+  str = str.split("").reverse().join("");
+
+  for(var i = 0; i < str.length; i++) {
+      var code = str.charCodeAt(i);
+      // if (code !== 0) {
+      var n = code.toString(16);
+      hex += n.length < 2 ? '0' + n : n;
+      // }
+  }
+
+  return "0x" + hex;
+};
 
 export function toUtf8(value: string): string {
   return hexToUtf8(value)
@@ -172,7 +193,7 @@ export interface JsonRpcResponse {
   jsonrpc: string
   id: number
   result?: any
-  error?: string
+  error?: any
 }
 export interface EIP1559RLPEncodedTransaction {
   raw: string
