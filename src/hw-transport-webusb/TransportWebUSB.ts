@@ -1,8 +1,9 @@
-import Transport, { TransportStatusError } from "../hw-transport/Transport";
+import Transport, { TransportStatusError } from '../hw-transport/Transport'
 import { Observer, DescriptorEvent, Subscription } from '../hw-transport/Transport'
 import hidFraming from './hid-framing'
 import { identifyUSBProductId } from './imKeyDevice'
 import { DeviceModel } from './imKeyDevice'
+import { Buffer } from 'buffer'
 
 import {
   TransportOpenUserCancelled,
@@ -72,7 +73,6 @@ export default class TransportWebUSB extends Transport {
         if (window.DOMException && error instanceof window.DOMException && error.code === 18) {
           // observer.error(new TransportWebUSBGestureRequired(error.message))
           observer.error(new TransportStatusError(0xf003))
-
         } else {
           // observer.error(new TransportOpenUserCancelled(error.message))
           observer.error(new TransportStatusError(0xf003))
@@ -121,7 +121,7 @@ export default class TransportWebUSB extends Transport {
       alternates.some(a => a.interfaceClass === 255),
     )
     if (!iface) {
-      throw  new TransportStatusError(0xf002)
+      throw new TransportStatusError(0xf002)
       // throw new TransportInterfaceNotAvailable(
       //   'No WebUSB interface found for your imkey device. Please upgrade firmware or contact techsupport.',
       // )
@@ -133,7 +133,7 @@ export default class TransportWebUSB extends Transport {
     } catch (e) {
       // await device.close()
       // @ts-ignore
-      throw  new TransportStatusError(0xf002)
+      throw new TransportStatusError(0xf002)
       // throw new TransportInterfaceNotAvailable(e.message)
     }
     const transport = new TransportWebUSB(device, interfaceNumber)

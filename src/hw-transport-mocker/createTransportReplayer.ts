@@ -1,6 +1,7 @@
 import { Class } from 'utility-types'
 import Transport from '../hw-transport/Transport'
 import { RecordStore } from './RecordStore'
+import { Buffer } from 'buffer'
 
 /**
  * create a transport replayer with a record store.

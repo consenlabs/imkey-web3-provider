@@ -51,7 +51,9 @@ export class ETHSingleton {
   }
   public async close() {
     if (this.transport) {
-      await this.transport.close()
+      try {
+        await this.transport.close()
+      } catch (ignored) {}
     }
     this.transport = null
     this.eth = null

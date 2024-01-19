@@ -17,7 +17,8 @@ import { ethers } from 'ethers'
 import secp256k1 from 'secp256k1'
 import { getTokenInfo } from './erc20Utils'
 import { constants } from '../common/constants'
-import { TransportStatusError } from "../errors/index";
+import { TransportStatusError } from '../errors/index'
+import { Buffer } from 'buffer'
 
 export type Transaction = {
   data: string
@@ -212,35 +213,33 @@ export default class Eth {
   }
 }
 async function selectApplet(
-  transport: Transport
+  transport: Transport,
 ): Promise<{
   response: string
 }> {
-
   let response
-  while(true){
-    try{
+  while (true) {
+    try {
       await transport.send(Buffer.alloc(2))
     } catch (e) {
       //如果设备出现BUSY的情况就发送取消的指令然后重新选择
       if (e instanceof TransportStatusError) {
         if (e.statusCode.toString().toLowerCase() === 'f002') {
-
           await transport.send(Buffer.alloc(2))
         }
 
         if (e.statusCode.toString().toLowerCase() === 'f001') {
-          break;
+          break
         }
       }
     }
   }
-  while(true){
-    try{
+  while (true) {
+    try {
       response = await transport.send(ethApdu.selectApplet())
       const sw = response.readUInt16BE(response.length - 2)
-      if(sw === 0x9000){
-        break;
+      if (sw === 0x9000) {
+        break
       }
     } catch (e) {
       //如果设备出现BUSY的情况就发送取消的指令然后重新选择
@@ -248,18 +247,18 @@ async function selectApplet(
         if (e.statusCode.toString().toLowerCase() === 'f002') {
         }
         if (e.statusCode.toString().toLowerCase() === 'f001') {
-          break;
+          break
         }
       }
     }
   }
 
   // 判断selectApplet返回的指令长度大于130字符，说明webusb读取的指令出现错误
-  if(response.toString("hex").length > 130){
+  if (response.toString('hex').length > 130) {
     throw new TransportStatusError(0xf001)
   }
   return {
-    response: response.slice(0, 8).toString('hex')
+    response: response.slice(0, 8).toString('hex'),
   }
 }
 async function getWalletAddress(
@@ -272,7 +271,7 @@ async function getWalletAddress(
   await selectApplet(transport)
   let response = await transport.send(ethApdu.getXPub(path, false))
   // 判断getXPub的指令长度大于130字符，才可以计算address，如果小于说明读取到的返回结果有误
-  if(response.toString("hex").length < 130){
+  if (response.toString('hex').length < 130) {
     throw new TransportStatusError(0xf001)
   }
   return {

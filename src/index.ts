@@ -32,6 +32,7 @@ import { constants } from './common/constants'
 import { ethers } from 'ethers'
 import { errorCodes } from 'eth-rpc-errors'
 export const EVENT_KEY: string = 'deviceStatus'
+export { ETHSingleton } from './hw-app-eth/EHTSingleton'
 
 interface IProviderOptions {
   rpcUrl?: string
@@ -276,7 +277,7 @@ export default class ImKeyProvider extends EventEmitter {
           this.changeChain(this.chains[chainIdNumeric])
           return
         }
-        
+
         throw createProviderRpcError(
           4902,
           `Unrecognized chain ID "${chainId}". Try adding the chain using "wallet_addEthereumChain" first.`,
@@ -613,7 +614,6 @@ export default class ImKeyProvider extends EventEmitter {
     }
 
     let data = isHexStrict(dataToSign) ? dataToSign : utf8ToHex(dataToSign)
-
 
     const checksumAddress = toChecksumAddress(address as string)
 

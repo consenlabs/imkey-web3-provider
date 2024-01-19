@@ -1,4 +1,5 @@
 import { constants } from './constants'
+import { Buffer } from 'buffer'
 export class ETHApdu {
   selectApplet(): Buffer {
     return genApdu(0x00, 0xa4, 0x04, 0x00, Buffer.from(constants.ETH_AID, 'hex'))

@@ -4,6 +4,7 @@
  */
 import ethUtil from 'ethereumjs-util'
 import ethAbi from 'ethereumjs-abi'
+import { Buffer } from 'buffer'
 
 const TYPED_MESSAGE_SCHEMA = {
   type: 'object',

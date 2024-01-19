@@ -9,6 +9,7 @@ import {
   TransportStatusError,
 } from '../errors'
 export { TransportError, TransportStatusError, StatusCodes }
+import { Buffer } from 'buffer'
 
 /**
  */
@@ -288,7 +289,7 @@ export default class Transport {
       if (_appAPIlock) {
         this.emit('unresponsive')
         console.error(
-          new TransportStatusError(0xf002)
+          new TransportStatusError(0xf002),
           // new TransportError('imKey Device is busy (lock ' + _appAPIlock + ')', 'TransportLocked'),
         )
 

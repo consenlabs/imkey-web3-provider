@@ -1,4 +1,4 @@
-import ImKeyProvider from './index'
+import ImKeyProvider, { ETHSingleton } from './index'
 
 // import Web3 from 'web3'
 import Web3HttpProvider from 'web3-providers-http'
@@ -6,7 +6,7 @@ import TransportWebUSB from './hw-transport-webusb/TransportWebUSB'
 import ETH from './hw-app-eth/Eth'
 import { ethers } from 'ethers'
 import { addPreZero, RLPEncodedTransaction } from './common/utils'
-// import ImKeyProvider from "@imkey/web3-provider"
+
 interface ProviderConnectInfo {
   readonly chainId: string
 }
@@ -360,7 +360,18 @@ btnRequestEthSignTransaction.addEventListener('click', async () => {
     })
 })
 
-// document.appendChild(btn);
+const btnETHSingletonConnect = document.createElement('button')
+btnETHSingletonConnect.innerText = 'Connect by ETHSingleton'
+btnETHSingletonConnect.addEventListener('click', async () => {
+  const eth = ETHSingleton.getInstance()
+  eth.close().then(() => {
+    eth.init().then(() => {
+      eth.getAddress("m/44'/60'/0'/0/0").then(x => {
+        console.log(x.address)
+      })
+    })
+  })
+})
 
 document.body.append(webUsbBtn)
 document.body.append(btn)
@@ -375,3 +386,7 @@ document.body.append(document.createElement('br'))
 document.body.append(btnRequestEthRequestAccounts)
 document.body.append(btnRequestEthSign)
 document.body.append(btnRequestEthSignTransaction)
+
+document.body.append(btnRequestEthSignTransaction)
+document.body.append(document.createElement('br'))
+document.body.append(btnETHSingletonConnect)
